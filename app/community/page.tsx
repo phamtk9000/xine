@@ -1,0 +1,120 @@
+import Link from "next/link";
+import type { Metadata } from "next";
+import { ButtonLink, Container, PageHeader, relativeTime } from "@/components/ui";
+import { listMembers, recentActivity } from "@/lib/profile";
+import { parseJson } from "@/lib/serialize";
+
+export const metadata: Metadata = {
+  title: "Community",
+  description:
+    "What people are watching, rating and arguing about on xine right now.",
+};
+
+const VERBS: Record<string, string> = {
+  rated: "rated",
+  reviewed: "reviewed",
+  watchlisted: "added to their watchlist",
+  listed: "published a list",
+  pitched: "started a film",
+};
+
+export default async function CommunityPage() {
+  const [activity, members] = await Promise.all([
+    recentActivity(50),
+    listMembers(),
+  ]);
+
+  return (
+    <>
+      <PageHeader
+        label="Community"
+        title="What everyone is watching."
+        lede="Ratings, reviews and lists as they happen. Follow the arguments, not the algorithm."
+        action={<ButtonLink href="/sign-up" variant="outline">Join</ButtonLink>}
+      />
+
+      <Container className="py-14">
+        <div className="grid gap-14 lg:grid-cols-[1fr_20rem]">
+          <section>
+            <h2 className="label border-b border-line pb-3">Recent activity</h2>
+            <ul className="mt-2">
+              {activity.map((item) => {
+                const payload = parseJson<{ overall?: number; title?: string }>(
+                  item.payload,
+                  {},
+                );
+                return (
+                  <li
+                    key={item.id}
+                    className="flex flex-wrap items-baseline gap-x-2 gap-y-1 border-b border-line py-4 text-sm last:border-0"
+                  >
+                    <Link
+                      href={`/community/${item.user.username}`}
+                      className="font-medium transition-colors hover:text-gold"
+                    >
+                      {item.user.displayName}
+                    </Link>
+                    <span className="text-muted">
+                      {VERBS[item.type] ?? item.type}
+                    </span>
+                    {item.film && (
+                      <Link
+                        href={`/films/${item.film.slug}`}
+                        className="text-paper transition-colors hover:text-gold"
+                      >
+                        {item.film.title}
+                      </Link>
+                    )}
+                    {item.type === "listed" && payload.title && (
+                      <span className="text-paper">{payload.title}</span>
+                    )}
+                    {item.type === "pitched" && payload.title && (
+                      <span className="text-paper">{payload.title}</span>
+                    )}
+                    {payload.overall !== undefined && (
+                      <span className="font-mono text-xs text-gold tabular-nums">
+                        {payload.overall.toFixed(1)}
+                      </span>
+                    )}
+                    <span className="ml-auto text-xs text-faint">
+                      {relativeTime(item.createdAt)}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+
+          <aside>
+            <div className="flex items-baseline justify-between border-b border-line pb-3">
+              <h2 className="label">Members</h2>
+              <Link href="/community/members" className="label hover:text-paper">
+                All →
+              </Link>
+            </div>
+            <ul className="mt-5 space-y-5">
+              {members.map((member) => (
+                <li key={member.username}>
+                  <Link
+                    href={`/community/${member.username}`}
+                    className="group block"
+                  >
+                    <p className="text-sm font-medium transition-colors group-hover:text-gold">
+                      {member.displayName}
+                    </p>
+                    <p className="mt-0.5 text-xs text-faint">
+                      {member.watched} films
+                      {member.average !== null &&
+                        ` · avg ${member.average.toFixed(1)}`}
+                      {member.location ? ` · ${member.location}` : ""}
+                    </p>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </aside>
+        </div>
+      </Container>
+    </>
+  );
+}

@@ -1,0 +1,245 @@
+@import "tailwindcss";
+
+/**
+ * xine — editorial magazine, contemporary cinema culture.
+ *
+ * The palette is pulled from the key art: distressed screenprint on black,
+ * bone-cream type, oxblood and ochre accents, a cold teal for contrast. Those
+ * images are the loudest thing on any page they appear on, so the interface
+ * is built to sit underneath them rather than compete.
+ *
+ * Committed to a single dark palette rather than following the system theme.
+ * A film site is a projection surface: posters, stills and type plates all
+ * assume they sit on ink, and a light mode would mean re-tuning every one of
+ * them for no editorial gain.
+ */
+
+@theme {
+  --color-ink: #0a0a09;
+  --color-ink-raised: #141310;
+  --color-ink-sunk: #060605;
+  --color-paper: #e6d9bf;
+  --color-muted: #948a76;
+  --color-faint: #635c4e;
+  --color-line: #262319;
+  --color-line-bright: #3d382a;
+  --color-accent: #b53a30;
+  --color-accent-dim: #7e2922;
+  --color-gold: #d99a2b;
+  --color-teal: #5a8377;
+
+  --font-display: "Instrument Serif", ui-serif, Georgia, serif;
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  --text-display: 5.5rem;
+  --text-display--line-height: 0.92;
+  --text-display--letter-spacing: -0.03em;
+
+  --tracking-label: 0.18em;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+body {
+  background: var(--color-ink);
+  color: var(--color-paper);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "ss01", "cv01";
+}
+
+::selection {
+  background: var(--color-accent);
+  color: var(--color-paper);
+}
+
+/* Gold rather than oxblood: it is the only accent with enough contrast
+   against ink to be seen as a focus ring at a glance. */
+:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 3px;
+}
+
+/* The small caps label used above nearly every section on the site. */
+@utility label {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+/* Editorial body copy, used for journal articles and long project stages. */
+@utility prose-xine {
+  & p {
+    margin-block: 1.35em;
+    font-size: 1.0625rem;
+    line-height: 1.72;
+    color: color-mix(in srgb, var(--color-paper) 88%, transparent);
+  }
+  & p:first-child {
+    margin-top: 0;
+  }
+  & h2 {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    line-height: 1.1;
+    margin-block: 2.2em 0.6em;
+    letter-spacing: -0.01em;
+  }
+  & h3 {
+    font-size: 1.0625rem;
+    font-weight: 600;
+    margin-block: 2em 0.4em;
+  }
+  & a {
+    color: var(--color-gold);
+    text-underline-offset: 3px;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+  }
+  & blockquote {
+    margin-block: 2em;
+    padding-left: 1.5rem;
+    border-left: 2px solid var(--color-accent);
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    line-height: 1.3;
+  }
+  & blockquote p {
+    font-size: inherit;
+    line-height: inherit;
+    color: var(--color-paper);
+  }
+  & ul,
+  & ol {
+    margin-block: 1.35em;
+    padding-left: 1.2rem;
+    line-height: 1.72;
+    color: color-mix(in srgb, var(--color-paper) 88%, transparent);
+  }
+  & ul {
+    list-style: none;
+    padding-left: 0;
+  }
+  & ul li {
+    position: relative;
+    padding-left: 1.4rem;
+    margin-block: 0.5em;
+  }
+  & ul li::before {
+    content: "—";
+    position: absolute;
+    left: 0;
+    color: var(--color-faint);
+  }
+  & ol li {
+    margin-block: 0.5em;
+  }
+  & hr {
+    margin-block: 3em;
+    border: 0;
+    border-top: 1px solid var(--color-line);
+  }
+  /* Artwork breaks out of the measure — it is the reason to stop reading. */
+  & figure {
+    margin-block: 2.75em;
+    margin-inline: calc(-1 * min(6vw, 5rem));
+  }
+  & figure img {
+    width: 100%;
+    height: auto;
+    border-radius: 4px;
+    display: block;
+  }
+  & figcaption {
+    margin-inline: min(6vw, 5rem);
+    margin-top: 0.9rem;
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.06em;
+    color: var(--color-faint);
+  }
+  & .table-scroll {
+    margin-block: 2.5em;
+    overflow-x: auto;
+  }
+  & table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+    min-width: 34rem;
+  }
+  & th {
+    text-align: left;
+    padding: 0.85rem 1rem 0.85rem 0;
+    border-bottom: 1px solid var(--color-line-bright);
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--color-muted);
+    font-weight: 400;
+    vertical-align: bottom;
+  }
+  & td {
+    padding: 0.85rem 1rem 0.85rem 0;
+    border-bottom: 1px solid var(--color-line);
+    vertical-align: top;
+    line-height: 1.55;
+    color: color-mix(in srgb, var(--color-paper) 85%, transparent);
+  }
+  & td:first-child {
+    color: var(--color-paper);
+  }
+  & strong {
+    font-weight: 600;
+    color: var(--color-paper);
+  }
+  & em {
+    font-style: italic;
+  }
+  & code {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    background: var(--color-ink-raised);
+    padding: 0.15em 0.4em;
+    border-radius: 3px;
+  }
+}
+
+/* Fine paper grain. One element, fixed, never intercepts pointer events. */
+.grain::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grain::after {
+    display: none;
+  }
+}

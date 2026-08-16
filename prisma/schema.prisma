@@ -1,0 +1,226 @@
+// xine — schema
+//
+// SQLite for local development. To move to Postgres, change the datasource
+// provider to "postgresql" and point DATABASE_URL at the new database; no
+// model below uses a SQLite-only feature. SQLite has no enums or scalar
+// lists, so multi-value fields are stored as comma-separated strings and
+// read back through the helpers in lib/serialize.ts.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+// The connection URL lives in prisma.config.ts (CLI) and lib/db.ts (runtime).
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  email        String   @unique
+  passwordHash String
+  displayName  String
+  bio          String?
+  location     String?
+  createdAt    DateTime @default(now())
+
+  ratings   Rating[]
+  reviews   Review[]
+  watchlist WatchlistItem[]
+  lists     FilmList[]
+  projects  Project[]
+  briefs    TrailerBrief[]
+  activity  Activity[]
+}
+
+model Film {
+  id            String    @id @default(cuid())
+  slug          String    @unique
+  tmdbId        Int?      @unique
+  title         String
+  originalTitle String?
+  year          Int
+  runtime       Int?
+  director      String
+  country       String?
+  language      String?
+  synopsis      String
+  genres        String // comma-separated
+  cast          String? // comma-separated
+  cinematographer String?
+  composer      String?
+  criticScore   Float? // 0–10, editorial/aggregated
+  posterUrl     String? // null renders the generated type plate
+  backdropUrl   String?
+  releasedAt    DateTime?
+  createdAt     DateTime  @default(now())
+
+  ratings        Rating[]
+  reviews        Review[]
+  listEntries    ListEntry[]
+  watchlistItems WatchlistItem[]
+  activity       Activity[]
+
+  @@index([year])
+}
+
+/// A rating is one row per user per film. `overall` is always set; the five
+/// axes are optional so a one-tap rating stays a one-tap rating and only
+/// people who want the breakdown pay for it.
+model Rating {
+  id          String   @id @default(cuid())
+  userId      String
+  filmId      String
+  overall     Float
+  story       Float?
+  direction   Float?
+  visual      Float?
+  performance Float?
+  sound       Float?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  film Film @relation(fields: [filmId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, filmId])
+  @@index([filmId])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  userId    String
+  filmId    String
+  body      String
+  spoilers  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  film Film @relation(fields: [filmId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, filmId])
+  @@index([filmId])
+}
+
+model WatchlistItem {
+  id        String   @id @default(cuid())
+  userId    String
+  filmId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  film Film @relation(fields: [filmId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, filmId])
+}
+
+model FilmList {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  description String
+  editorial   Boolean  @default(false)
+  ownerId     String?
+  createdAt   DateTime @default(now())
+
+  owner   User?       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  entries ListEntry[]
+}
+
+model ListEntry {
+  id       String  @id @default(cuid())
+  listId   String
+  filmId   String
+  position Int
+  note     String?
+
+  list FilmList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  film Film     @relation(fields: [filmId], references: [id], onDelete: Cascade)
+
+  @@unique([listId, filmId])
+}
+
+/// CREATE layer. A project moves through the ten stages defined in
+/// lib/stages.ts; each stage's content lives in its own ProjectStage row so
+/// stages can be drafted out of order and revised independently.
+model Project {
+  id        String   @id @default(cuid())
+  ownerId   String
+  title     String
+  genre     String
+  premise   String
+  logline   String?
+  stage     String   @default("idea")
+  visibility String  @default("private") // private | community
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner    User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  stages   ProjectStage[]
+  briefs   TrailerBrief[]
+  enquiries ServiceEnquiry[]
+}
+
+model ProjectStage {
+  id        String   @id @default(cuid())
+  projectId String
+  key       String // see STAGES in lib/stages.ts
+  content   String   @default("")
+  status    String   @default("empty") // empty | draft | complete
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, key])
+}
+
+model TrailerBrief {
+  id                String   @id @default(cuid())
+  ownerId           String
+  projectId         String?
+  title             String
+  genre             String
+  logline           String
+  filmReferences    String // comma-separated
+  visualReferences  String // newline-separated notes or image URLs
+  creativeDirection String   @default("")
+  storyboard        String   @default("") // JSON array of shots
+  script            String   @default("") // JSON array of beats
+  createdAt         DateTime @default(now())
+
+  owner   User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+}
+
+/// CONSULT layer. Deliberately not tied to a user account — a producer with a
+/// deadline should be able to enquire without signing up.
+model ServiceEnquiry {
+  id        String   @id @default(cuid())
+  projectId String?
+  service   String
+  name      String
+  email     String
+  company   String?
+  budget    String?
+  message   String
+  createdAt DateTime @default(now())
+
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+}
+
+model Activity {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String // rated | reviewed | watchlisted | listed | pitched
+  filmId    String?
+  listId    String?
+  payload   String? // JSON blob for type-specific detail
+  createdAt DateTime @default(now())
+
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  film Film? @relation(fields: [filmId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+}
