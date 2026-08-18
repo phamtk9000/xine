@@ -13,9 +13,12 @@
     "db:reset": "prisma db push --force-reset && npm run db:seed",
     "db:studio": "prisma studio",
     "films:sync": "tsx scripts/sync-tmdb.ts",
-    "media:sync": "tsx scripts/sync-media.ts"
+    "media:sync": "tsx scripts/sync-media.ts",
+    "films:import": "tsx scripts/import-tmdb.ts",
+    "series:import": "tsx scripts/import-tmdb.ts --kind series"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.117.1",
     "@prisma/adapter-better-sqlite3": "^7.9.1",
     "@prisma/client": "^7.9.1",
     "bcryptjs": "^3.0.3",

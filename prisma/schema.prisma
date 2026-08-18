@@ -38,7 +38,15 @@ model User {
 model Film {
   id            String    @id @default(cuid())
   slug          String    @unique
-  tmdbId        Int?      @unique
+  /// TMDB ids are only unique within a type — a film and a series can share
+  /// one — so the pair is what identifies a title.
+  tmdbId        Int?
+  /// "film" or "series". Both live here rather than in separate tables: they
+  /// are rated on the same six axes, appear in the same lists, and the whole
+  /// editorial argument treats them as one medium.
+  kind          String    @default("film")
+  seasons       Int?
+  episodes      Int?
   title         String
   originalTitle String?
   year          Int
@@ -57,13 +65,24 @@ model Film {
   releasedAt    DateTime?
   createdAt     DateTime  @default(now())
 
+  /// True when a human wrote the synopsis and set the critic score. Imported
+  /// films start false and carry TMDB's overview until someone reviews them —
+  /// this is what separates the catalogue's breadth from its editorial weight.
+  reviewed      Boolean   @default(false)
+  /// TMDB's own average, kept separate from XINE's critic score so the two
+  /// are never confused for each other.
+  tmdbScore     Float?
+  tmdbVotes     Int       @default(0)
+
   ratings        Rating[]
   reviews        Review[]
   listEntries    ListEntry[]
   watchlistItems WatchlistItem[]
   activity       Activity[]
 
+  @@unique([kind, tmdbId])
   @@index([year])
+  @@index([kind])
 }
 
 /// A rating is one row per user per film. `overall` is always set; the five

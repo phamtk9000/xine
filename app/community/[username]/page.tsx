@@ -53,11 +53,15 @@ export default async function ProfilePage({
     criticScore: number | null;
     runtime: number | null;
     country: string | null;
+    reviewed: boolean;
+    tmdbScore: number | null;
   }) => ({
     ...film,
     genres: fromCsv(film.genres),
     communityScore: null,
     ratingCount: 0,
+    reviewed: film.reviewed,
+    tmdbScore: film.tmdbScore,
   });
 
   return (

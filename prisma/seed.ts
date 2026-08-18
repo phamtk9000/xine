@@ -33,14 +33,15 @@ async function main() {
   await db.watchlistItem.deleteMany();
   await db.review.deleteMany();
   await db.rating.deleteMany();
-  await db.film.deleteMany();
   await db.user.deleteMany();
 
-  console.log(`Seeding ${SEED_FILMS.length} films…`);
+  // Films are upserted, not wiped. The catalogue also holds whatever
+  // `films:import` has pulled from TMDB, and re-seeding must restore the
+  // editorial tier without destroying the imported one.
+  console.log(`Seeding ${SEED_FILMS.length} editorial films…`);
   const filmIds = new Map<string, string>();
   for (const film of SEED_FILMS) {
-    const created = await db.film.create({
-      data: {
+    const editorial = {
         slug: film.slug,
         title: film.title,
         originalTitle: film.originalTitle ?? null,
@@ -54,11 +55,20 @@ async function main() {
         cast: film.cast.join(", "),
         cinematographer: film.cinematographer ?? null,
         composer: film.composer ?? null,
-        criticScore: film.criticScore,
-        releasedAt: new Date(film.year, 0, 1),
-      },
+      criticScore: film.criticScore,
+      releasedAt: new Date(film.year, 0, 1),
+      // Hand-written synopsis and critic score — this is the editorial tier.
+      reviewed: true,
+    };
+
+    // Poster art and tmdbId come from films:sync / films:import, so an upsert
+    // must not clear them — only the editorial fields are written here.
+    const saved = await db.film.upsert({
+      where: { slug: film.slug },
+      create: editorial,
+      update: editorial,
     });
-    filmIds.set(film.slug, created.id);
+    filmIds.set(film.slug, saved.id);
   }
 
   console.log(`Seeding ${SEED_USERS.length} members…`);

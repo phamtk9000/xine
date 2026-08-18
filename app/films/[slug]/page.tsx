@@ -77,6 +77,14 @@ export default async function FilmPage({ params }: PageProps<"/films/[slug]">) {
                 {film.synopsis}
               </p>
 
+              {/* Provenance. A TMDB overview is marketing copy, and passing it
+                  off as editorial would undermine the reviewed films. */}
+              {!film.reviewed && (
+                <p className="mt-3 font-mono text-[0.625rem] tracking-[0.16em] uppercase text-faint">
+                  Synopsis from TMDB · not yet reviewed by xine
+                </p>
+              )}
+
               <div className="mt-7 flex flex-wrap gap-2">
                 {genres.map((genre) => (
                   <Tag key={genre} href={`/films?genre=${encodeURIComponent(genre)}`}>
@@ -88,7 +96,11 @@ export default async function FilmPage({ params }: PageProps<"/films/[slug]">) {
               </div>
 
               <div className="mt-9 flex flex-wrap gap-x-12 gap-y-6 border-t border-line pt-7">
-                <ScoreDial label="Critic score" value={film.criticScore} size="md" />
+                <ScoreDial
+                  label={film.reviewed ? "Critic score" : "TMDB score"}
+                  value={film.reviewed ? film.criticScore : film.tmdbScore}
+                  size="md"
+                />
                 <ScoreDial
                   label={`Community · ${aggregate.count} rating${aggregate.count === 1 ? "" : "s"}`}
                   value={aggregate.community}

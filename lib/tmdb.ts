@@ -26,6 +26,33 @@ type TmdbMovie = {
   backdrop_path: string | null;
   genres?: { id: number; name: string }[];
   original_language?: string;
+  vote_average?: number;
+  vote_count?: number;
+};
+
+/**
+ * TMDB's movie genre ids. Stable for years, and hardcoding them avoids a
+ * round trip to /genre/movie/list on every discover call.
+ */
+export const TMDB_GENRES: Record<string, number> = {
+  Action: 28,
+  Adventure: 12,
+  Animation: 16,
+  Comedy: 35,
+  Crime: 80,
+  Documentary: 99,
+  Drama: 18,
+  Family: 10751,
+  Fantasy: 14,
+  History: 36,
+  Horror: 27,
+  Music: 10402,
+  Mystery: 9648,
+  Romance: 10749,
+  "Science Fiction": 878,
+  Thriller: 53,
+  War: 10752,
+  Western: 37,
 };
 
 type TmdbCredits = {
@@ -86,6 +113,263 @@ export async function getMovie(id: number) {
 
 export async function getCredits(id: number) {
   return request<TmdbCredits>(`/movie/${id}/credits`, withV3Key({}));
+}
+
+export type DiscoverParams = {
+  genres?: string[];
+  excludeGenres?: string[];
+  keywords?: string[];
+  yearFrom?: number;
+  yearTo?: number;
+  maxRuntime?: number;
+  minRuntime?: number;
+  language?: string;
+  minVotes?: number;
+  sortBy?: "popularity" | "rating" | "revenue" | "newest";
+  limit?: number;
+};
+
+const SORT_MAP: Record<string, string> = {
+  popularity: "popularity.desc",
+  rating: "vote_average.desc",
+  revenue: "revenue.desc",
+  newest: "primary_release_date.desc",
+};
+
+/** Resolve free-text keywords to TMDB keyword ids so discover can filter on them. */
+async function keywordIds(keywords: string[]): Promise<string[]> {
+  const ids: string[] = [];
+  for (const keyword of keywords.slice(0, 4)) {
+    try {
+      const data = await request<{ results: { id: number; name: string }[] }>(
+        "/search/keyword",
+        withV3Key({ query: keyword }),
+      );
+      if (data.results[0]) ids.push(String(data.results[0].id));
+    } catch {
+      // A keyword that resolves to nothing simply drops out of the filter.
+    }
+  }
+  return ids;
+}
+
+/**
+ * Structured search across all of TMDB — the breadth counterpart to the
+ * catalogue queries. Keyword filters are ANDed, which is aggressive, so the
+ * caller should pass few and specific ones.
+ */
+export async function discoverMovies(params: DiscoverParams) {
+  const query: Record<string, string> = {
+    include_adult: "false",
+    "vote_count.gte": String(params.minVotes ?? 200),
+    sort_by: SORT_MAP[params.sortBy ?? "rating"],
+  };
+
+  if (params.genres?.length) {
+    const ids = params.genres
+      .map((g) => TMDB_GENRES[g])
+      .filter((id): id is number => Boolean(id));
+    if (ids.length) query.with_genres = ids.join(",");
+  }
+  if (params.excludeGenres?.length) {
+    const ids = params.excludeGenres
+      .map((g) => TMDB_GENRES[g])
+      .filter((id): id is number => Boolean(id));
+    if (ids.length) query.without_genres = ids.join(",");
+  }
+  if (params.keywords?.length) {
+    const ids = await keywordIds(params.keywords);
+    if (ids.length) query.with_keywords = ids.join(",");
+  }
+  if (params.yearFrom) query["primary_release_date.gte"] = `${params.yearFrom}-01-01`;
+  if (params.yearTo) query["primary_release_date.lte"] = `${params.yearTo}-12-31`;
+  if (params.maxRuntime) query["with_runtime.lte"] = String(params.maxRuntime);
+  if (params.minRuntime) query["with_runtime.gte"] = String(params.minRuntime);
+  if (params.language) query.with_original_language = params.language;
+
+  const data = await request<{ results: TmdbMovie[] }>(
+    "/discover/movie",
+    withV3Key(query),
+  );
+
+  return data.results.slice(0, Math.min(params.limit ?? 12, 20));
+}
+
+export type DiscoverRow = {
+  id: number;
+  title: string;
+  release_date?: string;
+  vote_average?: number;
+  vote_count?: number;
+};
+
+/**
+ * One page of discover results for a set of origin countries. Separate from
+ * discoverMovies because the importer pages through by country and score
+ * rather than by the taste filters the agent uses.
+ */
+export async function discoverPage(options: {
+  countries: string[];
+  minScore: number;
+  minVotes: number;
+  yearFrom: number;
+  page: number;
+}) {
+  const data = await request<{ results: DiscoverRow[]; total_pages: number }>(
+    "/discover/movie",
+    withV3Key({
+      include_adult: "false",
+      // A pipe is OR in TMDB's filter syntax — any of these origin countries.
+      with_origin_country: options.countries.join("|"),
+      "vote_average.gte": String(options.minScore),
+      "vote_count.gte": String(options.minVotes),
+      "primary_release_date.gte": `${options.yearFrom}-01-01`,
+      // Feature films only. Without this the rating-ranked results fill with
+      // concert films, making-of specials and fan releases — small devoted
+      // audiences rate them 9/10 and they crowd out actual cinema.
+      "with_runtime.gte": "60",
+      without_genres: `${TMDB_GENRES.Music},10770`, // Music, TV Movie
+      // Rating-ranked, not popularity-ranked. Sorting by vote count fills the
+      // catalogue with franchise blockbusters; sorting by average against a
+      // vote floor surfaces what people actually rate highly, which is the
+      // only ordering an editorial catalogue can defend.
+      sort_by: "vote_average.desc",
+      page: String(options.page),
+    }),
+  );
+
+  return { rows: data.results ?? [], totalPages: data.total_pages ?? 0 };
+}
+
+type TmdbSeries = {
+  id: number;
+  name: string;
+  original_name: string;
+  overview: string;
+  first_air_date?: string;
+  episode_run_time?: number[];
+  number_of_seasons?: number;
+  number_of_episodes?: number;
+  poster_path: string | null;
+  backdrop_path: string | null;
+  genres?: { id: number; name: string }[];
+  original_language?: string;
+  created_by?: { name: string }[];
+  vote_average?: number;
+  vote_count?: number;
+};
+
+/** One page of TV discover results, mirroring discoverPage for films. */
+export async function discoverTvPage(options: {
+  countries: string[];
+  minScore: number;
+  minVotes: number;
+  yearFrom: number;
+  page: number;
+}) {
+  const data = await request<{
+    results: (DiscoverRow & { name?: string; first_air_date?: string })[];
+    total_pages: number;
+  }>(
+    "/discover/tv",
+    withV3Key({
+      include_adult: "false",
+      with_origin_country: options.countries.join("|"),
+      "vote_average.gte": String(options.minScore),
+      "vote_count.gte": String(options.minVotes),
+      "first_air_date.gte": `${options.yearFrom}-01-01`,
+      sort_by: "vote_average.desc",
+      // Talk shows and news drown out drama otherwise.
+      without_genres: "10763,10767,10764", // News, Talk, Reality
+      page: String(options.page),
+    }),
+  );
+
+  return {
+    rows: (data.results ?? []).map((row) => ({
+      ...row,
+      title: row.name ?? row.title,
+      release_date: row.first_air_date,
+    })),
+    totalPages: data.total_pages ?? 0,
+  };
+}
+
+/** Everything the Film model wants for a series. */
+export async function fetchSeriesDetail(id: number) {
+  const series = await request<TmdbSeries & { credits?: TmdbCredits }>(
+    `/tv/${id}`,
+    withV3Key({ append_to_response: "credits" }),
+  );
+
+  // A series has no single director, so the creator is the authorial credit —
+  // falling back to an executive producer when TMDB has no creator listed.
+  const creators = (series.created_by ?? []).map((c) => c.name);
+  const fallback = series.credits?.crew.find(
+    (c) => c.job === "Executive Producer",
+  )?.name;
+
+  return {
+    tmdbId: series.id,
+    title: series.name,
+    originalTitle:
+      series.original_name !== series.name ? series.original_name : null,
+    year: series.first_air_date
+      ? Number(series.first_air_date.slice(0, 4))
+      : 0,
+    runtime: series.episode_run_time?.[0] ?? null,
+    seasons: series.number_of_seasons ?? null,
+    episodes: series.number_of_episodes ?? null,
+    synopsis: series.overview,
+    genres: (series.genres ?? []).map((g) => g.name).join(", "),
+    cast: (series.credits?.cast ?? []).slice(0, 6).map((c) => c.name).join(", "),
+    director: creators.join(", ") || fallback || "Unknown",
+    cinematographer: null,
+    composer: null,
+    posterUrl: posterUrl(series.poster_path),
+    backdropUrl: backdropUrl(series.backdrop_path),
+    language: series.original_language ?? null,
+    releasedAt: series.first_air_date ? new Date(series.first_air_date) : null,
+  };
+}
+
+type WatchProviders = {
+  results: Record<
+    string,
+    { flatrate?: { provider_name: string }[]; free?: { provider_name: string }[] }
+  >;
+};
+
+/**
+ * Detail plus streaming availability in one call, via append_to_response.
+ * Availability is the one claim the agent must never guess at, so it either
+ * comes from here or is reported as unknown.
+ */
+export async function movieWithProviders(id: number, region: string) {
+  try {
+    const data = await request<
+      TmdbMovie & { credits: TmdbCredits; "watch/providers": WatchProviders }
+    >(
+      `/movie/${id}`,
+      withV3Key({ append_to_response: "credits,watch/providers" }),
+    );
+
+    const regional = data["watch/providers"]?.results?.[region];
+    const providers = [
+      ...(regional?.flatrate ?? []),
+      ...(regional?.free ?? []),
+    ].map((p) => p.provider_name);
+
+    return {
+      runtime: data.runtime ?? null,
+      genres: (data.genres ?? []).map((g) => g.name),
+      director:
+        data.credits?.crew.find((c) => c.job === "Director")?.name ?? null,
+      providers: [...new Set(providers)],
+    };
+  } catch {
+    return null;
+  }
 }
 
 /** Everything the Film model wants, pulled in one go. */

@@ -60,6 +60,8 @@ export default async function ListPage({ params }: PageProps<"/lists/[slug]">) {
         criticScore: entry.film.criticScore,
         communityScore: community,
         ratingCount: ratings.length,
+        reviewed: entry.film.reviewed,
+        tmdbScore: entry.film.tmdbScore,
       },
     };
   });

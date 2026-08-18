@@ -18,6 +18,8 @@ export type FilmSummary = {
   criticScore: number | null;
   communityScore: number | null;
   ratingCount: number;
+  reviewed: boolean;
+  tmdbScore: number | null;
 };
 
 /**
@@ -52,17 +54,20 @@ export async function listFilms({
   country,
   decade,
   search,
-  take = 60,
+  reviewed,
+  take = 120,
 }: {
   sort?: FilmSort;
   genre?: string;
   country?: string;
   decade?: number;
   search?: string;
+  reviewed?: boolean;
   take?: number;
 } = {}): Promise<FilmSummary[]> {
   const films = await db.film.findMany({
     where: {
+      ...(reviewed ? { reviewed: true } : {}),
       ...(genre ? { genres: { contains: genre } } : {}),
       ...(country ? { country } : {}),
       ...(decade ? { year: { gte: decade, lt: decade + 10 } } : {}),
@@ -102,6 +107,8 @@ export async function listFilms({
       criticScore: film.criticScore,
       communityScore: agg?.score ?? null,
       ratingCount: agg?.count ?? 0,
+      reviewed: film.reviewed,
+      tmdbScore: film.tmdbScore,
     };
   });
 
@@ -115,9 +122,11 @@ export async function listFilms({
     );
   }
   if (sort === "rated") {
-    summaries.sort(
-      (a, b) => (b.communityScore ?? 0) - (a.communityScore ?? 0) || b.ratingCount - a.ratingCount,
-    );
+    // Reviewed films rank on XINE's own scores; imported ones fall back to
+    // TMDB's average so the tail still orders sensibly instead of collapsing.
+    const rank = (f: FilmSummary) =>
+      f.communityScore ?? f.criticScore ?? f.tmdbScore ?? 0;
+    summaries.sort((a, b) => rank(b) - rank(a) || b.ratingCount - a.ratingCount);
   }
 
   return summaries;

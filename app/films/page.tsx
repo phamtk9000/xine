@@ -29,16 +29,25 @@ export default async function FilmsPage({ searchParams }: PageProps<"/films">) {
   const decadeParam = one(params.decade);
   const decade = decadeParam ? Number(decadeParam) : undefined;
   const search = one(params.q);
+  const reviewed = one(params.reviewed) === "1";
 
   const [films, facets] = await Promise.all([
-    listFilms({ sort, genre, country, decade, search }),
+    listFilms({ sort, genre, country, decade, search, reviewed }),
     filmFacets(),
   ]);
 
   // Preserve the other filters when a facet link is clicked.
   function href(patch: Record<string, string | undefined>) {
     const next = new URLSearchParams();
-    const base = { sort, genre, country, decade: decadeParam, q: search, ...patch };
+    const base = {
+      sort,
+      genre,
+      country,
+      decade: decadeParam,
+      q: search,
+      reviewed: reviewed ? "1" : undefined,
+      ...patch,
+    };
     for (const [key, value] of Object.entries(base)) {
       if (value && !(key === "sort" && value === "trending")) {
         next.set(key, String(value));
@@ -62,15 +71,23 @@ export default async function FilmsPage({ searchParams }: PageProps<"/films">) {
         title="The catalogue."
         lede={`${films.length} film${films.length === 1 ? "" : "s"}, each rated on Story, Direction, Visual, Performance and Sound — not just a number out of five.`}
         action={
-          <form action="/films" className="flex w-full max-w-xs gap-2">
-            <input
-              name="q"
-              defaultValue={search}
-              placeholder="Search title or director"
-              aria-label="Search films"
-              className="w-full rounded-full border border-line bg-ink-raised px-4 py-2 text-sm placeholder:text-faint focus:border-line-bright focus:outline-none"
-            />
-          </form>
+          <div className="flex w-full max-w-md flex-col gap-3">
+            <form action="/films" className="flex gap-2">
+              <input
+                name="q"
+                defaultValue={search}
+                placeholder="Search title or director"
+                aria-label="Search films"
+                className="w-full rounded-full border border-line bg-ink-raised px-4 py-2 text-sm placeholder:text-faint focus:border-line-bright focus:outline-none"
+              />
+            </form>
+            <Link
+              href="/films/find"
+              className="text-sm text-gold underline underline-offset-4"
+            >
+              Or describe what you&rsquo;re in the mood for →
+            </Link>
+          </div>
         }
       />
 
@@ -87,6 +104,16 @@ export default async function FilmsPage({ searchParams }: PageProps<"/films">) {
               {s.label}
             </Link>
           ))}
+
+          {/* The editorial tier, separated from the imported catalogue. */}
+          <Link
+            href={href({ reviewed: reviewed ? undefined : "1" })}
+            className={`label ml-auto transition-colors hover:text-paper ${
+              reviewed ? "!text-gold" : ""
+            }`}
+          >
+            {reviewed ? "✓ Reviewed by xine" : "Reviewed by xine"}
+          </Link>
         </div>
 
         <div className="mt-8 grid gap-10 lg:grid-cols-[13rem_1fr]">
