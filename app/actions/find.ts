@@ -2,6 +2,8 @@
 
 import { runFinder, type FinderResult } from "@/lib/agent/finder";
 import { summariseRecommendations, type Turn } from "@/lib/agent/prompts";
+import { getTasteProfile } from "@/lib/agent/taste";
+import { getCurrentUser } from "@/lib/session";
 
 export type FinderState =
   | { status: "idle" }
@@ -61,7 +63,12 @@ export async function findFilmsAction(
   const turns: Turn[] = [...clean, { role: "user", text: message }];
 
   try {
-    const result = await runFinder(turns);
+    // Semantic memory, when there is someone to have it. Signed-out readers
+    // get the same agent with no history behind it.
+    const user = await getCurrentUser();
+    const taste = user ? await getTasteProfile(user.id) : null;
+
+    const result = await runFinder(turns, taste);
 
     const assistantText =
       result.kind === "question"

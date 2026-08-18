@@ -9,10 +9,10 @@ import { Poster } from "@/components/poster";
 import { Button, Notice, Textarea, formatRuntime } from "@/components/ui";
 import { CONSTRAINTS, STARTERS, constraintClause } from "@/lib/agent/prompts";
 
-const ARCHETYPE: Record<Archetype, string> = {
-  mainstream: "The confident answer",
-  "hidden-gem": "Hidden gem",
-  classic: "The classic",
+const ARCHETYPE: Record<Archetype, { label: string; note: string }> = {
+  safe: { label: "Safe bet", note: "Squarely inside your taste" },
+  adjacent: { label: "Adjacent", note: "A step outside, should still land" },
+  wildcard: { label: "Wildcard", note: "Looks wrong, shares something deeper" },
 };
 
 export function Finder() {
@@ -253,7 +253,14 @@ function PickBody({ pick, showMatch }: { pick: PickCard; showMatch: boolean }) {
         </div>
 
         <div className="min-w-0 flex-1">
-          <p className="label !text-gold">{ARCHETYPE[pick.archetype]}</p>
+          <div className="flex flex-wrap items-baseline gap-x-3">
+            <p className="label !text-gold">
+              {ARCHETYPE[pick.archetype].label}
+            </p>
+            <p className="text-xs text-faint">
+              {ARCHETYPE[pick.archetype].note}
+            </p>
+          </div>
 
           <h3 className="mt-2 font-display text-4xl leading-[0.95] uppercase">
             {pick.slug ? (

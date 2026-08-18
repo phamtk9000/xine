@@ -20,6 +20,7 @@ import {
 import { TMDB_GENRES } from "@/lib/tmdb";
 import { AXES } from "@/lib/scores";
 import type { Turn } from "@/lib/agent/prompts";
+import { describeTaste, type TasteProfile } from "@/lib/agent/taste";
 
 /**
  * The XINE film programmer.
@@ -33,7 +34,12 @@ import type { Turn } from "@/lib/agent/prompts";
  * and the internal scoring never reaches the reader.
  */
 
-export type Archetype = "mainstream" | "hidden-gem" | "classic";
+/**
+ * Distance from established taste, not the film's status in the world.
+ * "Hidden gem" describes a film; "adjacent" describes a relationship — and a
+ * recommender that only ever plays it safe builds a taste bubble.
+ */
+export type Archetype = "safe" | "adjacent" | "wildcard";
 
 export type Recommendation = {
   id: string;
@@ -75,7 +81,7 @@ export function agentConfigured() {
 
 const MAX_PICKS = 5;
 
-async function buildSystemPrompt() {
+async function buildSystemPrompt(taste: TasteProfile | null) {
   const facets = await catalogueFacets();
   const external = discoverConfigured();
 
@@ -126,9 +132,11 @@ Build a candidate pool of roughly 10 to 20 internally. Never show it. Cut hard a
 Return exactly three films where you can, ${MAX_PICKS} at the absolute most, fewer if only two genuinely earn it. Padding a shortlist is worse than a short one.
 
 Make the three distinct — approach the request from different angles, and label each with its archetype:
-- **mainstream** — the well-known, confident answer
-- **hidden-gem** — an indie or under-seen film that fits as well or better
-- **classic** — an older film that got there first
+- **safe** — squarely inside what they have told you they like. High confidence, low risk.
+- **adjacent** — a step outside the established pattern that should still land, and stretches it slightly.
+- **wildcard** — a film that looks wrong on paper but shares a deeper structural or emotional affinity. Justify it hard or drop it.
+
+Always try to include a wildcard. A recommender that only plays it safe builds a taste bubble, and the reader can find the safe answer themselves.
 
 Do not let fame drive the order. A lesser-known 90% fit outranks a famous 60% fit. Never recommend the same handful of famous titles to every request.
 
@@ -137,6 +145,21 @@ Do not let fame drive the order. A lesser-known 90% fit outranks a famous 60% fi
 Give every pick a XINE Match percentage: your editorial judgement of fit for this specific request, not a quality rating and not a review score. Be discriminating — a 72% fit is a 72%. Reserve 95%+ for uncanny.
 
 Catalogue critic and community scores are real XINE data. TMDB vote averages are TMDB's. Your Match percentage is yours. Never blur them, and never let a high rating alone justify a pick.
+
+# THE RECOMMENDATION CONSTITUTION
+
+Every pick must survive these before you return it. Drop anything that fails.
+
+1. Never recommend a film because its genre matches. Genre is the weakest signal available to you.
+2. Identify the property actually responsible for their enjoyment, and match on that.
+3. Prefer meaningful similarity over superficial similarity. "Also has a twist" is superficial. "Also withholds information the audience could have assembled" is meaningful.
+4. Distinguish a similar story from a similar emotional experience, and say which one you are offering.
+5. Do not recommend what they have already told you they know or have seen.
+6. Balance familiarity, discovery, quality and context — that is what the three archetypes are for.
+7. When a current mood is stated explicitly, it outranks historical preference.
+8. Preserve real diversity between the picks. Three films from the same director, decade and register is one recommendation with three titles.
+9. Explain why each film matches this person, not why it is good.
+10. Never fabricate a director, cast member, plot point, rating, award or release date.
 
 # NEVER
 
@@ -158,7 +181,9 @@ Your own message text is one short paragraph of framing, or nothing. Do not list
 
 whyItFits is two to three sentences connecting their specific words to this specific film. "A masterpiece of the genre" is not a rationale. Write like an articulate critic talking to a friend: insightful, direct, no marketing copy.
 
-vibeCheck is exactly three short descriptors. Not sentences. "Neon-drenched", "Slow burn", "Morally bankrupt".`;
+vibeCheck is exactly three short descriptors. Not sentences. "Neon-drenched", "Slow burn", "Morally bankrupt".
+
+${taste ? `\n${describeTaste(taste)}` : ""}`;
 }
 
 function summariseRow(row: CatalogueRow) {
@@ -186,7 +211,10 @@ function rowsToText(rows: CatalogueRow[]) {
   return rows.map(summariseRow).join("\n");
 }
 
-export async function runFinder(turns: Turn[]): Promise<FinderResult> {
+export async function runFinder(
+  turns: Turn[],
+  taste: TasteProfile | null = null,
+): Promise<FinderResult> {
   const externalEnabled = discoverConfigured();
   if (!agentConfigured()) return fallbackSearch(turns, externalEnabled);
 
@@ -420,7 +448,7 @@ export async function runFinder(turns: Turn[]): Promise<FinderResult> {
               },
               archetype: {
                 type: "string",
-                enum: ["mainstream", "hidden-gem", "classic"],
+                enum: ["safe", "adjacent", "wildcard"],
               },
               matchScore: {
                 type: "number",
@@ -506,7 +534,7 @@ export async function runFinder(turns: Turn[]): Promise<FinderResult> {
     system: [
       {
         type: "text",
-        text: await buildSystemPrompt(),
+        text: await buildSystemPrompt(taste),
         cache_control: { type: "ephemeral" },
       },
     ],
@@ -614,7 +642,7 @@ async function fallbackSearch(
     question: null,
     picks: films.map((film) => ({
       id: film.slug,
-      archetype: "mainstream" as Archetype,
+      archetype: "safe" as Archetype,
       matchScore: 0,
       vibeCheck: film.genres.slice(0, 3),
       whyItFits: `Matched on a keyword from your request. ${film.director}, ${film.year}.`,
