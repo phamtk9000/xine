@@ -410,6 +410,88 @@ body {
   border-color: var(--color-paper);
 }
 
+
+/* ============================================================
+   COLUMN FLOW
+
+   Full width without unreadable line lengths. Body text past roughly 90
+   characters a line is hard to track back to the left margin, so the page
+   uses the whole viewport and splits the prose into columns instead — the
+   same thing the reference magazine spreads do. A long piece loses about
+   half its scroll height.
+
+   Section headings and figures span every column, so each `##` starts a
+   fresh full-width band and the article reads as a sequence of spreads.
+   ============================================================ */
+
+@media (min-width: 1024px) {
+  .prose-columns {
+    columns: 2;
+    column-gap: 4.5rem;
+    column-rule: 1px solid var(--color-line);
+  }
+  .prose-columns > h2,
+  .prose-columns > figure,
+  .prose-columns > .table-scroll,
+  .prose-columns > hr,
+  .prose-columns > blockquote {
+    column-span: all;
+  }
+  /* A heading or image landing mid-column leaves an orphan above it. */
+  .prose-columns > h3,
+  .prose-columns > figure,
+  .prose-columns > blockquote,
+  .prose-columns > li {
+    break-inside: avoid;
+  }
+  .prose-columns > h3 {
+    break-after: avoid;
+  }
+  .prose-columns > p {
+    /* No single line stranded at the top or bottom of a column. */
+    orphans: 3;
+    widows: 3;
+  }
+  /* The first paragraph after a spanning heading starts the new band. */
+  .prose-columns > h2 + p {
+    break-before: column;
+  }
+
+  /* A spanning figure no longer needs the negative-margin breakout — it is
+     already the full width of the page. */
+  .prose-columns > figure {
+    margin-inline: 0;
+  }
+  .prose-columns > figure img {
+    max-height: 72vh;
+  }
+  .prose-columns > figure figcaption {
+    margin-inline: 0;
+  }
+}
+
+/* Three columns once there is genuinely room, on the styles that suit it.
+   The zine and the case file both want density; the modernist journal wants
+   air, so it stays at two. */
+@media (min-width: 1600px) {
+  [data-style="zine"] .prose-columns,
+  [data-style="dossier"] .prose-columns {
+    columns: 3;
+    column-gap: 3.5rem;
+  }
+}
+
+/* Modernist caps its own measure inside the column, per its art direction —
+   but that cap must not fight the column width. */
+@media (min-width: 1024px) {
+  [data-style="modernist"] .prose-columns > p {
+    max-width: none;
+  }
+  [data-style="modernist"] .prose-columns {
+    column-gap: 6rem;
+  }
+}
+
 /* Fine paper grain. One element, fixed, never intercepts pointer events. */
 .grain::after {
   content: "";

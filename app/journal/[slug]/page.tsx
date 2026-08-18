@@ -59,7 +59,7 @@ export default async function ArticlePage({
     >
       <header className="border-b border-line py-14 sm:py-20">
         <Container>
-          <div className="mx-auto max-w-3xl">
+          <div className="max-w-4xl">
             <div className="flex flex-wrap items-center gap-3">
               <Link
                 href={`/journal?kicker=${encodeURIComponent(article.kicker)}`}
@@ -128,12 +128,12 @@ export default async function ArticlePage({
 
       <Container className="py-14 sm:py-20">
         <div
-          className="prose-xine mx-auto max-w-[42rem]"
+          className="prose-xine prose-columns mx-auto max-w-[100rem]"
           dangerouslySetInnerHTML={{ __html: article.html }}
         />
 
         {article.verdict && article.verdict.length > 0 && (
-          <section className="mx-auto mt-16 max-w-[42rem]">
+          <section className="mt-16 max-w-5xl">
             <p className="label">The breakdown</p>
             <dl className="mt-5 border-t border-line-bright">
               {article.verdict.map((row) => (
@@ -157,7 +157,7 @@ export default async function ArticlePage({
         )}
 
         {linkedFilms.length > 0 && (
-          <section className="mx-auto mt-16 max-w-[42rem]">
+          <section className="mt-16 max-w-5xl">
             <p className="label">Films in this piece</p>
             <div className="mt-5 grid grid-cols-2 gap-5 sm:grid-cols-3">
               {linkedFilms.map((film) => (
