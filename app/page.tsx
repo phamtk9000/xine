@@ -47,7 +47,13 @@ export default async function HomePage() {
     recentActivity(8),
   ]);
 
-  const [lead, ...more] = articles;
+  // Same rule as /journal: the big card wants an article that has artwork.
+  const leadIndex = Math.max(
+    articles.findIndex((a) => a.featured),
+    0,
+  );
+  const lead = articles[leadIndex];
+  const more = articles.filter((_, i) => i !== leadIndex);
 
   return (
     <>

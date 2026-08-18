@@ -6,6 +6,7 @@ const COLUMNS = [
     heading: "Discover",
     links: [
       { href: "/films", label: "Films" },
+      { href: "/films/find", label: "Find me a film" },
       { href: "/films?sort=new", label: "New releases" },
       { href: "/films?sort=trending", label: "Trending" },
       { href: "/journal", label: "Journal" },
