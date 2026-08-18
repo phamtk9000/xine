@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { Container, formatDate } from "@/components/ui";
 import { FilmCard } from "@/components/film-card";
 import { Reveal } from "@/components/reveal";
+import { ReadingMarker } from "@/components/reading-marker";
 import { HeroCarousel, type Slide } from "@/components/hero-carousel";
 import { getArticle, listArticles } from "@/lib/journal";
 import { listFilms } from "@/lib/films";
@@ -112,6 +113,7 @@ export default async function ArticlePage({
           dangerouslySetInnerHTML={{ __html: article.html }}
         />
         <Reveal selector="#article-body" />
+        <ReadingMarker selector="#article-body" />
 
         {article.verdict && article.verdict.length > 0 && (
           <section className="mt-16 max-w-5xl">

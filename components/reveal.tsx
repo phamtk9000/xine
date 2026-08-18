@@ -16,7 +16,13 @@ import { useEffect } from "react";
 
 /** Article furniture. Body paragraphs are deliberately excluded — text a
  *  reader is mid-sentence on must not move. */
-const TARGETS = "figure, h2, h3, blockquote, hr, .table-scroll";
+const TARGETS =
+  "figure, h2, h3, blockquote, hr, .table-scroll, " +
+  ".device-thesis, .device-interruption, .device-quote, .device-note";
+
+/** Emphasis is inline and nested, so it is collected separately. It is never
+ *  hidden — only shifted in colour — so an unreached phrase still reads. */
+const EMPHASIS = "mark.emph";
 
 export function Reveal({ selector }: { selector: string }) {
   useEffect(() => {
@@ -25,13 +31,15 @@ export function Reveal({ selector }: { selector: string }) {
     const root = document.querySelector(selector);
     if (!root) return;
 
+    const belowFold = (el: Element) =>
+      el.getBoundingClientRect().top > window.innerHeight * 0.9;
+
     // Anything already on screen, or above it, is left exactly as rendered.
     const pending = Array.from(root.children).filter(
-      (el) =>
-        el.matches(TARGETS) &&
-        el.getBoundingClientRect().top > window.innerHeight * 0.9,
+      (el) => el.matches(TARGETS) && belowFold(el),
     );
-    if (pending.length === 0) return;
+    const marks = Array.from(root.querySelectorAll(EMPHASIS)).filter(belowFold);
+    if (pending.length === 0 && marks.length === 0) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -47,7 +55,7 @@ export function Reveal({ selector }: { selector: string }) {
       { rootMargin: "0px 0px -10% 0px", threshold: 0.04 },
     );
 
-    for (const el of pending) {
+    for (const el of [...pending, ...marks]) {
       el.classList.add("art-off");
       observer.observe(el);
     }

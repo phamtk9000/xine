@@ -3,6 +3,7 @@ import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import matter from "gray-matter";
 import { imageSize } from "@/lib/image-size";
+import { compileDevices } from "@/lib/devices";
 import { remark } from "remark";
 import remarkGfm from "remark-gfm";
 import remarkHtml from "remark-html";
@@ -124,6 +125,8 @@ async function render(markdown: string) {
     /<table>([\s\S]*?)<\/table>/g,
     '<div class="table-scroll"><table>$1</table></div>',
   );
+
+  html = compileDevices(html);
 
   return tagFigureOrientation(html);
 }

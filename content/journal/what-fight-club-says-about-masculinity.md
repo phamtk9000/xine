@@ -54,6 +54,10 @@ You get Tyler Durden.
 
 He's less a man than an overcorrection.
 
+::: thesis
+Tyler is the fantasy, not the thesis.
+:::
+
 ## Before he fights, he cries
 
 The biggest clue arrives before Fight Club even exists.
@@ -80,7 +84,9 @@ Instead of admitting that you need other people, become someone who needs nothin
 
 Instead of crying:
 
-Hit me.
+::: quote Tyler Durden · Fight Club · 00:31:52
+I want you to hit me as hard as you can.
+:::
 
 ## The body becomes proof
 
@@ -97,6 +103,11 @@ Their jobs are abstract. Their consumption is repetitive. Their identities feel 
 
 But getting punched is real.
 
+::: note 00:47:10
+The support-group scenes and the fight scenes are shot with the same
+handheld intimacy. Fincher is telling you they are the same need.
+:::
+
 Your lip splits.
 
 Your ribs hurt.
@@ -107,7 +118,7 @@ For a few minutes, nobody is thinking about their boss, apartment or bank accoun
 
 Pain becomes evidence that they still exist.
 
-The mistake is confusing that intensity with freedom.
+The mistake is ==confusing that intensity with freedom.==
 
 ## The rebellion becomes another uniform
 
@@ -140,6 +151,10 @@ The rebellion recreates the system it was supposed to destroy.
 
 Only now they call obedience freedom.
 
+::: interruption
+The rebellion issued a uniform.
+:::
+
 ## Bob is the man Tyler can't explain
 
 Bob barely resembles the masculine ideal Tyler represents.
@@ -154,7 +169,7 @@ He hugs.
 
 And he's the first person who actually gives the Narrator what he needs.
 
-Human contact.
+==Human contact.==
 
 That's why his death matters beyond shock value.
 
@@ -221,6 +236,10 @@ That's what makes the ending more interesting than a simple rejection of violenc
 The Narrator doesn't become tougher than Tyler.
 
 He stops measuring himself against Tyler at all.
+
+::: thesis
+You cannot beat the man you invented to replace yourself.
+:::
 
 ## The test
 

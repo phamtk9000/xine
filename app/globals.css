@@ -436,8 +436,16 @@ body {
   .prose-columns > h2,
   .prose-columns > .table-scroll,
   .prose-columns > hr,
-  .prose-columns > blockquote {
+  .prose-columns > blockquote,
+  .prose-columns > .device-thesis,
+  .prose-columns > .device-interruption,
+  .prose-columns > .device-quote {
     column-span: all;
+  }
+  /* The margin note is the exception: it belongs beside the column, not
+     across the page. */
+  .prose-columns > .device-note {
+    break-inside: avoid;
   }
 
   /* Only genuinely wide art spans the band. A near-square image stretched
@@ -565,6 +573,15 @@ body {
     animation: art-rise 640ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
+  /* The thesis keeps the same restrained move in every art direction. A
+     stepped or rotated entrance on type this large is a distraction from the
+     one sentence it exists to deliver. */
+  .prose-xine > .device-thesis.art-in,
+  .prose-xine > .device-interruption.art-in,
+  .prose-xine > .device-quote.art-in {
+    animation: art-thesis 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
   /* 1 — NEO-NOIR. A squeegee pull: the image is not faded in, it is printed
      left to right in one pass. */
   [data-style="noir"] .prose-xine > .art-in {
@@ -604,6 +621,17 @@ body {
     transform-origin: left center;
     animation-name: art-rule;
     animation-duration: 620ms;
+  }
+}
+
+@keyframes art-thesis {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 1.25rem, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
   }
 }
 
@@ -1017,4 +1045,230 @@ body {
     transform: translate3d(0, 0, 0);
     letter-spacing: -0.03em;
   }
+}
+
+/* ============================================================
+   EDITORIAL DEVICES
+
+   Changes of register inside an article — see lib/devices.ts for the
+   authoring syntax. Each one deliberately breaks the column flow, because
+   that break is the entire effect: a page that never changes register reads
+   as one exhausting column no matter how good the prose is.
+   ============================================================ */
+
+/* 1 — THESIS. The strongest sentence in a section, printed at the size a
+   magazine would print it, with the body text around it demoted to support.
+   Two or three an article; a page of these is a page of shouting. */
+.prose-xine .device-thesis {
+  margin-block: 3.5rem;
+}
+
+.prose-xine .device-thesis p {
+  max-width: 22ch;
+  font-family: var(--font-display);
+  /* Roughly 48px on a phone to 140px on a wide screen. */
+  font-size: clamp(3rem, 8.5vw, 8.75rem);
+  line-height: 0.9;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+  color: var(--color-paper);
+}
+
+[data-style="zine"] .device-thesis p {
+  font-family: var(--font-sans);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: -0.04em;
+  text-shadow: 3px 3px 0 var(--art-accent);
+}
+
+[data-style="dossier"] .device-thesis p {
+  font-family: var(--font-mono);
+  font-size: clamp(1.75rem, 3.6vw, 3.25rem);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  max-width: 26ch;
+}
+
+[data-style="modernist"] .device-thesis p {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  letter-spacing: -0.045em;
+}
+
+/* 2 — INTERRUPTION. The article stops. One sentence, a screen of nothing
+   around it, then it resumes — a pause instead of more information. */
+.prose-xine .device-interruption {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 78vh;
+  margin-block: 4rem;
+  padding: 3rem 0;
+  border-block: 1px solid var(--color-line);
+  background: var(--color-ink);
+  text-align: center;
+}
+
+.prose-xine .device-interruption p {
+  max-width: 16ch;
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 7vw, 6.5rem);
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+[data-style="zine"] .device-interruption p {
+  font-family: var(--font-sans);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+[data-style="dossier"] .device-interruption p {
+  font-family: var(--font-mono);
+  font-size: clamp(1.5rem, 3.2vw, 2.75rem);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  max-width: 24ch;
+}
+
+/* 3 — FILM QUOTE. A line from the film, not a pull quote lifted from the
+   prose. No rule, no italics, no accent bar: a great deal of nothing, and
+   the line in the middle of it. The emptiness is what gives it weight. */
+.prose-xine .device-quote {
+  margin-block: 4.5rem;
+  padding-block: 4rem;
+  text-align: center;
+}
+
+.prose-xine .device-quote blockquote {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.prose-xine .device-quote blockquote p {
+  margin: 0 auto;
+  max-width: 24ch;
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 3.6vw, 3rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  text-transform: none;
+  color: var(--color-paper);
+  text-wrap: balance;
+}
+
+.prose-xine .device-quote figcaption {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 2.75rem auto 0;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.prose-xine .device-quote .device-speaker {
+  color: var(--color-paper);
+}
+.prose-xine .device-quote .device-film {
+  color: var(--art-accent);
+}
+.prose-xine .device-quote .device-time {
+  color: var(--color-faint);
+}
+
+/* 4 — MARGIN NOTE. The critic's annotation: a timecode, a term, a
+   cross-reference. It lives in the empty space beside the column rather than
+   inside the argument, so the main text stays as easy to read as it was. */
+.prose-xine .device-note {
+  margin-block: 2rem;
+  padding-left: 1rem;
+  border-left: 1px solid var(--art-accent);
+}
+
+.prose-xine .device-note p {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.65;
+  color: var(--color-muted);
+  max-width: 34ch;
+}
+
+.prose-xine .device-note[data-marker]::before {
+  content: attr(data-marker);
+  display: block;
+  margin-bottom: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--art-accent);
+}
+
+/* 5 — PROGRESSIVE EMPHASIS. Not a highlighter. The phrase sits in the body
+   colour until the reader reaches it, then takes the article's accent, so
+   the argument lights up in the order it is made. */
+.prose-xine mark.emph {
+  background: none;
+  color: inherit;
+  font-style: inherit;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .prose-xine mark.emph {
+    transition:
+      color 420ms ease,
+      opacity 420ms ease;
+  }
+  .prose-xine mark.emph.art-off {
+    color: var(--color-faint);
+  }
+  .prose-xine mark.emph.art-in {
+    color: var(--art-accent);
+  }
+}
+
+/* ============================================================
+   READING MARKER
+
+   Which section you are in, fixed at the side. Deliberately not a progress
+   bar — a bar says how much is left, which is a reason to stop.
+   ============================================================ */
+
+.reading-marker {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 1.5rem;
+  z-index: 40;
+  display: none;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid var(--color-line);
+  background: color-mix(in srgb, var(--color-ink) 88%, transparent);
+  backdrop-filter: blur(6px);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-muted);
+  pointer-events: none;
+}
+
+/* Below this there is no side to sit at without covering the article. */
+@media (min-width: 1280px) {
+  .reading-marker {
+    display: flex;
+  }
+}
+
+.reading-marker-rule {
+  width: 1.5rem;
+  height: 1px;
+  background: var(--art-accent);
 }
