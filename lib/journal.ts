@@ -2,6 +2,7 @@ import "server-only";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import matter from "gray-matter";
+import { imageSize } from "@/lib/image-size";
 import { remark } from "remark";
 import remarkGfm from "remark-gfm";
 import remarkHtml from "remark-html";
@@ -85,12 +86,55 @@ async function render(markdown: string) {
     .use(remarkHtml, { sanitize: false })
     .process(markdown);
 
+  let html = String(file);
+
   // Wide tables have to scroll inside their own box, or the whole article
   // scrolls sideways on a phone.
-  return String(file).replace(
+  html = html.replace(
     /<table>([\s\S]*?)<\/table>/g,
     '<div class="table-scroll"><table>$1</table></div>',
   );
+
+  return tagFigureOrientation(html);
+}
+
+/**
+ * Tags each figure with the real orientation of its image.
+ *
+ * In the column layout a figure spans both columns, which is right for
+ * landscape art and wrong for anything near square — a 1:1 image capped by
+ * height fills barely half the band and leaves gutters either side. Reading
+ * the actual dimensions lets the CSS span the wide ones and inset the tall
+ * ones into a single column, the way a magazine runs a portrait plate beside
+ * the text rather than across it.
+ */
+async function tagFigureOrientation(html: string) {
+  const sources = [...html.matchAll(/<figure>\s*<img src="([^"]+)"/g)];
+
+  for (const [, src] of sources) {
+    const size = await imageSize(src);
+    if (!size) continue;
+    const ratio = size.width / size.height;
+    // The band is ~1336px and figures cap at 72vh, so an image needs a ratio
+    // near 1.85 to actually fill it. Anything squarer leaves gutters and is
+    // better off inset into a single column.
+    const orient = ratio >= 1.7 ? "wide" : "upright";
+    html = html.replace(
+      `<figure>\n<img src="${src}"`,
+      `<figure data-orient="${orient}">\n<img src="${src}"`,
+    );
+    // remark-html may not emit the newline; cover both shapes.
+    html = html.replace(
+      `<figure>\n  <img src="${src}"`,
+      `<figure data-orient="${orient}">\n  <img src="${src}"`,
+    );
+    html = html.replace(
+      `<figure><img src="${src}"`,
+      `<figure data-orient="${orient}"><img src="${src}"`,
+    );
+  }
+
+  return html;
 }
 
 function toMeta(slug: string, data: Record<string, unknown>, body: string): ArticleMeta {

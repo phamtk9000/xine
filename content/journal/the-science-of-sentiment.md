@@ -29,6 +29,11 @@ That question drives the entire film.
 
 ## Science provides the route. Love chooses the destination.
 
+<figure>
+  <img src="/media/journal/the-science-of-sentiment/fig-02.png" alt="Cooper and Murph looking back at the farmhouse, a ringed planet already in the sky" />
+  <figcaption>The route is physics. The reason for taking it is standing next to him.</figcaption>
+</figure>
+
 *Interstellar* constantly places physics and emotion beside each other.
 
 Gravity can move information across dimensions.
@@ -54,6 +59,11 @@ Love doesn't replace empirical evidence.
 It becomes meaningful precisely where evidence stops being sufficient.
 
 ## Brand makes the wrong argument for the right reason
+
+<figure>
+  <img src="/media/journal/the-science-of-sentiment/fig-01.png" alt="Cooper holding a weeping Murph, the Endurance ring and a ranger behind them, with the Einstein field equation set beneath" />
+  <figcaption>The equation describes the universe. It does not tell you which planet to fall toward.</figcaption>
+</figure>
 
 This is what makes the Edmunds decision so important.
 
@@ -120,6 +130,11 @@ Mann's lack of attachment does not make him objective.
 It makes him alone.
 
 ## Then the Tesseract changes the argument
+
+<figure>
+  <img src="/media/journal/the-science-of-sentiment/fig-03.png" alt="Cooper suspended inside the tesseract, reaching through the back of Murph's bookshelf as she sits on her bed holding the watch" />
+  <figcaption>The tesseract is built by people who could reach anywhere, and it opens onto one bedroom.</figcaption>
+</figure>
 
 The film's climax returns to Brand's idea, but with an important distinction.
 

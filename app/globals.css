@@ -431,11 +431,31 @@ body {
     column-rule: 1px solid var(--color-line);
   }
   .prose-columns > h2,
-  .prose-columns > figure,
   .prose-columns > .table-scroll,
   .prose-columns > hr,
   .prose-columns > blockquote {
     column-span: all;
+  }
+
+  /* Only genuinely wide art spans the band. A near-square image stretched
+     across both columns fills barely half of it and leaves gutters, so it
+     runs inside one column instead — an inset plate beside the text rather
+     than a band across it. Orientation is measured from the file, not
+     guessed, in lib/journal.ts. */
+  .prose-columns > figure[data-orient="wide"] {
+    column-span: all;
+  }
+  .prose-columns > figure[data-orient="upright"] {
+    column-span: none;
+    margin-inline: 0;
+  }
+  .prose-columns > figure[data-orient="upright"] img {
+    width: 100%;
+    max-height: 62vh;
+    object-fit: cover;
+  }
+  .prose-columns > figure[data-orient="upright"] figcaption {
+    margin-inline: 0;
   }
   /* A heading or image landing mid-column leaves an orphan above it. */
   .prose-columns > h3,
