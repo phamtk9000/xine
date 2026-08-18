@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ArticleCard } from "@/components/article-card";
 import { FilmGrid } from "@/components/film-card";
+import { FilmMarquee } from "@/components/film-marquee";
+import { TitleSequence } from "@/components/title-sequence";
 import { Poster } from "@/components/poster";
 import {
   ButtonLink,
@@ -20,7 +22,7 @@ export default async function HomePage() {
   const [articles, trending, newest, lists, activity] = await Promise.all([
     listArticles(),
     listFilms({ sort: "trending", take: 12 }),
-    listFilms({ sort: "new", take: 6 }),
+    listFilms({ sort: "new", take: 16 }),
     db.filmList.findMany({
       where: { editorial: true },
       orderBy: { createdAt: "desc" },
@@ -55,8 +57,17 @@ export default async function HomePage() {
   const lead = articles[leadIndex];
   const more = articles.filter((_, i) => i !== leadIndex);
 
+  // The title sequence cuts through real posters from the catalogue rather
+  // than stock art, so it is the site introducing itself with its own stock.
+  const titleFrames = trending
+    .map((film) => film.posterUrl)
+    .filter((url): url is string => Boolean(url))
+    .slice(0, 12);
+
   return (
     <>
+      <TitleSequence posters={titleFrames} />
+
       {/* Masthead */}
       <section className="border-b border-line">
         <Container className="py-16 sm:py-24">
@@ -195,7 +206,11 @@ export default async function HomePage() {
           />
           <div className="grid gap-10 md:grid-cols-3">
             {lists.map((list) => (
-              <Link key={list.id} href={`/lists/${list.slug}`} className="group">
+              <Link
+                key={list.id}
+                href={`/lists/${list.slug}`}
+                className="group"
+              >
                 <div className="flex gap-2">
                   {list.entries.map((entry) => (
                     <div key={entry.id} className="w-1/4">
@@ -260,13 +275,13 @@ export default async function HomePage() {
       <section>
         <Container className="py-14">
           <div className="grid gap-14 lg:grid-cols-[1fr_20rem]">
-            <div>
+            <div className="min-w-0">
               <SectionHeading
                 label="Films"
                 title="New releases"
                 href="/films?sort=new"
               />
-              <FilmGrid films={newest} />
+              <FilmMarquee films={newest} />
             </div>
 
             <aside>
@@ -278,10 +293,10 @@ export default async function HomePage() {
               </div>
               <ul className="mt-5 space-y-4">
                 {activity.map((item) => {
-                  const payload = parseJson<{ overall?: number; title?: string }>(
-                    item.payload,
-                    {},
-                  );
+                  const payload = parseJson<{
+                    overall?: number;
+                    title?: string;
+                  }>(item.payload, {});
                   return (
                     <li key={item.id} className="text-sm">
                       <Link

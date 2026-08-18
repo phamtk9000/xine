@@ -884,3 +884,137 @@ body {
     padding: 2rem 2.5rem;
   }
 }
+
+/* ============================================================
+   MARQUEE
+
+   A continuously moving row of films. Two identical tracks, each shifted by
+   exactly one track width, so the second arrives as the first leaves and the
+   loop has no seam.
+   ============================================================ */
+
+.marquee {
+  --marquee-gap: 1.25rem;
+  display: flex;
+  gap: var(--marquee-gap);
+  overflow: hidden;
+  /* Faded at both ends so titles enter and leave rather than being cut off.
+     The row stays inside its column — it shares the home page's last band
+     with the activity rail, and bleeding to the viewport would run under it. */
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 4rem,
+    #000 calc(100% - 4rem),
+    transparent
+  );
+}
+
+.marquee-track {
+  display: flex;
+  flex: 0 0 auto;
+  gap: var(--marquee-gap);
+}
+
+.marquee-item {
+  width: 10.5rem;
+  flex: 0 0 auto;
+}
+
+@media (min-width: 640px) {
+  .marquee-item {
+    width: 12.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .marquee-track {
+    animation: marquee-run 70s linear infinite;
+  }
+  /* Halts for anyone trying to actually read a title. */
+  .marquee:hover .marquee-track,
+  .marquee:focus-within .marquee-track {
+    animation-play-state: paused;
+  }
+}
+
+/* No motion means no marquee — an ordinary scroller instead. Without this the
+   global reduced-motion override would collapse the duration and teleport the
+   track to its end position. */
+@media (prefers-reduced-motion: reduce) {
+  .marquee {
+    overflow-x: auto;
+  }
+  .marquee-track + .marquee-track {
+    display: none;
+  }
+}
+
+@keyframes marquee-run {
+  to {
+    transform: translateX(calc(-100% - var(--marquee-gap)));
+  }
+}
+
+/* ============================================================
+   TITLE SEQUENCE
+
+   Posters cut fast, then the wordmark. Mounted only by
+   components/title-sequence.tsx, which never mounts it at all on a repeat
+   visit or under reduced motion — so there is no state here for "hidden".
+   ============================================================ */
+
+.title-sequence {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-ink);
+  transition: opacity 320ms ease;
+}
+
+.title-sequence.is-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.title-cuts {
+  position: relative;
+  width: min(70vw, 22rem);
+  aspect-ratio: 2 / 3;
+}
+
+.title-cut {
+  object-fit: cover;
+  opacity: 0;
+  /* Hard cuts, not dissolves — a dissolve at 95ms is just a blur. */
+  filter: contrast(1.1) saturate(0.9);
+}
+
+.title-cut.is-on {
+  opacity: 1;
+}
+
+.title-wordmark {
+  font-family: var(--font-display);
+  font-size: clamp(4rem, 18vw, 12rem);
+  line-height: 0.85;
+  letter-spacing: -0.03em;
+  color: var(--color-paper);
+  animation: title-mark 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes title-mark {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 0.75rem, 0);
+    letter-spacing: 0.06em;
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    letter-spacing: -0.03em;
+  }
+}
