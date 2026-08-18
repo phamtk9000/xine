@@ -1,5 +1,5 @@
 ---
-title: The Science of Sentiment: Why Brand's Love Monologue Is Interstellar's Thematic Engine
+title: "The Science of Sentiment: Why Brand's Love Monologue Is Interstellar's Thematic Engine"
 dek: Interstellar is often accused of abandoning science for sentiment. But Brand's argument about love isn't a rejection of physics — it's the idea that physics tells us what is possible, while human connection tells us where to go.
 kicker: Film & Philosophy
 style: modernist

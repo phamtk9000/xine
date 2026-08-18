@@ -15,7 +15,8 @@
     "films:sync": "tsx scripts/sync-tmdb.ts",
     "media:sync": "tsx scripts/sync-media.ts",
     "films:import": "tsx scripts/import-tmdb.ts",
-    "series:import": "tsx scripts/import-tmdb.ts --kind series"
+    "series:import": "tsx scripts/import-tmdb.ts --kind series",
+    "films:link": "tsx scripts/link-articles.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.117.1",

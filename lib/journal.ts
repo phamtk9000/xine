@@ -133,13 +133,25 @@ export async function listArticles(): Promise<ArticleMeta[]> {
     files
       .filter((f) => f.endsWith(".md"))
       .map(async (file) => {
-        const raw = await readFile(path.join(DIR, file), "utf8");
-        const { data, content } = matter(raw);
-        return toMeta(file.replace(/\.md$/, ""), data, content);
+        const slug = file.replace(/\.md$/, "");
+        try {
+          const raw = await readFile(path.join(DIR, file), "utf8");
+          const { data, content } = matter(raw);
+          return toMeta(slug, data, content);
+        } catch (error) {
+          // Malformed frontmatter in one file must not take down the whole
+          // Journal — and at build time, the whole build. Skip it loudly.
+          console.warn(
+            `[journal] skipping ${file}: ${(error as Error).message.split("\n")[0]}`,
+          );
+          return null;
+        }
       }),
   );
 
-  return articles.sort((a, b) => b.date.localeCompare(a.date));
+  return articles
+    .filter((a): a is ArticleMeta => a !== null)
+    .sort((a, b) => b.date.localeCompare(a.date));
 }
 
 export async function getArticle(slug: string): Promise<Article | null> {

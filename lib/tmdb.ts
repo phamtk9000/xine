@@ -107,6 +107,19 @@ export async function searchMovie(title: string, year?: number) {
   return data.results[0] ?? null;
 }
 
+/** Title search across TV, for references that turn out to be series. */
+export async function searchSeries(name: string, year?: number) {
+  const data = await request<{ results: (TmdbMovie & { name?: string })[] }>(
+    "/search/tv",
+    withV3Key({
+      query: name,
+      ...(year ? { first_air_date_year: String(year) } : {}),
+      include_adult: "false",
+    }),
+  );
+  return data.results[0] ?? null;
+}
+
 export async function getMovie(id: number) {
   return request<TmdbMovie>(`/movie/${id}`, withV3Key({}));
 }
