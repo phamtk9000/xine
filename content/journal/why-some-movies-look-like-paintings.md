@@ -87,6 +87,11 @@ He makes them temporary marks inside it.
 
 ## In the Mood for Love puts emotion on the walls
 
+<figure>
+  <img src="/media/journal/why-some-movies-look-like-paintings/In_the_Mood_for_Love.webp" alt="Chow and Su in a doorway in In the Mood for Love, the frame divided by a wall and lit in red" />
+  <figcaption>Red does the talking neither of them is allowed to do.</figcaption>
+</figure>
+
 Wong Kar-wai does something more claustrophobic.
 
 *In the Mood for Love* is filled with narrow corridors, doorframes, mirrors, patterned wallpaper, red curtains and saturated pockets of light.
@@ -133,6 +138,11 @@ Color *is* composition.
 
 ## Blade Runner 2049 makes the figure small
 
+<figure>
+  <img src="/media/journal/why-some-movies-look-like-paintings/The_Grand_Budapest_Hotel_screencap_007_webp.webp" alt="A wide symmetrical exterior from The Grand Budapest Hotel with figures reduced to marks in the composition" />
+  <figcaption>Wes Anderson shrinks the figure for comedy. Villeneuve does it for dread. Same geometry.</figcaption>
+</figure>
+
 Roger Deakins and Denis Villeneuve repeatedly place human beings against structures and landscapes too large for them.
 
 K walks through orange ruins.
@@ -150,6 +160,11 @@ The person is small.
 The world is not.
 
 ## The Fall makes reality irrelevant
+
+<figure>
+  <img src="/media/journal/why-some-movies-look-like-paintings/Dune_screencap_052_webp.webp" alt="A vast, near-monochrome landscape from Dune with a single small figure crossing it" />
+  <figcaption>Nothing here is photographed for information.</figcaption>
+</figure>
 
 Then there are films that abandon naturalism almost completely.
 
@@ -172,6 +187,11 @@ Beauty is an effect.
 Composition is a decision.
 
 ## The test
+
+<figure>
+  <img src="/media/journal/why-some-movies-look-like-paintings/In_the_Mood_for_Love_screencap_004_webp.webp" alt="A tightly framed interior from In the Mood for Love, the view partly blocked by a doorframe in the foreground" />
+  <figcaption>Freeze it. The composition survives without the scene around it.</figcaption>
+</figure>
 
 Pause the film.
 

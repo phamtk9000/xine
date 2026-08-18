@@ -51,6 +51,11 @@ There is no answer to that, and the show knows it. Tommy doesn't attempt one.
 
 ## The art of the transactional betrayal
 
+<figure>
+  <img src="/media/journal/alfie-solomons-theology-of-chaos/transaction.png" alt="A torn paper collage of Alfie Solomons — a Camden Town label, a Bass pale ale mark, a Poplar Bakery sign, a five pound note, a ledger of debts and a photograph of Tommy Shelby, with the line 'I don't pay for loyalty. I buy it. Then I sell the truth.'" />
+  <figcaption>Everything in the frame has a price already written on it.</figcaption>
+</figure>
+
 Alfie steals scenes structurally, because his presence destabilises the plot itself. He betrays Tommy in virtually every season he appears in — partnering with Sabini, with Changretta, with Mosley, whenever the arithmetic favours it.
 
 Tommy keeps going back anyway. He has to. Alfie understands the cold calculus of power better than anyone else on the board, which makes him the ultimate wild card: a genius chess player entirely willing to flip the table over the moment he stops enjoying the game.

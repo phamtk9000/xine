@@ -6,8 +6,8 @@ style: dossier
 accent: "#b7413a"
 author: xine
 date: "2026-08-17"
-hero: /media/journal/anatomy-of-a-mindfuck/fight-club.png
-heroAlt: Key art of the Narrator and Tyler Durden assembled from jigsaw pieces, one face split across two halves
+hero: /media/journal/anatomy-of-a-mindfuck/exhibit-a.png
+heroAlt: "A pinned case-file board headed ANATOMY OF A MINDFUCK, with an opened file on The Sixth Sense, a stamped FAIR PLAY CONFIRMED slip, and a marked-up kitchen still labelled Exhibit A"
 heroLayout: plate
 films:
   - fight-club
@@ -25,6 +25,11 @@ A great plot twist is not a cheap magic trick designed to make the audience feel
 
 ## 1. The golden rule: fair play
 
+<figure>
+  <img src="/media/journal/anatomy-of-a-mindfuck/exhibit-c.png" alt="An evidence sheet headed EXHIBIT C — FAIR PLAY, tabulating six clues from The Sixth Sense with scene times and notes, stamped file status closed" />
+  <figcaption>Six clues, all of them shown. None of them read.</figcaption>
+</figure>
+
 The fundamental difference between a brilliant twist and a lazy gimmick comes down to one principle. **Fair play.**
 
 **Why they fail — the out-of-nowhere asspull.** A film that withholds critical information from the audience until the last five minutes has not written a twist; it has written badly. If a detective solves a murder by revealing evidence the audience was never shown, the viewer feels cheated rather than surprised. Surprise requires that you *could* have got there.
@@ -32,6 +37,11 @@ The fundamental difference between a brilliant twist and a lazy gimmick comes do
 **Why they work — hidden in plain sight.** A great twist hands you every piece of the puzzle in advance, then tricks you into assembling them wrong. In The Sixth Sense, Bruce Willis's character never directly interacts with anyone other than the boy after the opening scene. The clues are on screen the entire time, masked by staging and by an assumption you brought with you.
 
 ## 2. Genius versus gimmick
+
+<figure>
+  <img src="/media/journal/anatomy-of-a-mindfuck/fight-club.png" alt="Key art of the Narrator and Tyler Durden assembled from jigsaw pieces, one face split across two halves" />
+  <figcaption>The pieces were on the table from the first scene.</figcaption>
+</figure>
 
 | | The cheap twist | The masterpiece twist |
 | --- | --- | --- |
@@ -54,6 +64,11 @@ A twist should never exist for the plot's convenience. It has to be anchored in 
 **The good twist — the projection of desire.** In Shutter Island, Teddy Daniels' refusal to accept his real identity is not a gimmick. It is a coping mechanism built to escape a grief he cannot survive looking at directly. The twist works because it grows out of a broken psyche rather than a screenwriter's need for a third act. When the reveal lands it does not just shock you. It breaks your heart.
 
 ## 4. The second-watch test
+
+<figure>
+  <img src="/media/journal/anatomy-of-a-mindfuck/exhibit-b.png" alt="A film strip labelled FIRST VIEWING above a second strip labelled SECOND VIEWING, the same four frames from The Sixth Sense annotated in red on the lower strip" />
+  <figcaption>Same footage. Different film.</figcaption>
+</figure>
 
 The ultimate litmus test for any twist is simple.
 

@@ -2,7 +2,7 @@
 title: The Anatomy of an Antihero
 dek: Three men, three excuses, three monsters. Michael Corleone, Tony Soprano and Walter White were all handed a reason to step over the line — and only one of them ever believed his own.
 kicker: Essay
-style: noir
+style: dossier
 accent: "#c9a227"
 author: xine
 date: "2026-08-16"

@@ -25,6 +25,11 @@ And that's the point.
 
 ## Tyler is the fantasy, not the thesis
 
+<figure>
+  <img src="/media/journal/what-fight-club-says-about-masculinity/tyler.png" alt="Tyler Durden in a white vest, cigarette in his mouth, half-turned away, with a crowd of blurred shirtless men behind him" />
+  <figcaption>Everything the Narrator isn't, worn like it costs nothing.</figcaption>
+</figure>
+
 It's easy to mistake Tyler's philosophy for the film's philosophy because Tyler gets everything right aesthetically.
 
 Brad Pitt gets the body. The clothes. The cigarette. The speeches.
@@ -79,6 +84,11 @@ Hit me.
 
 ## The body becomes proof
 
+<figure>
+  <img src="/media/journal/what-fight-club-says-about-masculinity/body-as-proof.png" alt="A card reading THE BODY AS PROOF above the line 'Pain is real. Blood is real. For a moment, you are too.', showing a man's scarred bare back" />
+  <figcaption>The only receipt these men trust.</figcaption>
+</figure>
+
 This is why Fight Club works.
 
 The violence gives these men something their ordinary lives don't: consequence.
@@ -100,6 +110,11 @@ Pain becomes evidence that they still exist.
 The mistake is confusing that intensity with freedom.
 
 ## The rebellion becomes another uniform
+
+<figure>
+  <img src="/media/journal/what-fight-club-says-about-masculinity/basement.png" alt="Two men squaring up under a single hanging bulb in a basement, ringed by rows of identical watching men" />
+  <figcaption>A movement against conformity, arranged in a perfect circle.</figcaption>
+</figure>
 
 Fight Club begins as an escape from conformity.
 
@@ -155,6 +170,11 @@ For a movement supposedly designed to restore men's identities, it has reached t
 
 ## Masculinity without vulnerability becomes performance
 
+<figure>
+  <img src="/media/journal/what-fight-club-says-about-masculinity/spread.png" alt="An open two-page spread with the Narrator smoking on the left and Tyler Durden on the right, surrounded by inset cards — a spilled pill bottle, a skyline, an aeroplane, a bar of pink soap, a shattered pane" />
+  <figcaption>Two men, one skull, and every object in the film belonging to both of them.</figcaption>
+</figure>
+
 Tyler can fight.
 
 Tyler can fuck.
@@ -182,6 +202,11 @@ Tyler's entire identity is constructed to prevent exactly that.
 His freedom requires isolation.
 
 ## The real fight
+
+<figure>
+  <img src="/media/journal/what-fight-club-says-about-masculinity/the-real-fight.png" alt="A fractured composite of the Narrator on the telephone with Tyler Durden's face breaking through the cracks, captioned THE REAL FIGHT" />
+  <figcaption>You cannot beat the man you invented to replace yourself.</figcaption>
+</figure>
 
 The Narrator eventually discovers that beating Tyler is impossible for an obvious reason.
 

@@ -2,7 +2,7 @@
 title: How horror reflects the anxiety of its generation
 dek: Horror changes because fear changes. Nuclear war gave us monsters. The suburbs gave us slashers. The internet gave us cursed images. The genre has always known what a generation is afraid of before that generation knows how to say it.
 kicker: Film & Society
-style: dossier
+style: zine
 accent: "#7d9b3f"
 author: xine
 date: "2026-08-17"

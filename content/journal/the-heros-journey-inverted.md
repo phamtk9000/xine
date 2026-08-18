@@ -31,6 +31,11 @@ The transition from idealist to tyrant often follows a precise psychological des
 
 ### The justified catalyst
 
+<figure>
+  <img src="/media/journal/the-heros-journey-inverted/death-note.png" alt="A black notebook marked Death Note lying in barred sunlight on a floor, beside a television carrying a news broadcast about Kira" />
+  <figcaption>A book on the ground, and a name the world invents for whoever picked it up.</figcaption>
+</figure>
+
 The protagonist suffers an unearned trauma or gains extraordinary power intended to fix a broken world.
 
 Light Yagami finds the Death Note.
@@ -80,6 +85,11 @@ The hero may still believe in the original mission.
 But the person pursuing it is no longer the person who began the story.
 
 ## Light Yagami discovers what it feels like to be God
+
+<figure>
+  <img src="/media/journal/the-heros-journey-inverted/light-yagami.png" alt="Light Yagami in a leather armchair with a hand raised to his face, his own larger portrait to the left and the shinigami Ryuk grinning over his shoulder to the right" />
+  <figcaption>The judge, the defendant, and the thing that finds all of it funny.</figcaption>
+</figure>
 
 **Initial motive:** Rid the world of violent criminals and create a peaceful utopia.
 
@@ -142,6 +152,11 @@ Lelouch's solution is stranger.
 He becomes the monster that needs to be killed.
 
 ## Eren Yeager chooses freedom at an impossible price
+
+<figure>
+  <img src="/media/journal/the-heros-journey-inverted/eren-throne.png" alt="Eren Yeager seated beside an arched window, the shadow of the Founding Titan cast on a cracked wall behind him, Survey Corps banners and ranks of soldiers below" />
+  <figcaption>Freedom, once it has an army standing behind it.</figcaption>
+</figure>
 
 **Initial motive:** Eradicate the Titans and secure freedom for himself and his people.
 
