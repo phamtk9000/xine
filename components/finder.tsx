@@ -168,8 +168,9 @@ function Results({
       {!state.configured && (
         <div className="mb-8">
           <Notice>
-            Keyword-search mode — no model key configured, so nothing here has
-            been judged for fit.
+            Running without a model key, so these are matched on the
+            catalogue&rsquo;s structured data rather than reasoned about. Add an
+            ANTHROPIC_API_KEY for rationales and reference films.
           </Notice>
         </div>
       )}

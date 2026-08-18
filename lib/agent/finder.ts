@@ -20,6 +20,7 @@ import {
 import { TMDB_GENRES } from "@/lib/tmdb";
 import { AXES } from "@/lib/scores";
 import type { Turn } from "@/lib/agent/prompts";
+import { recommendOffline } from "@/lib/agent/offline";
 import { describeTaste, type TasteProfile } from "@/lib/agent/taste";
 
 /**
@@ -530,7 +531,7 @@ export async function runFinder(
   const runner = client.beta.messages.toolRunner({
     model: "claude-opus-5",
     max_tokens: 16000,
-    output_config: { effort: "high" },
+    output_config: { effort: "medium" },
     system: [
       {
         type: "text",
@@ -620,32 +621,29 @@ async function fallbackSearch(
   externalEnabled: boolean,
 ): Promise<FinderResult> {
   const latest = [...turns].reverse().find((t) => t.role === "user");
+  const picks = await recommendOffline(latest?.text ?? "", 3);
 
-  const words = (latest?.text ?? "")
-    .toLowerCase()
-    .split(/[^a-z0-9à-ỹ]+/i)
-    .filter((word) => word.length > 3)
-    .slice(0, 8);
-
-  const results = new Map<string, CatalogueRow>();
-  for (const word of words) {
-    for (const row of await searchCatalogue(word, 6)) results.set(row.slug, row);
-  }
-
-  const films = [...results.values()].slice(0, 3);
+  const archetypes: Archetype[] = ["safe", "adjacent", "wildcard"];
 
   return {
     kind: "recommendations",
-    // The panel already carries the keyword-mode notice; repeating it here
-    // just says the same sentence twice.
-    intro: films.length > 0 ? "" : "No catalogue title matches those words.",
+    intro:
+      picks.length > 0
+        ? "Matched on the catalogue's own data — rating axes, genre, country and runtime. No model involved, so the reasons below are facts rather than argument."
+        : "Nothing in the catalogue matches those signals. Try naming a mood, a genre, or how long you have.",
     question: null,
-    picks: films.map((film) => ({
+    picks: picks.map((film, i) => ({
       id: film.slug,
-      archetype: "safe" as Archetype,
-      matchScore: 0,
+      archetype: archetypes[i] ?? "safe",
+      // A rule-based score is a fit percentage, not a critic's judgement, and
+      // is capped well below the range the agent uses so the two never read
+      // as the same claim.
+      matchScore: Math.min(88, Math.round(film.score)),
       vibeCheck: film.genres.slice(0, 3),
-      whyItFits: `Matched on a keyword from your request. ${film.director}, ${film.year}.`,
+      whyItFits:
+        film.reasons.length > 0
+          ? `Matched on ${film.reasons.slice(0, 3).join(", ")}. ${film.director}, ${film.year}.`
+          : `${film.director}, ${film.year}. Ranked on the catalogue's own scores.`,
       title: film.title,
       year: film.year,
       director: film.director,
