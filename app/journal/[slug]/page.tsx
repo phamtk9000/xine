@@ -1,10 +1,10 @@
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { Container, formatDate } from "@/components/ui";
 import { FilmCard } from "@/components/film-card";
 import { Reveal } from "@/components/reveal";
+import { HeroCarousel, type Slide } from "@/components/hero-carousel";
 import { getArticle, listArticles } from "@/lib/journal";
 import { listFilms } from "@/lib/films";
 import { imageSize } from "@/lib/image-size";
@@ -38,13 +38,19 @@ export default async function ArticlePage({
   const article = await getArticle(slug);
   if (!article) notFound();
 
-  const [related, all, heroSize] = await Promise.all([
+  const [related, all, sizes] = await Promise.all([
     article.films.length ? listFilms({ take: 200 }) : Promise.resolve([]),
     listArticles(),
-    article.hero && article.heroLayout === "plate"
-      ? imageSize(article.hero)
-      : Promise.resolve(null),
+    // Real dimensions per plate, so the carousel reserves the right box and
+    // never letterboxes a portrait into a banner.
+    Promise.all(article.images.map((image) => imageSize(image.src))),
   ]);
+
+  const slides: Slide[] = article.images.map((image, i) => ({
+    ...image,
+    width: sizes[i]?.width ?? 1600,
+    height: sizes[i]?.height ?? 900,
+  }));
 
   const linkedFilms = related.filter((f) => article.films.includes(f.slug));
   const more = all.filter((a) => a.slug !== article.slug).slice(0, 3);
@@ -97,35 +103,7 @@ export default async function ArticlePage({
         </Container>
       </header>
 
-      {article.hero &&
-        (article.heroLayout === "plate" ? (
-          // Key art is shown whole, at its own aspect ratio — cropping a 2:3
-          // poster into a letterbox band cuts the title block off.
-          <div className="art-hero bg-ink-sunk py-12">
-            <Container>
-              <Image
-                src={article.hero}
-                alt={article.heroAlt ?? ""}
-                width={heroSize?.width ?? 1200}
-                height={heroSize?.height ?? 1600}
-                sizes="(max-width: 768px) 100vw, 40rem"
-                priority
-                className="mx-auto h-auto max-h-[82vh] w-auto max-w-full rounded-sm"
-              />
-            </Container>
-          </div>
-        ) : (
-          <div className="art-hero relative aspect-16/9 max-h-[70vh] w-full overflow-hidden bg-ink-raised sm:aspect-21/9">
-            <Image
-              src={article.hero}
-              alt={article.heroAlt ?? ""}
-              fill
-              sizes="100vw"
-              priority
-              className="object-cover"
-            />
-          </div>
-        ))}
+      {slides.length > 0 && <HeroCarousel slides={slides} />}
 
       <Container className="py-14 sm:py-20">
         <div

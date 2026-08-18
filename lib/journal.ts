@@ -61,7 +61,37 @@ export type ArticleMeta = {
   accent: string | null;
 };
 
-export type Article = ArticleMeta & { html: string };
+/** One plate in the article's opening carousel. */
+export type ArticleImage = {
+  src: string;
+  alt: string;
+  caption: string;
+};
+
+export type Article = ArticleMeta & { html: string; images: ArticleImage[] };
+
+/**
+ * Every figure in the rendered article, in order.
+ *
+ * The carousel at the top of a piece is drawn from its own artwork rather
+ * than a separate gallery field — one place to add a picture, and the
+ * opening spread stays in sync with the body automatically.
+ */
+export function extractFigures(html: string): ArticleImage[] {
+  const figures = [...html.matchAll(/<figure[^>]*>[\s\S]*?<\/figure>/g)];
+
+  return figures.flatMap(([block]) => {
+    const src = block.match(/<img src="([^"]+)"/)?.[1];
+    if (!src) return [];
+    return [
+      {
+        src,
+        alt: block.match(/alt="([^"]*)"/)?.[1] ?? "",
+        caption: block.match(/<figcaption>([\s\S]*?)<\/figcaption>/)?.[1] ?? "",
+      },
+    ];
+  });
+}
 
 /** Categories double as the Journal's top-level filter. */
 export const KICKERS = [
@@ -137,7 +167,11 @@ async function tagFigureOrientation(html: string) {
   return html;
 }
 
-function toMeta(slug: string, data: Record<string, unknown>, body: string): ArticleMeta {
+function toMeta(
+  slug: string,
+  data: Record<string, unknown>,
+  body: string,
+): ArticleMeta {
   return {
     slug,
     title: String(data.title ?? slug),
@@ -202,7 +236,22 @@ export async function getArticle(slug: string): Promise<Article | null> {
   try {
     const raw = await readFile(path.join(DIR, `${slug}.md`), "utf8");
     const { data, content } = matter(raw);
-    return { ...toMeta(slug, data, content), html: await render(content) };
+    const meta = toMeta(slug, data, content);
+    const html = await render(content);
+
+    // The hero leads the carousel; the body figures follow in reading order.
+    const images = meta.hero
+      ? [
+          {
+            src: meta.hero,
+            alt: meta.heroAlt ?? "",
+            caption: meta.heroCredit ?? "",
+          },
+          ...extractFigures(html),
+        ]
+      : extractFigures(html);
+
+    return { ...meta, html, images };
   } catch {
     return null;
   }

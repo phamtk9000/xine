@@ -683,24 +683,17 @@ body {
   animation: art-modernist 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.art-hero {
-  animation: art-modernist 820ms cubic-bezier(0.22, 1, 0.36, 1) 90ms both;
-}
-
-[data-style="noir"] .art-hero,
 [data-style="noir"] .art-lede {
   animation-name: art-noir;
   animation-timing-function: cubic-bezier(0.3, 0.9, 0.25, 1);
 }
 
-[data-style="zine"] .art-hero,
 [data-style="zine"] .art-lede {
   animation-name: art-zine;
   animation-timing-function: steps(5, end);
   animation-duration: 460ms;
 }
 
-[data-style="dossier"] .art-hero,
 [data-style="dossier"] .art-lede {
   animation-name: art-dossier;
   animation-timing-function: cubic-bezier(0.16, 0.84, 0.32, 1);
@@ -711,8 +704,183 @@ body {
   .prose-xine > .art-off {
     opacity: 1;
   }
-  .art-hero,
   .art-lede {
     animation: none;
+  }
+}
+
+/* ============================================================
+   OPENING CAROUSEL
+
+   The article's own artwork at full scale, one plate at a time. Every plate
+   is contained rather than cropped — the art arrives as posters, spreads and
+   cinematic bands, and a single crop that suits one shape decapitates the
+   others.
+
+   Slides change in the article's own motion vocabulary, so the carousel is
+   part of the art direction rather than a component sitting on top of it.
+   ============================================================ */
+
+.hero-stage {
+  position: relative;
+  /* Tall enough for a portrait plate to be worth looking at, short enough
+     that the opening paragraph is still reachable without a scroll on a
+     laptop. */
+  height: clamp(26rem, 78vh, 52rem);
+  overflow: hidden;
+}
+
+.hero-slide {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.hero-slide.is-active {
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
+}
+
+/* Sized from the width/height attributes, never from the decoded bitmap.
+   `width: auto; height: auto` looks equivalent but makes layout wait on the
+   image, and a plate that has not decoded yet collapses to nothing. */
+.hero-plate {
+  height: 100%;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.hero-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 1rem 2rem;
+  padding: 1rem 1.5rem 1.25rem;
+  border-top: 1px solid var(--color-line);
+}
+
+.hero-caption {
+  flex: 1 1 18rem;
+  min-width: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--color-muted);
+}
+
+.hero-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-left: auto;
+}
+
+.hero-step {
+  padding: 0.15rem 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  color: var(--color-muted);
+  transition: color 150ms ease;
+  cursor: pointer;
+}
+.hero-step:hover {
+  color: var(--art-accent);
+}
+
+.hero-ticks {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.hero-tick {
+  display: block;
+  width: 1.5rem;
+  height: 2px;
+  background: var(--color-line-bright);
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+.hero-tick:hover {
+  background: var(--color-muted);
+}
+.hero-tick[aria-current="true"] {
+  background: var(--art-accent);
+}
+
+.hero-count {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: var(--tracking-label);
+  color: var(--color-paper);
+}
+
+.hero-carousel:focus-visible {
+  outline: 1px solid var(--art-accent);
+  outline-offset: -1px;
+}
+
+/* Each art direction changes plate the way it moves everywhere else. */
+@media (prefers-reduced-motion: no-preference) {
+  .hero-slide.is-active {
+    animation: art-modernist 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  [data-style="noir"] .hero-slide.is-active {
+    animation: art-noir 620ms cubic-bezier(0.3, 0.9, 0.25, 1) both;
+  }
+  [data-style="zine"] .hero-slide.is-active {
+    animation: art-zine 380ms steps(5, end) both;
+  }
+  [data-style="dossier"] .hero-slide.is-active {
+    animation: art-dossier 700ms cubic-bezier(0.16, 0.84, 0.32, 1) both;
+  }
+}
+
+/* The zine prints its plates off-square, as it does its figures. */
+[data-style="zine"] .hero-plate {
+  --fig-rot: -0.5deg;
+  transform: rotate(var(--fig-rot));
+  box-shadow: 8px 8px 0 rgb(0 0 0 / 0.55);
+  filter: contrast(1.16) grayscale(0.1);
+}
+[data-style="zine"] .hero-caption {
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--color-paper);
+}
+
+/* The case file numbers its plates and rules them off. */
+[data-style="dossier"] .hero-plate {
+  border: 1px solid var(--color-line-bright);
+}
+[data-style="dossier"] .hero-caption::before {
+  content: "Plate — ";
+  color: var(--art-accent);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+/* The noir print gets its hard edge and a screen-print contrast. */
+[data-style="noir"] .hero-plate {
+  border: 1px solid color-mix(in srgb, var(--art-cream) 22%, transparent);
+  filter: contrast(1.06) saturate(0.94);
+}
+
+@media (min-width: 640px) {
+  .hero-bar {
+    padding-inline: 2.5rem;
+  }
+  .hero-slide {
+    padding: 2rem 2.5rem;
   }
 }
