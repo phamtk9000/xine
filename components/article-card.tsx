@@ -33,7 +33,12 @@ export function ArticleCard({
             fill
             sizes={size === "lg" ? "100vw" : "(max-width: 768px) 100vw, 33vw"}
             priority={priority}
-            className="object-cover transition-transform duration-700 group-hover:scale-[1.02]"
+            className={`transition-transform duration-700 group-hover:scale-[1.02] ${
+              // A poster cropped to a card band loses its title block.
+              article.heroLayout === "plate"
+                ? "object-contain p-3"
+                : "object-cover"
+            }`}
           />
         </div>
       )}

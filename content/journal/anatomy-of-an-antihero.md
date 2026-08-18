@@ -2,6 +2,8 @@
 title: The Anatomy of an Antihero
 dek: Three men, three excuses, three monsters. Michael Corleone, Tony Soprano and Walter White were all handed a reason to step over the line — and only one of them ever believed his own.
 kicker: Essay
+style: noir
+accent: "#c9a227"
 author: xine
 date: "2026-08-16"
 hero: /media/journal/anatomy-of-an-antihero/hero.png
@@ -10,6 +12,8 @@ featured: true
 films:
   - the-godfather
   - the-godfather-part-ii
+  - breaking-bad
+  - the-sopranos
 ---
 
 Every antihero needs a justification. Not a reason — a **moral shield**, something to hold up in front of the first act of violence so that the descent looks like it happened to them rather than because of them.
@@ -61,6 +65,11 @@ He achieves total operational dominance at the precise moment he loses the thing
 Walt's arc runs the other way — an **addition** of confidence and bloodlust. Heisenberg is not a tragic burden he takes on. Heisenberg is Walt's true self unleashed.
 
 The difference from Michael is pleasure. Michael takes zero enjoyment in the violence required to hold power; every killing costs him something visible. Walt relishes every second. The "I am the one who knocks" speech is not an act of protection, whatever he tells Skyler it is. It is euphoria.
+
+<figure>
+  <img src="/media/journal/anatomy-of-an-antihero/walter.png" alt="Walter White's face split down the middle, one half the teacher and one half Heisenberg, key art reading The Amplification of Ego" />
+  <figcaption>Heisenberg wasn't born. He was allowed out.</figcaption>
+</figure>
 
 <figure>
   <img src="/media/journal/anatomy-of-an-antihero/soprano.png" alt="Tony Soprano surrounded by faded repetitions of his own face, key art reading The Futility of Self-Awareness" />

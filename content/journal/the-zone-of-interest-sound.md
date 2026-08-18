@@ -2,6 +2,8 @@
 title: The film that depicts nothing and shows everything
 dek: Jonathan Glazer's camera never leaves the house. Johnnie Burn's sound design never stays in it. That split is the entire moral architecture of The Zone of Interest.
 kicker: Craft
+style: modernist
+accent: "#8f8d87"
 author: xine
 date: "2026-08-02"
 films:

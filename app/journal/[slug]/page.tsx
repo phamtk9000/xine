@@ -6,6 +6,7 @@ import { Container, formatDate } from "@/components/ui";
 import { FilmCard } from "@/components/film-card";
 import { getArticle, listArticles } from "@/lib/journal";
 import { listFilms } from "@/lib/films";
+import { imageSize } from "@/lib/image-size";
 
 export async function generateStaticParams() {
   const articles = await listArticles();
@@ -36,16 +37,26 @@ export default async function ArticlePage({
   const article = await getArticle(slug);
   if (!article) notFound();
 
-  const [related, all] = await Promise.all([
+  const [related, all, heroSize] = await Promise.all([
     article.films.length ? listFilms({ take: 200 }) : Promise.resolve([]),
     listArticles(),
+    article.hero && article.heroLayout === "plate"
+      ? imageSize(article.hero)
+      : Promise.resolve(null),
   ]);
 
   const linkedFilms = related.filter((f) => article.films.includes(f.slug));
   const more = all.filter((a) => a.slug !== article.slug).slice(0, 3);
 
   return (
-    <article>
+    <article
+      data-style={article.style}
+      style={
+        article.accent
+          ? ({ "--art-accent": article.accent } as React.CSSProperties)
+          : undefined
+      }
+    >
       <header className="border-b border-line py-14 sm:py-20">
         <Container>
           <div className="mx-auto max-w-3xl">
@@ -85,18 +96,35 @@ export default async function ArticlePage({
         </Container>
       </header>
 
-      {article.hero && (
-        <div className="relative aspect-16/9 max-h-[70vh] w-full overflow-hidden bg-ink-raised sm:aspect-21/9">
-          <Image
-            src={article.hero}
-            alt={article.heroAlt ?? ""}
-            fill
-            sizes="100vw"
-            priority
-            className="object-cover"
-          />
-        </div>
-      )}
+      {article.hero &&
+        (article.heroLayout === "plate" ? (
+          // Key art is shown whole, at its own aspect ratio — cropping a 2:3
+          // poster into a letterbox band cuts the title block off.
+          <div className="bg-ink-sunk py-12">
+            <Container>
+              <Image
+                src={article.hero}
+                alt={article.heroAlt ?? ""}
+                width={heroSize?.width ?? 1200}
+                height={heroSize?.height ?? 1600}
+                sizes="(max-width: 768px) 100vw, 40rem"
+                priority
+                className="mx-auto h-auto max-h-[82vh] w-auto max-w-full rounded-sm"
+              />
+            </Container>
+          </div>
+        ) : (
+          <div className="relative aspect-16/9 max-h-[70vh] w-full overflow-hidden bg-ink-raised sm:aspect-21/9">
+            <Image
+              src={article.hero}
+              alt={article.heroAlt ?? ""}
+              fill
+              sizes="100vw"
+              priority
+              className="object-cover"
+            />
+          </div>
+        ))}
 
       <Container className="py-14 sm:py-20">
         <div

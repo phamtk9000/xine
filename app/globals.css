@@ -165,11 +165,16 @@ body {
     margin-block: 2.75em;
     margin-inline: calc(-1 * min(6vw, 5rem));
   }
+  /* Landscape art fills the breakout width; tall art is capped by height and
+     centred instead, so a portrait plate doesn't run past a screen height. */
   & figure img {
-    width: 100%;
-    height: auto;
-    border-radius: 4px;
     display: block;
+    width: auto;
+    max-width: 100%;
+    height: auto;
+    max-height: 80vh;
+    margin-inline: auto;
+    border-radius: 4px;
   }
   & figcaption {
     margin-inline: min(6vw, 5rem);
@@ -225,6 +230,184 @@ body {
     padding: 0.15em 0.4em;
     border-radius: 3px;
   }
+}
+
+/* ============================================================
+   EDITORIAL STYLES
+
+   Four art directions for Journal pages. Each retunes typography, figure
+   treatment, rules and accent across the whole article — the point is that
+   a plot-twist case file and a punk zine should not look like the same
+   template with different colours.
+
+   `--art-accent` is set per article from frontmatter, so each piece gets one
+   film-specific accent against black and dirty cream.
+   ============================================================ */
+
+[data-style] {
+  --art-accent: var(--color-accent);
+  --art-cream: #d9cbae;
+}
+
+/* 1 — NEO-NOIR GRAPHIC. Screen print, hard shadow, halftone, limited colour. */
+[data-style="noir"] .prose-xine figure img {
+  border: 1px solid color-mix(in srgb, var(--art-cream) 22%, transparent);
+  filter: contrast(1.06) saturate(0.94);
+}
+[data-style="noir"] .prose-xine h2 {
+  font-family: var(--font-display);
+  letter-spacing: -0.015em;
+}
+[data-style="noir"] .prose-xine h2::after {
+  content: "";
+  display: block;
+  width: 3.5rem;
+  height: 2px;
+  margin-top: 0.6rem;
+  background: var(--art-accent);
+}
+[data-style="noir"] .prose-xine blockquote {
+  border-left-color: var(--art-accent);
+}
+
+/* 2 — PUNK ZINE. Photocopied, misregistered, condensed, deliberately rough. */
+[data-style="zine"] .prose-xine h2 {
+  font-family: var(--font-sans);
+  font-weight: 800;
+  font-size: clamp(2rem, 5vw, 3.25rem);
+  line-height: 0.92;
+  text-transform: uppercase;
+  letter-spacing: -0.03em;
+  /* Off-register second impression, the way a bad two-colour print looks. */
+  text-shadow: 2px 2px 0 var(--art-accent);
+}
+[data-style="zine"] .prose-xine h3 {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+}
+[data-style="zine"] .prose-xine figure {
+  transform: rotate(-0.6deg);
+}
+[data-style="zine"] .prose-xine figure:nth-of-type(even) {
+  transform: rotate(0.7deg);
+}
+[data-style="zine"] .prose-xine figure img {
+  border-radius: 0;
+  filter: contrast(1.22) grayscale(0.12);
+  box-shadow: 6px 6px 0 rgb(0 0 0 / 0.55);
+}
+[data-style="zine"] .prose-xine figcaption {
+  display: inline-block;
+  margin-top: 0.75rem;
+  padding: 0.2rem 0.55rem;
+  background: var(--art-accent);
+  color: #0a0a09;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+[data-style="zine"] .prose-xine blockquote {
+  border-left: 0;
+  border-top: 4px solid var(--art-accent);
+  border-bottom: 4px solid var(--art-accent);
+  padding: 1.2rem 0;
+  font-family: var(--font-sans);
+  font-weight: 800;
+  text-transform: uppercase;
+  line-height: 1.05;
+}
+
+/* 3 — CASE FILE. The reader as investigator; figures become numbered exhibits. */
+[data-style="dossier"] .prose-xine {
+  counter-reset: exhibit;
+}
+[data-style="dossier"] .prose-xine h2 {
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+  color: var(--art-accent);
+  border-bottom: 1px solid var(--color-line-bright);
+  padding-bottom: 0.6rem;
+}
+[data-style="dossier"] .prose-xine h3 {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-muted);
+}
+[data-style="dossier"] .prose-xine figure {
+  counter-increment: exhibit;
+  border: 1px solid var(--color-line-bright);
+  padding: 0.9rem;
+  background: var(--color-ink-raised);
+}
+[data-style="dossier"] .prose-xine figure img {
+  border-radius: 0;
+}
+[data-style="dossier"] .prose-xine figcaption {
+  margin-inline: 0;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--color-line);
+}
+[data-style="dossier"] .prose-xine figcaption::before {
+  content: "Exhibit " counter(exhibit, decimal-leading-zero) " — ";
+  color: var(--art-accent);
+}
+[data-style="dossier"] .prose-xine blockquote {
+  border-left: 2px solid var(--art-accent);
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  text-transform: none;
+}
+[data-style="dossier"] .prose-xine blockquote p::before {
+  content: "Testimony — ";
+  font-size: 0.6875rem;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-faint);
+}
+[data-style="dossier"] .prose-xine th {
+  color: var(--art-accent);
+}
+
+/* 4 — MODERNIST JOURNAL. Strict grid, huge type, tiny metadata, no ornament. */
+[data-style="modernist"] .prose-xine h2 {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: clamp(1.9rem, 4vw, 2.9rem);
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+  max-width: 18ch;
+}
+[data-style="modernist"] .prose-xine h3 {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+[data-style="modernist"] .prose-xine p {
+  max-width: 34rem;
+}
+[data-style="modernist"] .prose-xine figure img {
+  border-radius: 0;
+}
+[data-style="modernist"] .prose-xine blockquote {
+  border-left: 0;
+  padding-left: 0;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: clamp(1.5rem, 3.4vw, 2.2rem);
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  max-width: 22ch;
+}
+[data-style="modernist"] .prose-xine hr {
+  border-top-width: 2px;
+  border-color: var(--color-paper);
 }
 
 /* Fine paper grain. One element, fixed, never intercepts pointer events. */

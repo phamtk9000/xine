@@ -20,7 +20,15 @@ export default async function JournalPage({
   const kickers = [...new Set(all.map((a) => a.kicker))].sort();
   const articles = kicker ? all.filter((a) => a.kicker === kicker) : all;
 
-  const [lead, ...rest] = articles;
+  // The lead slot is a big image card, so it goes to the newest featured piece
+  // rather than simply the newest — an article with no artwork looks starved
+  // at that size. Falls back to the newest when nothing is featured.
+  const leadIndex = Math.max(
+    articles.findIndex((a) => a.featured),
+    0,
+  );
+  const lead = articles[leadIndex];
+  const rest = articles.filter((_, i) => i !== leadIndex);
 
   return (
     <>

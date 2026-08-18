@@ -2,8 +2,13 @@
 title: "The Wolf of Wall Street: absolute cinema, you slugs"
 dek: Three hours of pure, unadulterated, grade-A chaos. Scorsese hands a 26-year-old $49 million in a single year and films what happens to his brain.
 kicker: Review
+style: zine
+accent: "#e8b33a"
 author: xine
 date: "2026-08-14"
+hero: /media/journal/the-wolf-of-wall-street/hero.png
+heroAlt: Key art of Jordan Belfort against a yacht at night, captioned with his line about the story you tell yourself
+heroLayout: plate
 score: 9.6
 films:
   - the-wolf-of-wall-street
@@ -30,7 +35,17 @@ Black Monday wipes out his legitimate brokerage job. He lands at a penny-stock j
 
 It is not a film about high finance. It is a film about what happens when you hand a twenty-six-year-old forty-nine million dollars in a single year and his brain turns into a circus.
 
+<figure>
+  <img src="/media/journal/the-wolf-of-wall-street/belfort.png" alt="Key art of Jordan Belfort on a yacht, beside a typed note about making forty-nine million dollars at twenty-six" />
+  <figcaption>Forty-nine million, and annoyed about the shortfall.</figcaption>
+</figure>
+
 ## The vibe: absolute debauchery
+
+<figure>
+  <img src="/media/journal/the-wolf-of-wall-street/routine.png" alt="Key art of Belfort mid-shout in a crowd, beside a black card listing quaaludes, cocaine and hookers as a daily routine" />
+  <figcaption>The daily routine, itemised.</figcaption>
+</figure>
 
 This movie does not crawl. It sprints.
 
@@ -44,6 +59,11 @@ They are not traditional protagonists. They are glorious, degenerate scumbags, a
 
 ## McConaughey's ten-minute masterclass
 
+<figure>
+  <img src="/media/journal/the-wolf-of-wall-street/hanna.png" alt="Key art of Mark Hanna and Jordan Belfort facing each other across a restaurant table, captioned with the fugazi line" />
+  <figcaption>The lunch that is the whole thesis.</figcaption>
+</figure>
+
 McConaughey is on screen for maybe ten minutes as Mark Hanna and owns the entire philosophy of the film. The chest-thumping, the humming, the restaurant lunch that functions as the movie's mission statement.
 
 > "It's a fugazi. It doesn't exist."
@@ -55,6 +75,11 @@ That's the thesis. Everything after it is elaboration.
 When Agent Denham comes knocking on the yacht, the dialogue turns sharper than anything else in the film. Jordan tries to buy him off with lobster and caviar and increasingly unsubtle bribes, and Denham simply does not move.
 
 Watching the empire collapse under the weight of its own absurdity is satisfying — right up to the last scene, where Scorsese makes sure you remember the actual ending. Men like Jordan land on their feet. He's selling seminars now, to a room full of people who want to be him.
+
+<figure>
+  <img src="/media/journal/the-wolf-of-wall-street/mugshot.png" alt="Key art of Belfort in a police line-up, set against Gordon Gekko's greed speech from Wall Street" />
+  <figcaption>The line-up, against Gekko&rsquo;s sermon from <em>Wall Street</em> — the film Belfort grew up wanting to star in.</figcaption>
+</figure>
 
 ## Final verdict
 

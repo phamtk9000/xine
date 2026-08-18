@@ -20,6 +20,21 @@ export type VerdictRow = {
   note: string;
 };
 
+/**
+ * The four editorial art directions. Each one is a full page treatment —
+ * typography, figure handling, rules and accent — not a colour swap. An
+ * article picks the one that suits its argument.
+ */
+export const STYLES = ["noir", "zine", "dossier", "modernist"] as const;
+export type EditorialStyle = (typeof STYLES)[number];
+
+export const STYLE_LABELS: Record<EditorialStyle, string> = {
+  noir: "Neo-noir graphic",
+  zine: "Punk cinema zine",
+  dossier: "Case file",
+  modernist: "Modernist journal",
+};
+
 export type ArticleMeta = {
   slug: string;
   title: string;
@@ -31,10 +46,18 @@ export type ArticleMeta = {
   hero?: string;
   heroAlt?: string;
   heroCredit?: string;
+  /**
+   * "wide" crops the hero to a cinematic band — right for a banner. "plate"
+   * contains it instead, for portrait or squarish key art that a wide crop
+   * would decapitate.
+   */
+  heroLayout?: "wide" | "plate";
   films: string[];
   score?: number;
   verdict?: VerdictRow[];
   featured?: boolean;
+  style: EditorialStyle;
+  accent: string | null;
 };
 
 export type Article = ArticleMeta & { html: string };
@@ -82,6 +105,13 @@ function toMeta(slug: string, data: Record<string, unknown>, body: string): Arti
     hero: data.hero ? String(data.hero) : undefined,
     heroAlt: data.heroAlt ? String(data.heroAlt) : undefined,
     heroCredit: data.heroCredit ? String(data.heroCredit) : undefined,
+    heroLayout: data.heroLayout === "plate" ? "plate" : "wide",
+    style: STYLES.includes(data.style as EditorialStyle)
+      ? (data.style as EditorialStyle)
+      : "noir",
+    // One film-specific accent, per the art direction. Falls back to the
+    // house oxblood when a piece doesn't name one.
+    accent: typeof data.accent === "string" ? data.accent : null,
     films: Array.isArray(data.films) ? data.films.map(String) : [],
     score: typeof data.score === "number" ? data.score : undefined,
     verdict: Array.isArray(data.verdict)
