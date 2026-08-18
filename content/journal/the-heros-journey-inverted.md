@@ -2,8 +2,11 @@
 title: "The Hero's Journey Inverted: When the Protagonist Becomes the Villain"
 dek: The most disturbing character arcs do not turn heroes into villains overnight. They give them a righteous cause, enough power to pursue it, and increasingly convincing reasons to cross one moral line after another.
 kicker: Character Study
-style: modernist
-accent: "#8f8d87"
+style: noir
+accent: "#a01f2e"
+hero: /media/journal/the-heros-journey-inverted/hero.png
+heroAlt: Triptych of Eren Yeager: idealistic youth on a pale ground, the present-day figure split down the centre, and the titan form against fire
+heroLayout: wide
 author: xine
 date: "2026-08-17"
 films:

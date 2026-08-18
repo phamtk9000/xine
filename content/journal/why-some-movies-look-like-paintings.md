@@ -4,6 +4,9 @@ dek: Barry Lyndon borrowed the light of the eighteenth century. Days of Heaven b
 kicker: Craft
 style: modernist
 accent: "#9b7653"
+hero: /media/journal/why-some-movies-look-like-paintings/barry_lyndon_screencap_05_webp.webp
+heroAlt: A candlelit interior from Barry Lyndon, composed as an eighteenth-century painting
+heroLayout: wide
 author: xine
 date: "2026-08-17"
 films:
@@ -23,6 +26,11 @@ The strange achievement of painterly cinema is making those thousands feel compo
 
 ## The rectangle comes first
 
+<figure>
+  <img src="/media/journal/why-some-movies-look-like-paintings/In_the_Mood_for_Love_screencap_026_webp.webp" alt="A framed corridor composition from In the Mood for Love" />
+  <figcaption>Wong Kar-wai frames through doorways so the viewer is always slightly excluded.</figcaption>
+</figure>
+
 Before there is movement, there is placement.
 
 A face against a doorway. A body at the edge of a landscape. A strip of red surrounded by green. Two figures separated by an impossible amount of empty room.
@@ -32,6 +40,11 @@ This is where cinema and painting share their oldest problem: deciding what belo
 The difference is that a filmmaker has to solve it again every time somebody moves.
 
 ## Barry Lyndon borrowed the eighteenth century
+
+<figure>
+  <img src="/media/journal/why-some-movies-look-like-paintings/The_Grand_Budapest_Hotel_screencap_003_webp.webp" alt="A centred, symmetrical interior from The Grand Budapest Hotel" />
+  <figcaption>Anderson's symmetry is a painter's decision about where the eye is allowed to rest.</figcaption>
+</figure>
 
 Stanley Kubrick did not simply make *Barry Lyndon* look old. He researched the visual culture of the period and built the film around it.
 
@@ -50,6 +63,11 @@ Everyone has been perfectly placed.
 Everyone looks trapped.
 
 ## Days of Heaven paints with available light
+
+<figure>
+  <img src="/media/journal/why-some-movies-look-like-paintings/Dune_screencap_054_webp.webp" alt="A figure dwarfed by architecture in Dune" />
+  <figcaption>Scale as composition: the frame decides how small a person is before the story does.</figcaption>
+</figure>
 
 Terrence Malick and cinematographer Néstor Almendros arrived at the same destination from the opposite direction.
 

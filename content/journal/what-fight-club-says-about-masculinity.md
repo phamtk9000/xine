@@ -2,8 +2,11 @@
 title: What Fight Club actually says about masculinity
 dek: Tyler Durden looks like everything the Narrator thinks a man should be. Fight Club spends the rest of its runtime asking why he needs that fantasy in the first place.
 kicker: Film & Society
-style: modernist
-accent: "#8b352f"
+style: zine
+accent: "#d4453a"
+hero: /media/journal/what-fight-club-says-about-masculinity/hero.png
+heroAlt: A torn sheet taped to a wall reading 'The first rule isn't about Fight Club. It's about waking up.', beside a bar of pink Fight Club soap
+heroLayout: plate
 author: xine
 date: "2026-08-17"
 films:

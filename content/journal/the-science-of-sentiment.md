@@ -4,6 +4,9 @@ dek: Interstellar is often accused of abandoning science for sentiment. But Bran
 kicker: Film & Philosophy
 style: modernist
 accent: "#6f7880"
+hero: /media/journal/the-science-of-sentiment/hero.png
+heroAlt: Screenprint of Amelia Brand looking upward, set against the Endurance ranger and a ringed planet
+heroLayout: plate
 author: xine
 date: "2026-08-17"
 films:
