@@ -5,7 +5,7 @@ kicker: Character Study
 style: noir
 accent: "#a01f2e"
 hero: /media/journal/the-heros-journey-inverted/hero.png
-heroAlt: Triptych of Eren Yeager: idealistic youth on a pale ground, the present-day figure split down the centre, and the titan form against fire
+heroAlt: "Triptych of Eren Yeager: idealistic youth on a pale ground, the present-day figure split down the centre, and the titan form against fire"
 heroLayout: wide
 author: xine
 date: "2026-08-17"

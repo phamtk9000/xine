@@ -226,12 +226,16 @@ export function formatRuntime(minutes: number | null | undefined) {
   return h > 0 ? `${h}h ${m.toString().padStart(2, "0")}m` : `${m}m`;
 }
 
-export function formatDate(date: Date) {
+export function formatDate(date: Date | string | null | undefined) {
+  // A malformed date in article frontmatter should show as a dash, not throw
+  // an "Invalid time value" and take the whole page down with it.
+  const value = date instanceof Date ? date : new Date(date ?? "");
+  if (Number.isNaN(value.getTime())) return "—";
   return new Intl.DateTimeFormat("en-GB", {
     day: "numeric",
     month: "short",
     year: "numeric",
-  }).format(date);
+  }).format(value);
 }
 
 export function relativeTime(date: Date) {
