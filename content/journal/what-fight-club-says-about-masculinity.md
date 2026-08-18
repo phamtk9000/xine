@@ -4,7 +4,7 @@ dek: Tyler Durden looks like everything the Narrator thinks a man should be. Fig
 kicker: Film & Society
 style: zine
 accent: "#d4453a"
-hero: /media/journal/what-fight-club-says-about-masculinity/hero.png
+hero: /media/journal/what-fight-club-says-about-masculinity/first-rule.png
 heroAlt: A torn sheet taped to a wall reading 'The first rule isn't about Fight Club. It's about waking up.', beside a bar of pink Fight Club soap
 heroLayout: plate
 author: xine
