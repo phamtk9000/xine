@@ -80,15 +80,17 @@ export default async function HomePage() {
           ]}
         />
         <Container className="relative py-16 sm:py-24">
-          <p className="label">Cinema, rated and made</p>
-          <h1 className="mt-6 max-w-5xl font-display text-[clamp(2.75rem,8vw,7rem)] leading-[0.9] tracking-tight">
-            Read about films. Rate them properly. Then go and make one.
-          </h1>
-          <p className="mt-8 max-w-xl text-base leading-relaxed text-muted">
-            xine is a film magazine with a rating system that asks six questions
-            instead of one, and a workspace that takes an idea from a single
-            paragraph to a pitch package.
-          </p>
+          <div className="masthead-copy">
+            <p className="label">Cinema, rated and made</p>
+            <h1 className="mt-6 max-w-5xl font-display text-[clamp(2.75rem,8vw,7rem)] leading-[0.9] tracking-tight">
+              Read about films. Rate them properly. Then go and make one.
+            </h1>
+            <p className="mt-8 max-w-xl text-base leading-relaxed text-muted">
+              xine is a film magazine with a rating system that asks six
+              questions instead of one, and a workspace that takes an idea from
+              a single paragraph to a pitch package.
+            </p>
+          </div>
           <div className="mt-10 flex flex-wrap gap-3">
             <ButtonLink href="/create/pitch">Pitch Your Film →</ButtonLink>
             <ButtonLink href="/films" variant="outline">

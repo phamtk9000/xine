@@ -1301,32 +1301,42 @@ body {
 
 /* The headline runs `max-w-5xl` — on most viewports that is most of the
    section's width, not a left-hand column — and it starts a few lines below
-   the top edge, not the vertical centre. So the heavy part of the scrim has
-   to cover most of the box, top-to-bottom as much as side-to-side: light
-   only breathes through at the far right edge and in the empty margin below
-   the buttons, the two places nothing is ever printed on top of it.
+   the top edge, not the vertical centre. So what darkening there is has to
+   cover most of the box, top-to-bottom as much as side-to-side: lighter only
+   at the far right edge and in the empty margin below the buttons, the two
+   places nothing is ever printed over it.
 
-   This has to hold up against three very different plates — one lit warm
-   and bright, one already dark, one dense with its own poster type — so it
-   errs dark rather than tuning itself to any single one of them. */
+   This is deliberately a light touch — the art is the point of putting it
+   here at all. Legibility is carried mostly by the text-shadow on the
+   masthead's own type (below), not by burying the plate under ink; the scrim
+   only needs to take the harshest edge off, not erase the frame. */
 .masthead-scrim {
   position: absolute;
   inset: 0;
   background:
     linear-gradient(
       100deg,
-      var(--color-ink) 0%,
-      color-mix(in srgb, var(--color-ink) 90%, transparent) 55%,
-      color-mix(in srgb, var(--color-ink) 60%, transparent) 80%,
-      color-mix(in srgb, var(--color-ink) 35%, transparent) 100%
+      color-mix(in srgb, var(--color-ink) 68%, transparent) 0%,
+      color-mix(in srgb, var(--color-ink) 52%, transparent) 55%,
+      color-mix(in srgb, var(--color-ink) 30%, transparent) 80%,
+      color-mix(in srgb, var(--color-ink) 12%, transparent) 100%
     ),
     linear-gradient(
       to bottom,
-      color-mix(in srgb, var(--color-ink) 95%, transparent) 0%,
-      color-mix(in srgb, var(--color-ink) 65%, transparent) 50%,
-      color-mix(in srgb, var(--color-ink) 20%, transparent) 85%,
-      transparent 100%
+      color-mix(in srgb, var(--color-ink) 55%, transparent) 0%,
+      color-mix(in srgb, var(--color-ink) 35%, transparent) 50%,
+      transparent 85%
     );
+}
+
+/* The scrim alone can't carry legibility once it's this light, so the
+   masthead's own text gets a shadow doing the rest of the work — a tight
+   pass to hold the edge of each letterform, a wide soft pass so the type
+   still reads against a busy patch of the art (a face, a skyline). */
+.masthead-copy {
+  text-shadow:
+    0 1px 3px color-mix(in srgb, var(--color-ink) 90%, transparent),
+    0 6px 28px color-mix(in srgb, var(--color-ink) 85%, transparent);
 }
 
 /* ============================================================
