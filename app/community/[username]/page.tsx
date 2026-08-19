@@ -5,6 +5,7 @@ import { FilmGrid } from "@/components/film-card";
 import { AxisBreakdown, AxisSpark } from "@/components/score";
 import { Container, formatDate } from "@/components/ui";
 import { signOut } from "@/app/actions/auth";
+import { editorialCounts } from "@/lib/films";
 import { getProfile } from "@/lib/profile";
 import { getCurrentUser } from "@/lib/session";
 import { fromCsv } from "@/lib/serialize";
@@ -20,8 +21,7 @@ export async function generateMetadata({
   return {
     title: `${profile.user.displayName}'s cinema`,
     description:
-      profile.user.bio ??
-      `${profile.stats.watched} films watched on xine.`,
+      profile.user.bio ?? `${profile.stats.watched} films watched on xine.`,
   };
 }
 
@@ -29,9 +29,10 @@ export default async function ProfilePage({
   params,
 }: PageProps<"/community/[username]">) {
   const { username } = await params;
-  const [profile, viewer] = await Promise.all([
+  const [profile, viewer, reviewCounts] = await Promise.all([
     getProfile(username),
     getCurrentUser(),
+    editorialCounts(),
   ]);
   if (!profile) notFound();
 
@@ -62,6 +63,7 @@ export default async function ProfilePage({
     ratingCount: 0,
     reviewed: film.reviewed,
     tmdbScore: film.tmdbScore,
+    reviewCount: reviewCounts.get(film.slug) ?? 0,
   });
 
   return (

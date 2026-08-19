@@ -113,7 +113,7 @@ export default async function FilmPage({ params }: PageProps<"/films/[slug]">) {
                   <SealBadge
                     score={film.criticScore!}
                     quote={sealQuote}
-                    editorialCount={articles.length}
+                    reviewCount={articles.length}
                     audienceScore={aggregate.community}
                   />
                 </div>

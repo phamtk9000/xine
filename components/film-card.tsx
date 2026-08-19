@@ -38,7 +38,10 @@ export function FilmCard({
         </div>
         {showScore &&
           (sealed ? (
-            <SealMark score={film.criticScore!} />
+            <SealMark
+              score={film.criticScore!}
+              reviewCount={film.reviewCount}
+            />
           ) : (
             <ScorePill value={score} />
           ))}
@@ -116,7 +119,7 @@ export function FilmRow({
       </div>
       <div className="shrink-0 pt-1 text-right">
         {film.reviewed && film.criticScore !== null ? (
-          <SealMark score={film.criticScore} />
+          <SealMark score={film.criticScore} reviewCount={film.reviewCount} />
         ) : (
           <ScorePill value={film.communityScore ?? film.criticScore} />
         )}

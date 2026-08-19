@@ -1,22 +1,27 @@
 /**
- * The XINE Seal — a curatorial tier stamped on a percentage, in the register
- * of a certification mark rather than a star rating or a tomato. Three
- * tiers, each with its own crest, and each meant equally for a film review
- * and a pitch deck: the same three words describe "this is exemplary craft"
- * whether the craft in question is a finished film or a plan to make one.
+ * The XINE Frame — a curatorial tier stamped on a percentage, read at a
+ * glance the way a film frame itself reads at a glance: clean, or damaged.
  *
- * The Seal is strictly an editorial verdict — it renders from XINE's own
- * critic score, never from the community average or an imported TMDB
- * number. Stamping a formal seal on a score xine didn't actually arrive at
- * editorially would say something false about how it was earned; see the
- * `reviewed` gate everywhere this is used.
+ * Three ordinary tiers by score, and one rare fourth that isn't a score
+ * band at all. XINE Select needs both a high score *and* enough editorial
+ * voices behind it — a single five-star review isn't consensus, so a lone
+ * glowing notice doesn't qualify a film for XINE's own distinction, however
+ * high the number. That's the whole point of separating the symbol from
+ * the number: the icon states a verdict (worth it / divisive / skip it /
+ * XINE's own pick), and the percentage next to it states the degree. Asking
+ * one glyph to represent a hundred possible scores is asking it to say
+ * nothing.
+ *
+ * Strictly an editorial verdict — it renders from XINE's own critic score
+ * on a film marked `reviewed`, never from the community average or an
+ * imported TMDB number. See the `reviewed` gate everywhere this is used.
  */
 
-export type SealTier = "distinction" | "selection" | "revision";
+export type SealTier = "select" | "frame" | "mixed" | "burnt";
 
 export type SealMeta = {
   tier: SealTier;
-  /** The crest's own name — what's printed next to it. */
+  /** The tier's own name — what's printed next to it. */
   seal: string;
   /** The one- or two-word state, used in tighter spaces than `seal`. */
   status: string;
@@ -25,45 +30,61 @@ export type SealMeta = {
 };
 
 export const SEAL_TIERS: Record<SealTier, SealMeta> = {
-  distinction: {
-    tier: "distinction",
-    seal: "Seal of Distinction",
-    status: "Distinguished",
+  select: {
+    tier: "select",
+    seal: "XINE Select",
+    status: "Select",
     review:
-      "Universal acclaim — exemplary craftsmanship across direction, narrative architecture and visual language.",
-    deck: "Production-ready — elite market positioning, airtight budget logic, a singular creative vision.",
+      "XINE's own distinction — a high score backed by enough editorial voices to call it consensus, not just one enthusiastic review.",
+    deck: "The deck equivalent of a green light — production-ready, with elite market positioning and a singular creative vision, judged by more than one reader.",
   },
-  selection: {
-    tier: "selection",
-    seal: "Seal of Selection",
-    status: "Selected",
-    review:
-      "Strongly recommended — a clear artistic voice or technical excellence despite minor flaws.",
-    deck: "A strong foundation with high artistic potential — ready for development and talent attachment.",
+  frame: {
+    tier: "frame",
+    seal: "Frame",
+    status: "Worth Watching",
+    review: "Worth watching.",
+    deck: "A strong foundation with real potential — ready for development and talent attachment.",
   },
-  revision: {
-    tier: "revision",
-    seal: "Seal of Revision",
-    status: "Unsealed",
-    review:
-      "Mixed or negative consensus — lacks execution or narrative coherence.",
+  mixed: {
+    tier: "mixed",
+    seal: "Mixed Frame",
+    status: "Mixed",
+    review: "Divisive, or a mixed reception.",
+    deck: "Promising but uneven — parts of the pitch are ready, others need real work before it travels.",
+  },
+  burnt: {
+    tier: "burnt",
+    seal: "Burnt Frame",
+    status: "Not Recommended",
+    review: "Generally not recommended.",
     deck: "Requires core development — narrative structure, visual tone or the business model needs work.",
   },
 };
 
-/** ≥85 Distinction, ≥60 Selection, else Revision. */
-export function sealTier(percent: number): SealTier {
-  if (percent >= 85) return "distinction";
-  if (percent >= 60) return "selection";
-  return "revision";
+/** Score and voice count together decide XINE Select — see the module note. */
+const SELECT_MIN_PERCENT = 85;
+const SELECT_MIN_REVIEWS = 2;
+
+/**
+ * Frame ≥70, Mixed Frame ≥50, else Burnt Frame — and Select only when the
+ * score clears its own, higher bar *and* more than one review backs it.
+ */
+export function sealTier(percent: number, reviewCount = 0): SealTier {
+  if (percent >= SELECT_MIN_PERCENT && reviewCount >= SELECT_MIN_REVIEWS) {
+    return "select";
+  }
+  if (percent >= 70) return "frame";
+  if (percent >= 50) return "mixed";
+  return "burnt";
 }
 
-/** `null` in, `null` out — a film with no critic score has no seal to give it. */
+/** `null` in, `null` out — a film with no critic score has no tier to give it. */
 export function sealFromScore(
   score: number | null | undefined,
+  reviewCount = 0,
 ): SealMeta | null {
   if (score === null || score === undefined) return null;
-  return SEAL_TIERS[sealTier(Math.round(score * 10))];
+  return SEAL_TIERS[sealTier(Math.round(score * 10), reviewCount)];
 }
 
 export function toPercent(score: number | null | undefined): number | null {
@@ -72,11 +93,12 @@ export function toPercent(score: number | null | undefined): number | null {
 }
 
 /**
- * The two weighting tables from the spec. These describe how an editor
- * should weigh a verdict, not a formula the app runs — XINE's own scores
- * come from the five-axis rating (Story, Direction, Visual, Performance,
- * Sound; see lib/scores.ts), which doesn't map one-to-one onto either list
- * below. Shown as the editorial standard, not wired to a calculation.
+ * The two weighting tables from the original spec. These describe how an
+ * editor should weigh a verdict, not a formula the app runs — XINE's own
+ * scores come from the five-axis rating (Story, Direction, Visual,
+ * Performance, Sound; see lib/scores.ts), which doesn't map one-to-one onto
+ * either list below. Shown as the editorial standard, not wired to a
+ * calculation.
  */
 export const CRITIC_PILLARS = [
   { label: "Narrative Architecture", weight: 30 },

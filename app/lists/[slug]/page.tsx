@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { FilmRow } from "@/components/film-card";
 import { Container, PageHeader } from "@/components/ui";
 import { db } from "@/lib/db";
+import { editorialCounts } from "@/lib/films";
 import { getCurrentUser } from "@/lib/session";
 import { removeFromList } from "@/app/actions/lists";
 import { fromCsv } from "@/lib/serialize";
@@ -20,7 +21,7 @@ export async function generateMetadata({
 
 export default async function ListPage({ params }: PageProps<"/lists/[slug]">) {
   const { slug } = await params;
-  const [list, user] = await Promise.all([
+  const [list, user, reviewCounts] = await Promise.all([
     db.filmList.findUnique({
       where: { slug },
       include: {
@@ -32,6 +33,7 @@ export default async function ListPage({ params }: PageProps<"/lists/[slug]">) {
       },
     }),
     getCurrentUser(),
+    editorialCounts(),
   ]);
 
   if (!list) notFound();
@@ -62,6 +64,7 @@ export default async function ListPage({ params }: PageProps<"/lists/[slug]">) {
         ratingCount: ratings.length,
         reviewed: entry.film.reviewed,
         tmdbScore: entry.film.tmdbScore,
+        reviewCount: reviewCounts.get(entry.film.slug) ?? 0,
       },
     };
   });

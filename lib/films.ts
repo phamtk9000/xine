@@ -1,5 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db";
+import { listArticles } from "@/lib/journal";
 import { AXES, averageAxis, averageOverall, round1 } from "@/lib/scores";
 import { fromCsv } from "@/lib/serialize";
 
@@ -20,7 +21,27 @@ export type FilmSummary = {
   ratingCount: number;
   reviewed: boolean;
   tmdbScore: number | null;
+  /** Count of Journal articles referencing this film — decides XINE Select
+   *  alongside the score; see lib/seal.ts. */
+  reviewCount: number;
 };
+
+/**
+ * How many Journal pieces reference each film slug, in one filesystem read
+ * rather than one per film. Editorial is markdown on disk, not a DB table
+ * (see lib/journal.ts), so this is the equivalent of `communityScores`
+ * below for that other source of truth.
+ */
+export async function editorialCounts() {
+  const articles = await listArticles();
+  const counts = new Map<string, number>();
+  for (const article of articles) {
+    for (const slug of article.films) {
+      counts.set(slug, (counts.get(slug) ?? 0) + 1);
+    }
+  }
+  return counts;
+}
 
 /**
  * Community aggregates for a set of films, in one query rather than N.
@@ -28,7 +49,8 @@ export type FilmSummary = {
  * have without another round trip.
  */
 async function communityScores(filmIds: string[]) {
-  if (filmIds.length === 0) return new Map<string, { score: number; count: number }>();
+  if (filmIds.length === 0)
+    return new Map<string, { score: number; count: number }>();
 
   const grouped = await db.rating.groupBy({
     by: ["filmId"],
@@ -90,7 +112,10 @@ export async function listFilms({
     take,
   });
 
-  const scores = await communityScores(films.map((f) => f.id));
+  const [scores, editorial] = await Promise.all([
+    communityScores(films.map((f) => f.id)),
+    editorialCounts(),
+  ]);
 
   const summaries: FilmSummary[] = films.map((film) => {
     const agg = scores.get(film.id);
@@ -109,6 +134,7 @@ export async function listFilms({
       ratingCount: agg?.count ?? 0,
       reviewed: film.reviewed,
       tmdbScore: film.tmdbScore,
+      reviewCount: editorial.get(film.slug) ?? 0,
     };
   });
 
@@ -126,7 +152,9 @@ export async function listFilms({
     // TMDB's average so the tail still orders sensibly instead of collapsing.
     const rank = (f: FilmSummary) =>
       f.communityScore ?? f.criticScore ?? f.tmdbScore ?? 0;
-    summaries.sort((a, b) => rank(b) - rank(a) || b.ratingCount - a.ratingCount);
+    summaries.sort(
+      (a, b) => rank(b) - rank(a) || b.ratingCount - a.ratingCount,
+    );
   }
 
   return summaries;
@@ -144,7 +172,9 @@ export async function getFilmBySlug(slug: string) {
         },
       },
       listEntries: {
-        include: { list: { select: { slug: true, title: true, editorial: true } } },
+        include: {
+          list: { select: { slug: true, title: true, editorial: true } },
+        },
       },
     },
   });
