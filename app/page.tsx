@@ -78,6 +78,7 @@ export default async function HomePage() {
             { src: "/hero.png", alt: "" },
             { src: "/hero2.png", alt: "" },
             { src: "/hero3.png", alt: "" },
+            { src: "/hero5.png", alt: "" },
           ]}
         />
         <Container className="relative py-16 sm:py-24">
