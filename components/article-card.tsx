@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { ArticleMeta } from "@/lib/journal";
-import { formatDate } from "@/components/ui";
+import { formatDate, KickerLabel } from "@/components/ui";
 
 export function ArticleCard({
   article,
@@ -44,7 +44,7 @@ export function ArticleCard({
       )}
 
       <div className="flex items-center gap-3">
-        <span className="label !text-gold">{article.kicker}</span>
+        <KickerLabel kicker={article.kicker} />
         <span className="text-xs text-faint">
           {article.readingTime} min read
         </span>

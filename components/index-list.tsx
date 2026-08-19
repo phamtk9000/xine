@@ -2,13 +2,17 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ArticleMeta } from "@/lib/journal";
 import { formatDate } from "@/components/ui";
+import { kickerColor } from "@/lib/colors";
 
 /**
  * The front-page editorial listing, in the register a text magazine's own
- * front page uses: headline, one-line dek, byline, a bracketed section tag
- * standing in for a coloured pill. No poster-sized art — a small fixed
- * thumbnail at most — because on a page that is mostly headlines, density
- * is the thing doing the work a hero image would otherwise do.
+ * front page uses: headline, one-line dek, byline, a bracketed section tag.
+ * No poster-sized art — a small fixed thumbnail at most — because on a page
+ * that is mostly headlines, density is the thing doing the work a hero
+ * image would otherwise do. The bracket is Harper's own convention for a
+ * kicker; the colour behind it is xine's — six categories, six colours, so
+ * the busiest listing on the site doesn't read as one flat gold label
+ * repeated six times.
  */
 
 export function IndexList({
@@ -49,9 +53,13 @@ export function IndexList({
 
           <div className="min-w-0">
             <p className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1 text-xs text-faint">
+              {/* No hover:text-* here — an inline style always wins over a
+                  class-based :hover rule regardless of specificity, so one
+                  would be dead code. The colour itself is the affordance. */}
               <Link
                 href={`/journal?kicker=${encodeURIComponent(article.kicker)}`}
-                className="index-kicker text-muted hover:text-paper"
+                className="index-kicker"
+                style={{ color: kickerColor(article.kicker) }}
               >
                 {article.kicker}
               </Link>

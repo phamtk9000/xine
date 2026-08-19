@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { Container, formatDate } from "@/components/ui";
+import { Container, KickerLabel, formatDate } from "@/components/ui";
 import { FilmCard } from "@/components/film-card";
 import { Reveal } from "@/components/reveal";
 import { ReadingMarker } from "@/components/reading-marker";
@@ -69,12 +69,10 @@ export default async function ArticlePage({
         <Container>
           <div className="art-lede max-w-4xl">
             <div className="flex flex-wrap items-center gap-3">
-              <Link
+              <KickerLabel
+                kicker={article.kicker}
                 href={`/journal?kicker=${encodeURIComponent(article.kicker)}`}
-                className="label !text-gold"
-              >
-                {article.kicker}
-              </Link>
+              />
               <span className="text-xs text-faint">
                 {article.readingTime} min read
               </span>
@@ -162,7 +160,7 @@ export default async function ArticlePage({
                   href={`/journal/${a.slug}`}
                   className="group block"
                 >
-                  <p className="label !text-gold">{a.kicker}</p>
+                  <KickerLabel kicker={a.kicker} />
                   <p className="mt-2 font-display text-2xl leading-tight transition-colors group-hover:text-gold">
                     {a.title}
                   </p>

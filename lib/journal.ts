@@ -94,14 +94,22 @@ export function extractFigures(html: string): ArticleImage[] {
   });
 }
 
-/** Categories double as the Journal's top-level filter. */
+/**
+ * Categories double as the Journal's top-level filter. Not read by the
+ * filter itself, which derives its chips from whatever kickers the
+ * articles on disk actually use — kept here as the reference list, so it
+ * has to actually match. It didn't (still had Interview and Festival, was
+ * missing Character Study and both Film & ... kickers) until this pass
+ * cross-checked it against `content/journal/*.md` directly.
+ */
 export const KICKERS = [
   "Review",
   "Essay",
   "Analysis",
   "Craft",
-  "Interview",
-  "Festival",
+  "Character Study",
+  "Film & Society",
+  "Film & Philosophy",
 ] as const;
 
 function readingTime(markdown: string) {

@@ -198,7 +198,9 @@ export function SealBadge({
           {reviewCount} editorial review{reviewCount === 1 ? "" : "s"}
         </Tag>
         {audiencePercent !== null && (
-          <Tag>{audiencePercent}% audience score</Tag>
+          // Teal, not gold — visually separating XINE's own verdict above
+          // from the crowd's number, the same split the copy already makes.
+          <Tag color="var(--color-teal)">{audiencePercent}% audience score</Tag>
         )}
       </div>
     </div>

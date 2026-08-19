@@ -6,7 +6,14 @@ import { AxisBreakdown, AxisSpark, ScoreDial } from "@/components/score";
 import { SealBadge } from "@/components/seal";
 import { RatingForm } from "@/components/rating-form";
 import { ReviewForm } from "@/components/review-form";
-import { Container, Tag, formatDate, formatRuntime } from "@/components/ui";
+import {
+  Container,
+  GenreTag,
+  KickerLabel,
+  Tag,
+  formatDate,
+  formatRuntime,
+} from "@/components/ui";
 import { aggregateRatings, getFilmBySlug } from "@/lib/films";
 import { articlesForFilm } from "@/lib/journal";
 import { getCurrentUser } from "@/lib/session";
@@ -97,12 +104,11 @@ export default async function FilmPage({ params }: PageProps<"/films/[slug]">) {
 
               <div className="mt-7 flex flex-wrap gap-2">
                 {genres.map((genre) => (
-                  <Tag
+                  <GenreTag
                     key={genre}
+                    genre={genre}
                     href={`/films?genre=${encodeURIComponent(genre)}`}
-                  >
-                    {genre}
-                  </Tag>
+                  />
                 ))}
                 {runtime && <Tag>{runtime}</Tag>}
                 {film.language && <Tag>{film.language}</Tag>}
@@ -197,7 +203,7 @@ export default async function FilmPage({ params }: PageProps<"/films/[slug]">) {
                       href={`/journal/${article.slug}`}
                       className="group block"
                     >
-                      <p className="label !text-gold">{article.kicker}</p>
+                      <KickerLabel kicker={article.kicker} />
                       <p className="mt-1.5 font-display text-2xl leading-tight transition-colors group-hover:text-gold">
                         {article.title}
                       </p>

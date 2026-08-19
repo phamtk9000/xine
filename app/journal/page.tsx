@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { ArticleCard } from "@/components/article-card";
 import { Container, EmptyState, PageHeader } from "@/components/ui";
+import { kickerColor } from "@/lib/colors";
 import { listArticles } from "@/lib/journal";
 
 export const metadata: Metadata = {
@@ -54,9 +55,18 @@ export default async function JournalPage({
             <Link
               key={k}
               href={`/journal?kicker=${encodeURIComponent(k)}`}
+              // The active filter takes that category's own colour rather
+              // than plain white — one more place the six kickers read as
+              // six things rather than one. Inactive chips stay neutral so
+              // the selection is what draws the eye.
+              style={
+                kicker === k
+                  ? { borderColor: kickerColor(k), color: kickerColor(k) }
+                  : undefined
+              }
               className={`rounded-full border px-4 py-1.5 text-xs transition-colors ${
                 kicker === k
-                  ? "border-paper text-paper"
+                  ? ""
                   : "border-line text-muted hover:border-line-bright hover:text-paper"
               }`}
             >

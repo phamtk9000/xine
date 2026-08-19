@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
+import { genreColor, kickerColor } from "@/lib/colors";
 
 export function Container({
   children,
@@ -160,21 +161,85 @@ export function Select({ className = "", ...props }: ComponentProps<"select">) {
   return <select {...props} className={`${CONTROL} ${className}`} />;
 }
 
+/**
+ * A Journal kicker (Review, Essay, Analysis...), coloured per category
+ * rather than the flat gold every kicker used to render in — see
+ * lib/colors.ts for why each one is what it is.
+ */
+export function KickerLabel({
+  kicker,
+  href,
+  className = "",
+}: {
+  kicker: string;
+  href?: string;
+  className?: string;
+}) {
+  const style = { color: kickerColor(kicker) };
+  const cls = `label ${className}`;
+  return href ? (
+    <Link href={href} style={style} className={cls}>
+      {kicker}
+    </Link>
+  ) : (
+    <span style={style} className={cls}>
+      {kicker}
+    </span>
+  );
+}
+
+/**
+ * A genre pill, tinted deterministically per genre — see lib/colors.ts.
+ *
+ * The hover state (border brightens to the full colour) is plain CSS on
+ * `.genre-tag` in globals.css rather than a mouse-event handler, because
+ * this file has no "use client" directive and is shared with several
+ * server-rendered pages — an event handler here would force the whole
+ * module into a client boundary.
+ */
+export function GenreTag({ genre, href }: { genre: string; href?: string }) {
+  const style = { "--tag-color": genreColor(genre) } as React.CSSProperties;
+  return href ? (
+    <Link href={href} style={style} className="genre-tag">
+      {genre}
+    </Link>
+  ) : (
+    <span style={style} className="genre-tag">
+      {genre}
+    </span>
+  );
+}
+
 export function Tag({
   children,
   href,
+  color,
 }: {
   children: ReactNode;
   href?: string;
+  /** Raw CSS colour, for the rare tag that needs to stand apart from the
+   *  rest — e.g. distinguishing an audience number from XINE's own. Most
+   *  callers omit this and get the plain grey pill. */
+  color?: string;
 }) {
-  const className =
-    "inline-block rounded-full border border-line px-3 py-1 text-xs text-muted transition-colors";
+  const className = `inline-block rounded-full border px-3 py-1 text-xs transition-colors ${
+    color ? "" : "border-line text-muted"
+  }`;
+  const style = color
+    ? { color, borderColor: `color-mix(in srgb, ${color} 45%, transparent)` }
+    : undefined;
   return href ? (
-    <Link href={href} className={`${className} hover:border-line-bright hover:text-paper`}>
+    <Link
+      href={href}
+      style={style}
+      className={`${className} ${color ? "" : "hover:border-line-bright hover:text-paper"}`}
+    >
       {children}
     </Link>
   ) : (
-    <span className={className}>{children}</span>
+    <span style={style} className={className}>
+      {children}
+    </span>
   );
 }
 

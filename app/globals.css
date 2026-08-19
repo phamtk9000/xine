@@ -1467,3 +1467,30 @@ body {
   background: var(--color-accent);
   color: var(--color-ink);
 }
+
+/* ============================================================
+   GENRE TAG
+
+   A deterministic colour per genre (lib/colors.ts), applied through one
+   custom property so the component stays a plain server-rendered pill —
+   see the comment on GenreTag in components/ui.tsx for why this couldn't
+   be a mouse-event handler instead.
+   ============================================================ */
+
+.genre-tag {
+  display: inline-block;
+  border-radius: 9999px;
+  border-width: 1px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  color: var(--tag-color);
+  border-color: color-mix(in srgb, var(--tag-color) 45%, var(--color-line));
+  transition:
+    border-color 150ms ease,
+    color 150ms ease;
+}
+
+a.genre-tag:hover {
+  border-color: var(--tag-color);
+  color: color-mix(in srgb, var(--tag-color) 85%, var(--color-paper));
+}
