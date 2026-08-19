@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { Backdrop, Poster } from "@/components/poster";
 import { AxisBreakdown, AxisSpark, ScoreDial } from "@/components/score";
+import { SealBadge } from "@/components/seal";
 import { RatingForm } from "@/components/rating-form";
 import { ReviewForm } from "@/components/review-form";
 import { Container, Tag, formatDate, formatRuntime } from "@/components/ui";
@@ -27,11 +28,20 @@ export async function generateMetadata({
 
 export default async function FilmPage({ params }: PageProps<"/films/[slug]">) {
   const { slug } = await params;
-  const [film, user] = await Promise.all([getFilmBySlug(slug), getCurrentUser()]);
+  const [film, user] = await Promise.all([
+    getFilmBySlug(slug),
+    getCurrentUser(),
+  ]);
   if (!film) notFound();
 
   const aggregate = aggregateRatings(film.ratings);
   const articles = await articlesForFilm(slug);
+
+  // The badge's quote favours a piece actually filed as a Review; an Essay
+  // or Craft piece that happens to mention the film isn't the verdict.
+  const sealQuote =
+    (articles.find((a) => a.kicker === "Review") ?? articles[0])?.dek ?? null;
+  const sealed = film.reviewed && film.criticScore !== null;
 
   const myRating = user
     ? (film.ratings.find((r) => r.userId === user.id) ?? null)
@@ -87,7 +97,10 @@ export default async function FilmPage({ params }: PageProps<"/films/[slug]">) {
 
               <div className="mt-7 flex flex-wrap gap-2">
                 {genres.map((genre) => (
-                  <Tag key={genre} href={`/films?genre=${encodeURIComponent(genre)}`}>
+                  <Tag
+                    key={genre}
+                    href={`/films?genre=${encodeURIComponent(genre)}`}
+                  >
                     {genre}
                   </Tag>
                 ))}
@@ -95,12 +108,25 @@ export default async function FilmPage({ params }: PageProps<"/films/[slug]">) {
                 {film.language && <Tag>{film.language}</Tag>}
               </div>
 
+              {sealed && (
+                <div className="mt-9 max-w-md">
+                  <SealBadge
+                    score={film.criticScore!}
+                    quote={sealQuote}
+                    editorialCount={articles.length}
+                    audienceScore={aggregate.community}
+                  />
+                </div>
+              )}
+
               <div className="mt-9 flex flex-wrap gap-x-12 gap-y-6 border-t border-line pt-7">
-                <ScoreDial
-                  label={film.reviewed ? "Critic score" : "TMDB score"}
-                  value={film.reviewed ? film.criticScore : film.tmdbScore}
-                  size="md"
-                />
+                {!sealed && (
+                  <ScoreDial
+                    label="TMDB score"
+                    value={film.tmdbScore}
+                    size="md"
+                  />
+                )}
                 <ScoreDial
                   label={`Community · ${aggregate.count} rating${aggregate.count === 1 ? "" : "s"}`}
                   value={aggregate.community}
@@ -236,7 +262,10 @@ export default async function FilmPage({ params }: PageProps<"/films/[slug]">) {
                       )}
                       <div className="mt-4 space-y-4">
                         {review.body.split("\n\n").map((para, i) => (
-                          <p key={i} className="text-[0.9375rem] leading-relaxed text-muted">
+                          <p
+                            key={i}
+                            className="text-[0.9375rem] leading-relaxed text-muted"
+                          >
                             {para}
                           </p>
                         ))}

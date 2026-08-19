@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Poster } from "@/components/poster";
 import { ScorePill } from "@/components/score";
+import { SealMark } from "@/components/seal";
 import type { FilmSummary } from "@/lib/films";
 
 export function FilmCard({
@@ -17,6 +18,12 @@ export function FilmCard({
 }) {
   const score = override ?? film.communityScore ?? film.criticScore;
 
+  // The seal is XINE's own editorial verdict, so a caller-supplied override
+  // (a specific user's rating, on a profile) always falls back to the plain
+  // number rather than borrowing a crest that isn't theirs.
+  const sealed =
+    override === undefined && film.reviewed && film.criticScore !== null;
+
   return (
     <Link href={`/films/${film.slug}`} className="group block">
       <Poster film={film} priority={priority} />
@@ -29,7 +36,12 @@ export function FilmCard({
             {film.director} · {film.year}
           </p>
         </div>
-        {showScore && <ScorePill value={score} />}
+        {showScore &&
+          (sealed ? (
+            <SealMark score={film.criticScore!} />
+          ) : (
+            <ScorePill value={score} />
+          ))}
       </div>
     </Link>
   );
@@ -97,7 +109,11 @@ export function FilmRow({
         )}
       </div>
       <div className="shrink-0 pt-1 text-right">
-        <ScorePill value={film.communityScore ?? film.criticScore} />
+        {film.reviewed && film.criticScore !== null ? (
+          <SealMark score={film.criticScore} />
+        ) : (
+          <ScorePill value={film.communityScore ?? film.criticScore} />
+        )}
       </div>
     </Link>
   );
