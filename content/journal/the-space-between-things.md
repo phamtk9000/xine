@@ -3,7 +3,13 @@ title: "The Space Between Things"
 seo_title: "The Philosophy of Ma: Why Studio Ghibli’s Quiet Moments Matter"
 dek: "Studio Ghibli understands something modern cinema often forgets: silence is not the absence of storytelling. Through the Japanese concept of Ma, Hayao Miyazaki turns waiting, breathing, and doing nothing into some of animation’s most powerful moments."
 kicker: "Craft"
+style: modernist
+accent: "#5b7f8c"
+hero: /media/journal/the-space-between-things/hero.png
+heroAlt: "A distant train crossing a flooded, empty landscape under a huge pale sky, the water perfectly still"
+heroLayout: wide
 author: "xine"
+date: "2026-08-19"
 ---
 
 # The Space Between Things
@@ -19,6 +25,11 @@ But emotionally, it doesn't.
 These pauses are connected to the Japanese concept of **Ma (間)** — the space between things.
 
 And they may be the secret behind why Studio Ghibli films feel so alive.
+
+<figure>
+  <img src="/media/journal/the-space-between-things/interval.png" alt="An empty room in late afternoon, a single wooden chair by a window, a shaft of soft light crossing the floor, dust visible in the air" />
+  <figcaption>Nothing is happening here. That is the point.</figcaption>
+</figure>
 
 ---
 
@@ -138,6 +149,11 @@ And wait.
 
 Water falls from leaves. Puddles collect beneath their feet. The darkness surrounding them feels enormous.
 
+<figure>
+  <img src="/media/journal/the-space-between-things/waiting-for-the-bus.png" alt="Two small figures waiting at a rural bus stop at night in the rain, wet pavement reflecting a single lamp, tall dark trees behind them" />
+  <figcaption>Before anything magical arrives, we get the rain.</figcaption>
+</figure>
+
 Then Totoro appears.
 
 Again, the scene doesn't rush toward the fantastic event.
@@ -173,6 +189,11 @@ These mundane experiences become anchors. The magical elements can become extrao
 ## 05 — The Texture of Being Alive
 
 This pattern appears throughout Miyazaki's work.
+
+<figure>
+  <img src="/media/journal/the-space-between-things/texture-of-being-alive.png" alt="A person lying in tall grass seen from ground level, a small radio beside them, a vast sky of slow-moving clouds overhead" />
+  <figcaption>The plot is not doing anything right now. Neither is she. That's fine.</figcaption>
+</figure>
 
 In *Kiki's Delivery Service*, Kiki lies in the grass listening to the radio while clouds move overhead.
 
