@@ -137,8 +137,10 @@ export default async function HomePage() {
         </Container>
       </section>
 
-      {/* The rating system */}
-      <section className="border-b border-line bg-ink-sunk">
+      {/* The rating system — the site's one deliberate break from a single
+          dark palette, the same beat the reference uses to stop a long
+          black scroll from numbing out. */}
+      <section className="section-light border-b border-line bg-ink-sunk">
         <Container className="py-16">
           <div className="grid gap-12 lg:grid-cols-[1fr_1.1fr] lg:items-center">
             <div>

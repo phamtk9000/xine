@@ -1424,3 +1424,46 @@ body {
     transform: translate3d(0, 0, 0);
   }
 }
+
+/* ============================================================
+   LIGHT SECTION
+
+   One deliberate break in the site's otherwise single dark palette — the
+   same beat the reference site uses to stop a long black scroll from
+   numbing out. Rather than a second hand-tuned theme, this redefines the
+   same custom properties every existing utility already reads from
+   (bg-ink, text-paper, border-line, text-gold, ...), scoped to whatever
+   wraps it. Nothing downstream has to know it's in a light section; the
+   tokens just mean something different inside this box.
+   ============================================================ */
+
+.section-light {
+  --color-ink: #faf3e8;
+  --color-ink-raised: #f2e6d2;
+  --color-ink-sunk: #ecdec2;
+  --color-paper: #1c1710;
+  --color-muted: #6b5d47;
+  --color-faint: #93815f;
+  --color-line: #e0d0ac;
+  --color-line-bright: #cbb587;
+  --color-accent: #a3352c;
+  --color-accent-dim: #7e2922;
+  /* Darkened from the dark-mode gold — the same hex reads washed out
+     against paper instead of ink. */
+  --color-gold: #93630f;
+  --color-teal: #3d6357;
+  color-scheme: light;
+
+  /* `color` is inherited as a resolved value, not re-evaluated per element —
+     text with no explicit Tailwind colour class (a bare <h2>, say) inherits
+     whatever `body` already computed from the *global* --color-paper, and
+     never sees this override at all. Setting it here, the same way `body`
+     does, gives every such element inside this section a correct base to
+     inherit from instead of one meant for a dark background. */
+  color: var(--color-paper);
+}
+
+.section-light ::selection {
+  background: var(--color-accent);
+  color: var(--color-ink);
+}
