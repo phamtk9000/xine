@@ -11,9 +11,16 @@ import { formatDate } from "@/components/ui";
  * is the thing doing the work a hero image would otherwise do.
  */
 
-export function IndexList({ articles }: { articles: ArticleMeta[] }) {
+export function IndexList({
+  articles,
+  id,
+}: {
+  articles: ArticleMeta[];
+  /** Lets a page target this list from a sibling, e.g. RevealGroup. */
+  id?: string;
+}) {
   return (
-    <ol className="index-list">
+    <ol id={id} className="index-list">
       {articles.map((article, i) => (
         <li key={article.slug} className="index-row">
           {article.hero ? (

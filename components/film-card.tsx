@@ -51,14 +51,20 @@ export function FilmGrid({
   films,
   priorityCount = 0,
   scores,
+  id,
 }: {
   films: FilmSummary[];
   priorityCount?: number;
   /** Optional per-film score override, keyed by film id. */
   scores?: Map<string, number>;
+  /** Lets a page target this grid from a sibling, e.g. RevealGroup. */
+  id?: string;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-x-5 gap-y-9 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
+    <div
+      id={id}
+      className="grid grid-cols-2 gap-x-5 gap-y-9 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6"
+    >
       {films.map((film, i) => (
         <FilmCard
           key={film.id}

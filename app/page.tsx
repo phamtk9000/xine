@@ -4,6 +4,7 @@ import { IndexList } from "@/components/index-list";
 import { FilmGrid } from "@/components/film-card";
 import { FilmMarquee } from "@/components/film-marquee";
 import { MastheadBackdrop } from "@/components/masthead-backdrop";
+import { RevealGroup } from "@/components/reveal-group";
 import { TitleSequence } from "@/components/title-sequence";
 import { Poster } from "@/components/poster";
 import {
@@ -114,7 +115,8 @@ export default async function HomePage() {
             <ArticleCard article={lead} size="lg" priority />
             {more.length > 0 && (
               <div className="mt-4">
-                <IndexList articles={more.slice(0, 5)} />
+                <IndexList id="this-week-list" articles={more.slice(0, 5)} />
+                <RevealGroup selector="#this-week-list" stagger={90} />
               </div>
             )}
           </Container>
@@ -130,7 +132,8 @@ export default async function HomePage() {
             href="/films"
             hrefLabel="The catalogue"
           />
-          <FilmGrid films={trending} />
+          <FilmGrid id="trending-grid" films={trending} />
+          <RevealGroup selector="#trending-grid" />
         </Container>
       </section>
 
@@ -214,7 +217,7 @@ export default async function HomePage() {
             title="Grouped by an argument"
             href="/lists"
           />
-          <div className="grid gap-10 md:grid-cols-3">
+          <div id="lists-grid" className="grid gap-10 md:grid-cols-3">
             {lists.map((list) => (
               <Link
                 key={list.id}
@@ -238,6 +241,7 @@ export default async function HomePage() {
               </Link>
             ))}
           </div>
+          <RevealGroup selector="#lists-grid" stagger={90} />
         </Container>
       </section>
 
@@ -264,7 +268,7 @@ export default async function HomePage() {
               </div>
             </div>
 
-            <ol className="grid grid-cols-2 gap-x-8 gap-y-3">
+            <ol id="stages-list" className="grid grid-cols-2 gap-x-8 gap-y-3">
               {STAGES.map((stage) => (
                 <li
                   key={stage.key}
@@ -277,6 +281,7 @@ export default async function HomePage() {
                 </li>
               ))}
             </ol>
+            <RevealGroup selector="#stages-list" stagger={35} />
           </div>
         </Container>
       </section>

@@ -1393,3 +1393,34 @@ body {
 .index-kicker::after {
   content: "]";
 }
+
+/* ============================================================
+   REVEAL GROUP
+
+   The home page's grids arriving as you scroll, staggered by
+   components/reveal-group.tsx. Deliberately a plain rise-and-fade rather
+   than one of the four editorial art directions — these are site chrome
+   (a poster grid, a stage list), not an article with a chosen style, so
+   there is no `data-style` here to key off.
+   ============================================================ */
+
+@media (prefers-reduced-motion: no-preference) {
+  .reveal-off {
+    opacity: 0;
+  }
+
+  .reveal-in {
+    animation: reveal-rise 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+
+@keyframes reveal-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 1.25rem, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
