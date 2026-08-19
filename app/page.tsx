@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { ArticleCard } from "@/components/article-card";
+import { IndexList } from "@/components/index-list";
 import { FilmGrid } from "@/components/film-card";
 import { FilmMarquee } from "@/components/film-marquee";
+import { MastheadBackdrop } from "@/components/masthead-backdrop";
 import { TitleSequence } from "@/components/title-sequence";
 import { Poster } from "@/components/poster";
 import {
@@ -69,8 +71,15 @@ export default async function HomePage() {
       <TitleSequence posters={titleFrames} />
 
       {/* Masthead */}
-      <section className="border-b border-line">
-        <Container className="py-16 sm:py-24">
+      <section className="relative overflow-hidden border-b border-line">
+        <MastheadBackdrop
+          images={[
+            { src: "/hero.png", alt: "" },
+            { src: "/hero2.png", alt: "" },
+            { src: "/hero3.png", alt: "" },
+          ]}
+        />
+        <Container className="relative py-16 sm:py-24">
           <p className="label">Cinema, rated and made</p>
           <h1 className="mt-6 max-w-5xl font-display text-[clamp(2.75rem,8vw,7rem)] leading-[0.9] tracking-tight">
             Read about films. Rate them properly. Then go and make one.
@@ -89,7 +98,8 @@ export default async function HomePage() {
         </Container>
       </section>
 
-      {/* Lead article */}
+      {/* Lead article, then the rest of the week's writing as a dense,
+          text-led index rather than another row of poster-sized cards. */}
       {lead && (
         <section className="border-b border-line">
           <Container className="py-14">
@@ -99,14 +109,12 @@ export default async function HomePage() {
               href="/journal"
               hrefLabel="All writing"
             />
-            <div className="grid gap-12 lg:grid-cols-[1.6fr_1fr]">
-              <ArticleCard article={lead} size="lg" priority />
-              <div className="space-y-10">
-                {more.slice(0, 3).map((article) => (
-                  <ArticleCard key={article.slug} article={article} size="sm" />
-                ))}
+            <ArticleCard article={lead} size="lg" priority />
+            {more.length > 0 && (
+              <div className="mt-4">
+                <IndexList articles={more.slice(0, 5)} />
               </div>
-            </div>
+            )}
           </Container>
         </section>
       )}

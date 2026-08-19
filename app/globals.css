@@ -1272,3 +1272,114 @@ body {
   height: 1px;
   background: var(--art-accent);
 }
+
+/* ============================================================
+   MASTHEAD BACKDROP
+
+   Key art crossfading behind the home masthead. Absolutely positioned behind
+   the section's own text rather than a background-image on the section, so
+   a failed image load leaves the plain dark band that was there before —
+   nothing about the masthead depends on this rendering.
+   ============================================================ */
+
+.masthead-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.masthead-plate {
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 1400ms ease-in-out;
+}
+
+.masthead-plate.is-active {
+  opacity: 1;
+}
+
+/* The headline runs `max-w-5xl` — on most viewports that is most of the
+   section's width, not a left-hand column — and it starts a few lines below
+   the top edge, not the vertical centre. So the heavy part of the scrim has
+   to cover most of the box, top-to-bottom as much as side-to-side: light
+   only breathes through at the far right edge and in the empty margin below
+   the buttons, the two places nothing is ever printed on top of it.
+
+   This has to hold up against three very different plates — one lit warm
+   and bright, one already dark, one dense with its own poster type — so it
+   errs dark rather than tuning itself to any single one of them. */
+.masthead-scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      100deg,
+      var(--color-ink) 0%,
+      color-mix(in srgb, var(--color-ink) 90%, transparent) 55%,
+      color-mix(in srgb, var(--color-ink) 60%, transparent) 80%,
+      color-mix(in srgb, var(--color-ink) 35%, transparent) 100%
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--color-ink) 95%, transparent) 0%,
+      color-mix(in srgb, var(--color-ink) 65%, transparent) 50%,
+      color-mix(in srgb, var(--color-ink) 20%, transparent) 85%,
+      transparent 100%
+    );
+}
+
+/* ============================================================
+   EDITORIAL INDEX
+
+   A dense, text-led listing for the front page — headline, one-line dek,
+   byline, a bracketed section tag in place of a coloured pill. No art beyond
+   a small fixed thumbnail; the density itself is the design.
+   ============================================================ */
+
+.index-list {
+  border-top: 1px solid var(--color-line);
+}
+
+.index-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem 1.75rem;
+  padding-block: 1.75rem;
+  border-bottom: 1px solid var(--color-line);
+}
+
+@media (min-width: 640px) {
+  .index-row {
+    grid-template-columns: 6.5rem 1fr;
+    align-items: start;
+  }
+}
+
+.index-row-plate {
+  position: relative;
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  background: var(--color-ink-raised);
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .index-row-plate {
+    display: block;
+  }
+}
+
+/* The bracket is Harper's own convention for a section tag: a kicker as
+   punctuation rather than a coloured label, sitting inline with the rule
+   above the headline instead of decorating it. */
+.index-kicker {
+  font-style: italic;
+  font-family: var(--font-display);
+}
+.index-kicker::before {
+  content: "[";
+}
+.index-kicker::after {
+  content: "]";
+}
