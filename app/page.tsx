@@ -24,7 +24,7 @@ import { parseJson } from "@/lib/serialize";
 export default async function HomePage() {
   const [articles, trending, newest, lists, activity] = await Promise.all([
     listArticles(),
-    listFilms({ sort: "trending", take: 12 }),
+    listFilms({ sort: "trending", take: 8 }),
     listFilms({ sort: "new", take: 16 }),
     db.filmList.findMany({
       where: { editorial: true },
@@ -133,7 +133,10 @@ export default async function HomePage() {
             hrefLabel="The catalogue"
           />
           <FilmGrid id="trending-grid" films={trending} />
-          <RevealGroup selector="#trending-grid" />
+          {/* Slower and more deliberate than the other grids' default — eight
+              posters revealing one at a time reads as a considered lineup,
+              not a wall arriving all at once. */}
+          <RevealGroup selector="#trending-grid" stagger={120} />
         </Container>
       </section>
 
