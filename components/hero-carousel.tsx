@@ -25,7 +25,7 @@ export type Slide = {
   height: number;
 };
 
-const HOLD_MS = 7000;
+const HOLD_MS = 2500;
 
 export function HeroCarousel({ slides }: { slides: Slide[] }) {
   const [active, setActive] = useState(0);
