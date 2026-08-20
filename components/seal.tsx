@@ -1,5 +1,11 @@
 import { Tag } from "@/components/ui";
-import { SEAL_TIERS, sealTier, toPercent, type SealTier } from "@/lib/seal";
+import {
+  SEAL_TIERS,
+  TIER_COLOR,
+  sealTier,
+  toPercent,
+  type SealTier,
+} from "@/lib/seal";
 
 /**
  * The crest itself — four corner brackets, like a viewfinder or a strip of
@@ -15,7 +21,10 @@ import { SEAL_TIERS, sealTier, toPercent, type SealTier } from "@/lib/seal";
  *
  * Structural, not just recolours of one shape, so the verdict still reads
  * at 18px on a poster grid where neither the exact colour nor a caption is
- * legible.
+ * legible. Colour still carries real weight, though — every tier gets its
+ * own hue from TIER_COLOR (lib/seal.ts) at a stroke bold enough to actually
+ * read as that colour at 18px, rather than the first version's thin lines,
+ * three of which were shades of grey.
  */
 export function SealCrest({
   tier,
@@ -31,6 +40,7 @@ export function SealCrest({
   const STAR =
     "M20 11.1L20.8 13.4L23.2 13.5L21.3 14.9L22 17.3L20 15.9L18 17.3L18.7 14.9L16.8 13.5L19.2 13.4Z";
   const CRACK = "M13 6L21 16L16 20L27 27";
+  const color = TIER_COLOR[tier];
 
   return (
     <svg
@@ -44,8 +54,8 @@ export function SealCrest({
         <>
           <path
             d={`${TL}${TR}${BL}${BR}`}
-            stroke="var(--color-accent)"
-            strokeWidth="1.7"
+            stroke={color}
+            strokeWidth="3"
             strokeLinecap="square"
           />
           <path d={STAR} fill="var(--color-gold)" />
@@ -55,8 +65,8 @@ export function SealCrest({
       {tier === "frame" && (
         <path
           d={`${TL}${TR}${BL}${BR}`}
-          stroke="var(--color-paper)"
-          strokeWidth="1.5"
+          stroke={color}
+          strokeWidth="3"
           strokeLinecap="square"
         />
       )}
@@ -65,16 +75,19 @@ export function SealCrest({
         <>
           <path
             d={`${TL}${TR}`}
-            stroke="var(--color-paper)"
-            strokeWidth="1.5"
+            stroke={color}
+            strokeWidth="3"
             strokeLinecap="square"
           />
+          {/* Faded in weight, not washed out in colour — half the frame is
+              still amber, just a quieter amber, so "mixed" still reads as
+              its own colour rather than fading toward grey. */}
           <path
             d={`${BL}${BR}`}
-            stroke="var(--color-paper)"
-            strokeWidth="1.5"
+            stroke={color}
+            strokeWidth="3"
             strokeLinecap="square"
-            opacity="0.35"
+            opacity="0.4"
           />
         </>
       )}
@@ -83,18 +96,17 @@ export function SealCrest({
         <>
           <path
             d={`${TL}${BR}`}
-            stroke="var(--color-faint)"
-            strokeWidth="1.5"
+            stroke={color}
+            strokeWidth="3"
             strokeLinecap="square"
-            opacity="0.7"
+            opacity="0.85"
           />
           <path
             d={CRACK}
-            stroke="var(--color-faint)"
-            strokeWidth="1.2"
+            stroke={color}
+            strokeWidth="1.6"
             strokeLinecap="round"
             strokeLinejoin="round"
-            opacity="0.85"
           />
         </>
       )}
@@ -104,9 +116,9 @@ export function SealCrest({
 
 const MARK_COLOR: Record<SealTier, string> = {
   select: "text-gold",
-  frame: "text-paper",
-  mixed: "text-muted",
-  burnt: "text-faint",
+  frame: "text-[#4a9d5f]",
+  mixed: "text-[#cc6b1f]",
+  burnt: "text-[#e0452e]",
 };
 
 /**

@@ -61,6 +61,24 @@ export const SEAL_TIERS: Record<SealTier, SealMeta> = {
   },
 };
 
+/**
+ * One vivid colour per tier. The first version of this crest only coloured
+ * Select — Frame, Mixed Frame and Burnt Frame were paper, muted and faint,
+ * three shades of the same grey — which made three quarters of the system
+ * disappear into the site's own chrome instead of reading as a verdict.
+ * These are semantic rather than decorative: green reads as "worth it" the
+ * same way an amber reads as "caution" and an ember red reads as "skip it"
+ * before anyone parses the label next to it. Chosen to sit apart from the
+ * hues already spoken for elsewhere on the site — Select's own oxblood and
+ * gold, the teal on Audience Score, the kicker and genre palettes.
+ */
+export const TIER_COLOR: Record<SealTier, string> = {
+  select: "var(--color-accent)", // paired with --color-gold on the star
+  frame: "#4a9d5f",
+  mixed: "#cc6b1f",
+  burnt: "#e0452e",
+};
+
 /** Score and voice count together decide XINE Select — see the module note. */
 const SELECT_MIN_PERCENT = 85;
 const SELECT_MIN_REVIEWS = 2;
