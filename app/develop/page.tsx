@@ -37,7 +37,7 @@ export default function DevelopPage() {
                 {service.detail}
               </p>
 
-              <p className="font-mono text-sm text-paper tabular-nums">
+              <p className="font-sans text-sm text-paper tabular-nums">
                 {service.band}
               </p>
 

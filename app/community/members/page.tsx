@@ -54,7 +54,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <dt className="label">{label}</dt>
-      <dd className="mt-1 font-mono text-sm text-paper tabular-nums">{value}</dd>
+      <dd className="mt-1 font-sans text-sm text-paper tabular-nums">{value}</dd>
     </div>
   );
 }

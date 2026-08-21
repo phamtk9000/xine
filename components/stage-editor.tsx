@@ -45,12 +45,12 @@ export function StageEditor({
   return (
     <section id={stage.key} className="scroll-mt-24">
       <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2 border-b border-line pb-3">
-        <span className="font-mono text-xs text-faint tabular-nums">
+        <span className="font-sans text-xs text-faint tabular-nums">
           {String(stage.index).padStart(2, "0")}
         </span>
         <h2 className="font-display text-3xl leading-none">{stage.label}</h2>
         {status === "complete" && (
-          <span className="font-mono text-[0.625rem] tracking-[0.16em] uppercase text-gold">
+          <span className="font-sans text-[0.625rem] tracking-[0.16em] uppercase text-gold">
             Complete
           </span>
         )}

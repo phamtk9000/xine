@@ -125,7 +125,7 @@ export default async function ArticlePage({
                   <dt className="font-display text-2xl leading-tight">
                     {row.department}
                   </dt>
-                  <dd className="text-right font-mono text-sm text-gold tabular-nums">
+                  <dd className="text-right font-sans text-sm text-gold tabular-nums">
                     {row.rating}
                   </dd>
                   <dd className="col-span-2 text-sm leading-relaxed text-muted">

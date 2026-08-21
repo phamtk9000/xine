@@ -40,7 +40,7 @@ export default async function ServicePage({
           <h1 className="mt-5 font-display text-5xl leading-[0.95] tracking-tight sm:text-6xl">
             {found.title}
           </h1>
-          <p className="mt-4 font-mono text-sm text-gold">{found.output}</p>
+          <p className="mt-4 font-sans text-sm text-gold">{found.output}</p>
 
           <p className="mt-7 text-base leading-relaxed text-muted">
             {found.detail}
@@ -63,13 +63,13 @@ export default async function ServicePage({
           <dl className="mt-10 flex gap-12 border-t border-line pt-8">
             <div>
               <dt className="label">Price band</dt>
-              <dd className="mt-2 font-mono text-lg text-paper tabular-nums">
+              <dd className="mt-2 font-sans text-lg text-paper tabular-nums">
                 {found.band}
               </dd>
             </div>
             <div>
               <dt className="label">Typical duration</dt>
-              <dd className="mt-2 font-mono text-lg text-paper">
+              <dd className="mt-2 font-sans text-lg text-paper">
                 {found.duration}
               </dd>
             </div>

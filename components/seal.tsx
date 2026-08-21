@@ -146,7 +146,7 @@ export function SealMark({
       title={SEAL_TIERS[tier].seal}
     >
       <SealCrest tier={tier} size={size} />
-      <span className={`font-mono text-xs tabular-nums ${MARK_COLOR[tier]}`}>
+      <span className={`font-sans text-xs tabular-nums ${MARK_COLOR[tier]}`}>
         {percent}%
       </span>
     </span>
@@ -190,7 +190,7 @@ export function SealBadge({
           <p className="font-display text-2xl leading-tight tracking-tight">
             {meta.seal}
           </p>
-          <p className="mt-1 font-mono text-sm tabular-nums text-muted">
+          <p className="mt-1 font-sans text-sm tabular-nums text-muted">
             {percent}% <span className="text-faint">critical consensus</span>
           </p>
           <p className="mt-1.5 max-w-xs text-xs leading-relaxed text-faint">

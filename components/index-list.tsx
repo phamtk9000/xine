@@ -79,7 +79,7 @@ export function IndexList({
               {article.dek}
             </p>
 
-            <p className="mt-3 font-mono text-[0.625rem] tracking-[0.16em] uppercase text-faint">
+            <p className="mt-3 font-sans text-[0.625rem] tracking-[0.16em] uppercase text-faint">
               {article.author}
             </p>
           </div>

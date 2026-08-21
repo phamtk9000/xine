@@ -80,10 +80,10 @@ export function Poster({
           className="mb-3 h-px w-8 opacity-70"
           style={{ background: rule }}
         />
-        <p className="font-mono text-[0.625rem] uppercase tracking-[0.16em] text-paper/55">
+        <p className="font-sans text-[0.625rem] uppercase tracking-[0.16em] text-paper/55">
           {film.director}
         </p>
-        <p className="font-mono text-[0.625rem] tracking-[0.16em] text-paper/40">
+        <p className="font-sans text-[0.625rem] tracking-[0.16em] text-paper/40">
           {film.year}
         </p>
       </div>

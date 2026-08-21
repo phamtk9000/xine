@@ -107,7 +107,10 @@ export function HeroCarousel({ slides }: { slides: Slide[] }) {
       </div>
 
       <div className="hero-bar">
-        <p className="hero-caption" aria-live="polite">
+        {/* Keyed on the active slide so it remounts and replays its entrance
+            on every change — the plate arrives first, then its caption, so
+            the picture is what you read and the words follow it. */}
+        <p key={active} className="hero-caption" aria-live="polite">
           {current.caption ? (
             <span dangerouslySetInnerHTML={{ __html: current.caption }} />
           ) : (

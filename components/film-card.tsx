@@ -96,7 +96,7 @@ export function FilmRow({
       className="group flex gap-5 border-b border-line py-5 last:border-0"
     >
       {position !== undefined && (
-        <span className="w-8 shrink-0 pt-1 font-mono text-xs text-faint tabular-nums">
+        <span className="w-8 shrink-0 pt-1 font-sans text-xs text-faint tabular-nums">
           {String(position).padStart(2, "0")}
         </span>
       )}

@@ -95,7 +95,7 @@ export default async function BriefPage({
               key={shot.n}
               className="rounded-lg border border-line bg-ink-raised p-5"
             >
-              <p className="font-mono text-xs text-faint tabular-nums">
+              <p className="font-sans text-xs text-faint tabular-nums">
                 Shot {String(shot.n).padStart(2, "0")}
               </p>
               <p className="mt-3 text-sm text-paper">{shot.shot}</p>
@@ -115,7 +115,7 @@ export default async function BriefPage({
               key={beat.label}
               className="grid grid-cols-[7rem_1fr] gap-6 border-b border-line py-5 last:border-0"
             >
-              <span className="font-mono text-xs text-gold tabular-nums">
+              <span className="font-sans text-xs text-gold tabular-nums">
                 {beat.from}–{beat.to}
               </span>
               <div>

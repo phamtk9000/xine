@@ -281,7 +281,7 @@ export default async function ProfilePage({
                         {rating.film.title}
                       </Link>
                       <AxisSpark scores={rating} />
-                      <span className="font-mono text-xs text-gold tabular-nums">
+                      <span className="font-sans text-xs text-gold tabular-nums">
                         {rating.overall.toFixed(1)}
                       </span>
                     </li>

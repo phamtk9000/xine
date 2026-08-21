@@ -49,7 +49,7 @@ export function ArticleCard({
           {article.readingTime} min read
         </span>
         {article.score !== undefined && (
-          <span className="ml-auto font-mono text-xs tabular-nums text-gold">
+          <span className="ml-auto font-sans text-xs tabular-nums text-gold">
             {article.score.toFixed(1)}
           </span>
         )}
@@ -67,7 +67,7 @@ export function ArticleCard({
         </p>
       )}
 
-      <p className="mt-3 font-mono text-[0.625rem] tracking-[0.16em] uppercase text-faint">
+      <p className="mt-3 font-sans text-[0.625rem] tracking-[0.16em] uppercase text-faint">
         {article.author} · {formatDate(new Date(article.date))}
       </p>
     </Link>

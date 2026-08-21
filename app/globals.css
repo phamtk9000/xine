@@ -28,8 +28,21 @@
   --color-gold: #d99a2b;
   --color-teal: #5a8377;
 
+  /* Display — hero headlines, article titles, pull quotes (italic). */
   --font-display: "Instrument Serif", ui-serif, Georgia, serif;
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  /* Article body copy only. A reading serif, distinct from the display one. */
+  --font-body: var(--font-source-serif), ui-serif, Georgia, serif;
+  /* Everything that isn't prose or a headline: navigation, category labels,
+     bylines, dates, runtimes, scores, captions.
+
+     Helvetica Neue is a system face, not a webfont — it's there on Apple
+     platforms and absent everywhere else, where this falls to Helvetica then
+     Arial (metrically compatible, so the layout doesn't shift). That's the
+     accepted trade for asking for Helvetica Neue by name; the alternative is
+     licensing and self-hosting it. */
+  --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  /* No longer the label face. Still correct for fenced code and for the
+     "case file" art direction, which is meant to read as a typed document. */
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 
   --text-display: 5.5rem;
@@ -79,9 +92,11 @@ body {
   outline-offset: 3px;
 }
 
-/* The small caps label used above nearly every section on the site. */
+/* The small caps label used above nearly every section on the site — the
+   "Category" role in the type spec, so Helvetica Neue Medium. */
 @utility label {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
+  font-weight: 500;
   font-size: 0.6875rem;
   letter-spacing: var(--tracking-label);
   text-transform: uppercase;
@@ -90,10 +105,17 @@ body {
 
 /* Editorial body copy, used for journal articles and long project stages. */
 @utility prose-xine {
+  /* Source Serif 4 for running prose — a reading serif, deliberately not the
+     display one. Set on the container so lists, blockquote bodies and table
+     cells inherit it too, rather than repeating it per element. */
+  font-family: var(--font-body);
+
   & p {
     margin-block: 1.35em;
-    font-size: 1.0625rem;
-    line-height: 1.72;
+    /* A touch larger than the old sans: a serif at the same nominal size
+       reads smaller, because more of its height goes to the x-height. */
+    font-size: 1.125rem;
+    line-height: 1.7;
     color: color-mix(in srgb, var(--color-paper) 88%, transparent);
   }
   & p:first-child {
@@ -117,11 +139,13 @@ body {
     text-decoration: underline;
     text-decoration-thickness: 1px;
   }
+  /* Pull quote — Instrument Serif Italic, per the type spec. */
   & blockquote {
     margin-block: 2em;
     padding-left: 1.5rem;
     border-left: 2px solid var(--color-accent);
     font-family: var(--font-display);
+    font-style: italic;
     font-size: 1.6rem;
     line-height: 1.3;
   }
@@ -179,9 +203,9 @@ body {
   & figcaption {
     margin-inline: min(6vw, 5rem);
     margin-top: 0.9rem;
-    font-family: var(--font-mono);
-    font-size: 0.6875rem;
-    letter-spacing: 0.06em;
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    letter-spacing: 0.01em;
     color: var(--color-faint);
   }
   & .table-scroll {
@@ -198,12 +222,12 @@ body {
     text-align: left;
     padding: 0.85rem 1rem 0.85rem 0;
     border-bottom: 1px solid var(--color-line-bright);
-    font-family: var(--font-mono);
+    font-family: var(--font-sans);
     font-size: 0.625rem;
     letter-spacing: var(--tracking-label);
     text-transform: uppercase;
     color: var(--color-muted);
-    font-weight: 400;
+    font-weight: 500;
     vertical-align: bottom;
   }
   & td {
@@ -387,7 +411,7 @@ body {
   max-width: 18ch;
 }
 [data-style="modernist"] .prose-xine h3 {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: 0.6875rem;
   letter-spacing: var(--tracking-label);
   text-transform: uppercase;
@@ -803,6 +827,27 @@ body {
   color: var(--color-muted);
 }
 
+/* The picture lands first, then its caption — the plate's own transition is
+   1800ms, so this waits most of that out before the words arrive rather
+   than the two competing for attention at once. Keyed remount in
+   components/hero-carousel.tsx replays it on every slide change. */
+@media (prefers-reduced-motion: no-preference) {
+  .hero-caption {
+    animation: hero-caption-in 520ms cubic-bezier(0.22, 1, 0.36, 1) 1100ms both;
+  }
+}
+
+@keyframes hero-caption-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 0.5rem, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
 .hero-controls {
   display: flex;
   align-items: center;
@@ -812,7 +857,7 @@ body {
 
 .hero-step {
   padding: 0.15rem 0.5rem;
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: 0.9rem;
   color: var(--color-muted);
   transition: color 150ms ease;
@@ -844,7 +889,7 @@ body {
 }
 
 .hero-count {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: 0.6875rem;
   letter-spacing: var(--tracking-label);
   color: var(--color-paper);
@@ -1166,7 +1211,7 @@ body {
   flex-direction: column;
   gap: 0.4rem;
   margin: 2.75rem auto 0;
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: 0.6875rem;
   letter-spacing: var(--tracking-label);
   text-transform: uppercase;
@@ -1252,7 +1297,7 @@ body {
   border: 1px solid var(--color-line);
   background: color-mix(in srgb, var(--color-ink) 88%, transparent);
   backdrop-filter: blur(6px);
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: 0.625rem;
   letter-spacing: var(--tracking-label);
   text-transform: uppercase;

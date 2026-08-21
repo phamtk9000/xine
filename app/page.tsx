@@ -199,7 +199,7 @@ export default async function HomePage() {
                         style={{ width: `${(Number(value) / 10) * 100}%` }}
                       />
                     </dd>
-                    <dd className="text-right font-mono text-xs text-paper tabular-nums">
+                    <dd className="text-right font-sans text-xs text-paper tabular-nums">
                       {Number(value).toFixed(1)}
                     </dd>
                   </div>
@@ -280,7 +280,7 @@ export default async function HomePage() {
                   key={stage.key}
                   className="flex items-baseline gap-3 border-b border-line py-2.5"
                 >
-                  <span className="font-mono text-[0.625rem] text-faint tabular-nums">
+                  <span className="font-sans text-[0.625rem] text-faint tabular-nums">
                     {String(stage.index).padStart(2, "0")}
                   </span>
                   <span className="text-sm text-muted">{stage.label}</span>
@@ -344,7 +344,7 @@ export default async function HomePage() {
                         <span>{payload.title}</span>
                       )}
                       {payload.overall !== undefined && (
-                        <span className="ml-2 font-mono text-xs text-gold tabular-nums">
+                        <span className="ml-2 font-sans text-xs text-gold tabular-nums">
                           {payload.overall.toFixed(1)}
                         </span>
                       )}

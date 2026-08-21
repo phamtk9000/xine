@@ -133,7 +133,7 @@ export function RatingForm({
               <div key={key}>
                 <div className="flex items-baseline justify-between">
                   <span className="text-xs text-muted">{label}</span>
-                  <span className="font-mono text-xs text-paper tabular-nums">
+                  <span className="font-sans text-xs text-paper tabular-nums">
                     {axes[key] === null ? "—" : formatScore(axes[key])}
                   </span>
                 </div>

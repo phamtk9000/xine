@@ -72,7 +72,7 @@ export default async function CommunityPage() {
                       <span className="text-paper">{payload.title}</span>
                     )}
                     {payload.overall !== undefined && (
-                      <span className="font-mono text-xs text-gold tabular-nums">
+                      <span className="font-sans text-xs text-gold tabular-nums">
                         {payload.overall.toFixed(1)}
                       </span>
                     )}

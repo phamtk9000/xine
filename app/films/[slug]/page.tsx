@@ -97,7 +97,7 @@ export default async function FilmPage({ params }: PageProps<"/films/[slug]">) {
               {/* Provenance. A TMDB overview is marketing copy, and passing it
                   off as editorial would undermine the reviewed films. */}
               {!film.reviewed && (
-                <p className="mt-3 font-mono text-[0.625rem] tracking-[0.16em] uppercase text-faint">
+                <p className="mt-3 font-sans text-[0.625rem] tracking-[0.16em] uppercase text-faint">
                   Synopsis from TMDB · not yet reviewed by xine
                 </p>
               )}
@@ -252,7 +252,7 @@ export default async function FilmPage({ params }: PageProps<"/films/[slug]">) {
                           {review.user.displayName}
                         </Link>
                         {rating && (
-                          <span className="font-mono text-xs text-gold tabular-nums">
+                          <span className="font-sans text-xs text-gold tabular-nums">
                             {rating.overall.toFixed(1)}
                           </span>
                         )}
@@ -262,7 +262,7 @@ export default async function FilmPage({ params }: PageProps<"/films/[slug]">) {
                         </span>
                       </div>
                       {review.spoilers && (
-                        <p className="mt-3 font-mono text-[0.625rem] tracking-[0.16em] uppercase text-accent">
+                        <p className="mt-3 font-sans text-[0.625rem] tracking-[0.16em] uppercase text-accent">
                           Contains spoilers
                         </p>
                       )}
@@ -318,7 +318,7 @@ export default async function FilmPage({ params }: PageProps<"/films/[slug]">) {
                       >
                         {entry.list.title}
                         {entry.list.editorial && (
-                          <span className="ml-2 font-mono text-[0.625rem] tracking-[0.16em] uppercase text-gold">
+                          <span className="ml-2 font-sans text-[0.625rem] tracking-[0.16em] uppercase text-gold">
                             Editorial
                           </span>
                         )}

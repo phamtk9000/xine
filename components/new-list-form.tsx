@@ -66,7 +66,7 @@ export function NewListForm({ films }: { films: FilmSummary[] }) {
                   key={id}
                   className="flex items-center gap-3 rounded-lg border border-line bg-ink-raised px-4 py-2.5"
                 >
-                  <span className="font-mono text-xs text-faint tabular-nums">
+                  <span className="font-sans text-xs text-faint tabular-nums">
                     {String(i + 1).padStart(2, "0")}
                   </span>
                   <span className="min-w-0 flex-1 truncate text-sm">
@@ -114,7 +114,7 @@ export function NewListForm({ films }: { films: FilmSummary[] }) {
                       {film.director} · {film.year}
                     </span>
                   </span>
-                  <span className="font-mono text-xs">{on ? "✓" : "+"}</span>
+                  <span className="font-sans text-xs">{on ? "✓" : "+"}</span>
                 </button>
               </li>
             );

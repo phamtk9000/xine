@@ -1,12 +1,27 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
+import { Geist_Mono, Instrument_Serif, Source_Serif_4 } from "next/font/google";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { getCurrentUser } from "@/lib/session";
 import "./globals.css";
 
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
-const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
+// Article body copy. Two weights so prose gets a real semibold for <strong>
+// rather than a synthesised one, and italic for emphasis.
+const sourceSerif = Source_Serif_4({
+  variable: "--font-source-serif",
+  weight: ["400", "600"],
+  style: ["normal", "italic"],
+  subsets: ["latin"],
+});
+
+// Mono is no longer the site's label face — that's Helvetica Neue now — but
+// two things still genuinely want a typewriter: fenced code in prose, and the
+// "case file" art direction, whose entire identity is typed-document.
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
 const instrumentSerif = Instrument_Serif({
   variable: "--font-instrument-serif",
   weight: "400",
@@ -33,7 +48,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable} h-full antialiased`}
+      className={`${sourceSerif.variable} ${geistMono.variable} ${instrumentSerif.variable} h-full antialiased`}
     >
       <body className="grain flex min-h-full flex-col bg-ink text-paper">
         <SiteHeader user={user} />

@@ -68,7 +68,7 @@ export default async function ReviewsPage() {
                   </Link>
                   {rating && (
                     <>
-                      <span className="font-mono text-xs text-gold tabular-nums">
+                      <span className="font-sans text-xs text-gold tabular-nums">
                         {rating.overall.toFixed(1)}
                       </span>
                       <AxisSpark scores={rating} />
@@ -80,7 +80,7 @@ export default async function ReviewsPage() {
                 </div>
 
                 {review.spoilers && (
-                  <p className="mt-4 font-mono text-[0.625rem] tracking-[0.16em] uppercase text-accent">
+                  <p className="mt-4 font-sans text-[0.625rem] tracking-[0.16em] uppercase text-accent">
                     Contains spoilers
                   </p>
                 )}

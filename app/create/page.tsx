@@ -62,7 +62,7 @@ export default async function CreatePage() {
                   key={stage.key}
                   className="grid grid-cols-[3rem_1fr] gap-4 border-b border-line py-6 last:border-0"
                 >
-                  <span className="font-mono text-xs text-faint tabular-nums">
+                  <span className="font-sans text-xs text-faint tabular-nums">
                     {String(stage.index).padStart(2, "0")}
                   </span>
                   <div>

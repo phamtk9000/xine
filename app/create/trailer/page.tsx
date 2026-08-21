@@ -91,7 +91,7 @@ export default async function TrailerStudioPage({
               ["04", "Concept trailer", "Shot with our team, or by yours against the document."],
             ].map(([n, title, body]) => (
               <li key={n} className="grid grid-cols-[2rem_1fr] gap-3">
-                <span className="font-mono text-xs text-faint">{n}</span>
+                <span className="font-sans text-xs text-faint">{n}</span>
                 <div>
                   <p className="text-sm text-paper">{title}</p>
                   <p className="mt-1 text-xs leading-relaxed text-muted">
@@ -108,7 +108,7 @@ export default async function TrailerStudioPage({
               {BEATS.map((beat) => (
                 <li
                   key={beat.label}
-                  className="flex gap-3 font-mono text-[0.6875rem] text-muted"
+                  className="flex gap-3 font-sans text-[0.6875rem] text-muted"
                 >
                   <span className="shrink-0 text-faint tabular-nums">
                     {beat.from}

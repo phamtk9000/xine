@@ -221,7 +221,7 @@ function Results({
       )}
 
       {state.configured && state.toolCalls > 0 && (
-        <p className="mt-10 font-mono text-[0.625rem] tracking-[0.16em] uppercase text-faint">
+        <p className="mt-10 font-sans text-[0.625rem] tracking-[0.16em] uppercase text-faint">
           {state.toolCalls} {state.toolCalls === 1 ? "query" : "queries"} run
           {state.externalEnabled ? " across XINE and TMDB" : " across XINE"}
         </p>
@@ -281,7 +281,7 @@ function PickBody({ pick, showMatch }: { pick: PickCard; showMatch: boolean }) {
           </p>
 
           {!pick.inCatalogue && (
-            <p className="mt-3 inline-block rounded-full border border-line px-3 py-1 text-[0.625rem] font-mono uppercase tracking-[0.16em] text-muted">
+            <p className="mt-3 inline-block rounded-full border border-line px-3 py-1 text-[0.625rem] font-sans uppercase tracking-[0.16em] text-muted">
               Not in the XINE catalogue
             </p>
           )}
@@ -295,7 +295,7 @@ function PickBody({ pick, showMatch }: { pick: PickCard; showMatch: boolean }) {
                   style={{ width: `${pick.matchScore}%` }}
                 />
               </span>
-              <span className="font-mono text-sm text-gold tabular-nums">
+              <span className="font-sans text-sm text-gold tabular-nums">
                 {pick.matchScore}%
               </span>
             </div>
@@ -353,7 +353,7 @@ function PickBody({ pick, showMatch }: { pick: PickCard; showMatch: boolean }) {
         {pick.communityScore !== null && (
           <div>
             <p className="label">XINE community</p>
-            <p className="mt-1.5 font-mono text-sm text-paper tabular-nums">
+            <p className="mt-1.5 font-sans text-sm text-paper tabular-nums">
               {pick.communityScore.toFixed(1)}
             </p>
           </div>
