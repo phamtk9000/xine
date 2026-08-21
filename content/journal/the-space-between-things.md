@@ -5,7 +5,7 @@ dek: "Studio Ghibli understands something modern cinema often forgets: silence i
 kicker: "Craft"
 style: modernist
 accent: "#5b7f8c"
-hero: /media/journal/the-space-between-things/hero.png
+hero: /media/journal/the-space-of-between-things/image.png
 heroAlt: "A distant train crossing a flooded, empty landscape under a huge pale sky, the water perfectly still"
 heroLayout: wide
 author: "xine"
@@ -26,14 +26,14 @@ These pauses are connected to the Japanese concept of **Ma (間)** — the space
 
 And they may be the secret behind why Studio Ghibli films feel so alive.
 
-<figure>
-  <img src="/media/journal/the-space-between-things/interval.png" alt="An empty room in late afternoon, a single wooden chair by a window, a shaft of soft light crossing the floor, dust visible in the air" />
-  <figcaption>Nothing is happening here. That is the point.</figcaption>
-</figure>
 
 ---
 
 ## 01 — The Space Between the Claps
+<figure>
+  <img src="/media/journal/the-space-of-between-things/image2.png" alt="" />
+  <figcaption>Nothing is happening here. That is the point.</figcaption>
+</figure>
 
 In a well-known interview, Miyazaki demonstrated Ma by clapping his hands several times and drawing attention to the silence between each clap.
 
@@ -68,6 +68,10 @@ They are part of the rhythm.
 ---
 
 ## 02 — Nothing Happens
+<figure>
+  <img src="/media/journal/the-space-of-between-things/image3.png" alt="" />
+  <figcaption>Nothing is happening here. That is the point.</figcaption>
+</figure>
 
 Ma is often translated as **negative space**, **interval**, **emptiness**, or **pause**, but none of those translations completely capture it.
 
@@ -98,6 +102,10 @@ In many films, emptiness is something an editor removes.
 ---
 
 ## 03 — The Train
+<figure>
+  <img src="/media/journal/the-space-of-between-things/image2.png" alt="" />
+  <figcaption>Nothing is happening here. That is the point.</figcaption>
+</figure>
 
 One of the clearest examples appears in *Spirited Away*.
 

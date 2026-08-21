@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import { Backdrop, Poster } from "@/components/poster";
 import { AxisBreakdown, AxisSpark, ScoreDial } from "@/components/score";
 import { SealBadge } from "@/components/seal";
-import { CastRow } from "@/components/cast-row";
+import { CastAccordion } from "@/components/cast-accordion";
 import { RatingForm } from "@/components/rating-form";
 import { ReviewForm } from "@/components/review-form";
 import {
@@ -46,7 +46,7 @@ export default async function FilmPage({ params }: PageProps<"/films/[slug]">) {
   const aggregate = aggregateRatings(film.ratings);
   const [articles, billedCast] = await Promise.all([
     articlesForFilm(slug),
-    castForFilm(film.id),
+    castForFilm(film.id, 7),
   ]);
 
   // The badge's quote favours a piece actually filed as a Review; an Essay
@@ -336,7 +336,7 @@ export default async function FilmPage({ params }: PageProps<"/films/[slug]">) {
           <Container>
             <h2 className="label border-b border-line pb-3">Main characters</h2>
             <div className="mt-8">
-              <CastRow cast={billedCast} />
+              <CastAccordion cast={billedCast} />
             </div>
           </Container>
         </section>
