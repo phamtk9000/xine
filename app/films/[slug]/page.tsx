@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { Backdrop, Poster } from "@/components/poster";
 import { AxisBreakdown, AxisSpark, ScoreDial } from "@/components/score";
 import { SealBadge } from "@/components/seal";
+import { CastRow } from "@/components/cast-row";
 import { RatingForm } from "@/components/rating-form";
 import { ReviewForm } from "@/components/review-form";
 import {
@@ -15,6 +16,7 @@ import {
   formatRuntime,
 } from "@/components/ui";
 import { aggregateRatings, getFilmBySlug } from "@/lib/films";
+import { castForFilm } from "@/lib/people";
 import { articlesForFilm } from "@/lib/journal";
 import { getCurrentUser } from "@/lib/session";
 import { db } from "@/lib/db";
@@ -42,7 +44,10 @@ export default async function FilmPage({ params }: PageProps<"/films/[slug]">) {
   if (!film) notFound();
 
   const aggregate = aggregateRatings(film.ratings);
-  const articles = await articlesForFilm(slug);
+  const [articles, billedCast] = await Promise.all([
+    articlesForFilm(slug),
+    castForFilm(film.id),
+  ]);
 
   // The badge's quote favours a piece actually filed as a Review; an Essay
   // or Craft piece that happens to mention the film isn't the verdict.
@@ -63,7 +68,6 @@ export default async function FilmPage({ params }: PageProps<"/films/[slug]">) {
     : false;
 
   const genres = fromCsv(film.genres);
-  const cast = fromCsv(film.cast);
   const runtime = formatRuntime(film.runtime);
 
   return (
@@ -180,14 +184,6 @@ export default async function FilmPage({ params }: PageProps<"/films/[slug]">) {
                 <Credit label="Cinematography" value={film.cinematographer} />
                 <Credit label="Music" value={film.composer} />
                 <Credit label="Country" value={film.country} />
-                {cast.length > 0 && (
-                  <div className="sm:col-span-2">
-                    <dt className="label">Cast</dt>
-                    <dd className="mt-1.5 text-sm leading-relaxed text-paper">
-                      {cast.join(" · ")}
-                    </dd>
-                  </div>
-                )}
               </dl>
             </section>
 
@@ -331,6 +327,20 @@ export default async function FilmPage({ params }: PageProps<"/films/[slug]">) {
           </aside>
         </div>
       </Container>
+
+      {/* Main characters, at the end — the last thing on the page rather than
+          a line in the credits block, because each face is a way further into
+          the catalogue rather than a fact about this film. */}
+      {billedCast.length > 0 && (
+        <section className="border-t border-line bg-ink-sunk py-14">
+          <Container>
+            <h2 className="label border-b border-line pb-3">Main characters</h2>
+            <div className="mt-8">
+              <CastRow cast={billedCast} />
+            </div>
+          </Container>
+        </section>
+      )}
     </article>
   );
 }

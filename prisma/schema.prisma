@@ -79,10 +79,51 @@ model Film {
   listEntries    ListEntry[]
   watchlistItems WatchlistItem[]
   activity       Activity[]
+  credits        Credit[]
 
   @@unique([kind, tmdbId])
   @@index([year])
   @@index([kind])
+}
+
+/// A performer. The `cast` string on Film stays as the cheap denormalised
+/// list for cards and search; this is the entity you can actually click
+/// through to.
+model Person {
+  id         String   @id @default(cuid())
+  slug       String   @unique
+  /// TMDB person ids are global, unlike title ids, so this alone identifies
+  /// someone and is what the importer dedupes on.
+  tmdbId     Int?     @unique
+  name       String
+  profileUrl String?
+  createdAt  DateTime @default(now())
+
+  credits Credit[]
+
+  @@index([name])
+}
+
+/// One person's appearance in one title. The character name lives here
+/// rather than on Person, because the same actor plays different parts, and
+/// not on Film, because a title has many of them.
+model Credit {
+  id        String  @id @default(cuid())
+  personId  String
+  filmId    String
+  character String?
+  /// TMDB billing order — 0 is top-billed. This is what "main characters"
+  /// means here: the front of the bill, not everyone who appeared.
+  order     Int     @default(999)
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+  film   Film   @relation(fields: [filmId], references: [id], onDelete: Cascade)
+
+  /// An actor is billed once per title. Doubles as the importer's upsert
+  /// key, so a re-run updates rather than duplicating.
+  @@unique([personId, filmId])
+  @@index([filmId, order])
+  @@index([personId])
 }
 
 /// A rating is one row per user per film. `overall` is always set; the five

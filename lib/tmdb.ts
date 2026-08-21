@@ -57,7 +57,23 @@ export const TMDB_GENRES: Record<string, number> = {
 
 type TmdbCredits = {
   crew: { job: string; name: string }[];
-  cast: { name: string }[];
+  cast: {
+    id: number;
+    name: string;
+    character?: string | null;
+    profile_path?: string | null;
+    /// Billing order — 0 is top-billed.
+    order?: number;
+  }[];
+};
+
+/** One billed performer, in the shape lib/people.ts wants to store. */
+export type TmdbCastMember = {
+  tmdbId: number;
+  name: string;
+  character: string | null;
+  profileUrl: string | null;
+  order: number;
 };
 
 async function request<T>(path: string, params: Record<string, string> = {}) {
@@ -93,6 +109,35 @@ export function posterUrl(path: string | null, size: "w500" | "w780" = "w500") {
 
 export function backdropUrl(path: string | null) {
   return path ? `${IMAGE}/w1280${path}` : null;
+}
+
+/** Headshots. w185 is the smallest size that still holds up on a cast card. */
+export function profileUrl(path: string | null | undefined) {
+  return path ? `${IMAGE}/w185${path}` : null;
+}
+
+/**
+ * Billed cast for a title, film or series, normalised.
+ *
+ * `order` is TMDB's billing position and the only thing that separates a
+ * lead from a background part — without it every credit would look equally
+ * important, which is exactly what a "main characters" section must not do.
+ * TMDB occasionally omits it; those fall to the back rather than the front.
+ */
+export async function fetchCast(
+  id: number,
+  kind: "film" | "series" = "film",
+): Promise<TmdbCastMember[]> {
+  const path = kind === "series" ? `/tv/${id}/credits` : `/movie/${id}/credits`;
+  const credits = await request<TmdbCredits>(path, withV3Key({}));
+
+  return (credits.cast ?? []).map((member, index) => ({
+    tmdbId: member.id,
+    name: member.name,
+    character: member.character?.trim() || null,
+    profileUrl: profileUrl(member.profile_path),
+    order: member.order ?? index,
+  }));
 }
 
 export async function searchMovie(title: string, year?: number) {
@@ -194,8 +239,10 @@ export async function discoverMovies(params: DiscoverParams) {
     const ids = await keywordIds(params.keywords);
     if (ids.length) query.with_keywords = ids.join(",");
   }
-  if (params.yearFrom) query["primary_release_date.gte"] = `${params.yearFrom}-01-01`;
-  if (params.yearTo) query["primary_release_date.lte"] = `${params.yearTo}-12-31`;
+  if (params.yearFrom)
+    query["primary_release_date.gte"] = `${params.yearFrom}-01-01`;
+  if (params.yearTo)
+    query["primary_release_date.lte"] = `${params.yearTo}-12-31`;
   if (params.maxRuntime) query["with_runtime.lte"] = String(params.maxRuntime);
   if (params.minRuntime) query["with_runtime.gte"] = String(params.minRuntime);
   if (params.language) query.with_original_language = params.language;
@@ -327,15 +374,16 @@ export async function fetchSeriesDetail(id: number) {
     title: series.name,
     originalTitle:
       series.original_name !== series.name ? series.original_name : null,
-    year: series.first_air_date
-      ? Number(series.first_air_date.slice(0, 4))
-      : 0,
+    year: series.first_air_date ? Number(series.first_air_date.slice(0, 4)) : 0,
     runtime: series.episode_run_time?.[0] ?? null,
     seasons: series.number_of_seasons ?? null,
     episodes: series.number_of_episodes ?? null,
     synopsis: series.overview,
     genres: (series.genres ?? []).map((g) => g.name).join(", "),
-    cast: (series.credits?.cast ?? []).slice(0, 6).map((c) => c.name).join(", "),
+    cast: (series.credits?.cast ?? [])
+      .slice(0, 6)
+      .map((c) => c.name)
+      .join(", "),
     director: creators.join(", ") || fallback || "Unknown",
     cinematographer: null,
     composer: null,
@@ -349,7 +397,10 @@ export async function fetchSeriesDetail(id: number) {
 type WatchProviders = {
   results: Record<
     string,
-    { flatrate?: { provider_name: string }[]; free?: { provider_name: string }[] }
+    {
+      flatrate?: { provider_name: string }[];
+      free?: { provider_name: string }[];
+    }
   >;
 };
 
@@ -400,7 +451,10 @@ export async function fetchFilmDetail(id: number) {
     runtime: movie.runtime ?? null,
     synopsis: movie.overview,
     genres: (movie.genres ?? []).map((g) => g.name).join(", "),
-    cast: credits.cast.slice(0, 6).map((c) => c.name).join(", "),
+    cast: credits.cast
+      .slice(0, 6)
+      .map((c) => c.name)
+      .join(", "),
     director: crewJob("Director") ?? "Unknown",
     cinematographer: crewJob("Director of Photography"),
     composer: crewJob("Original Music Composer"),
