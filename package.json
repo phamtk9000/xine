@@ -17,11 +17,14 @@
     "films:import": "tsx scripts/import-tmdb.ts",
     "series:import": "tsx scripts/import-tmdb.ts --kind series",
     "films:link": "tsx scripts/link-articles.ts",
-    "credits:import": "tsx scripts/import-credits.ts"
+    "credits:import": "tsx scripts/import-credits.ts",
+    "db:dump": "sqlite3 dev.db .dump > xine-dump.sql && echo 'wrote xine-dump.sql \u2014 import with: turso db shell <name> < xine-dump.sql'"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.117.1",
+    "@libsql/client": "^0.17.4",
     "@prisma/adapter-better-sqlite3": "^7.9.1",
+    "@prisma/adapter-libsql": "^7.9.1",
     "@prisma/client": "^7.9.1",
     "bcryptjs": "^3.0.3",
     "gray-matter": "^4.0.3",

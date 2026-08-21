@@ -49,3 +49,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Database dump produced by `npm run db:dump` for the Turso import.
+xine-dump.sql
