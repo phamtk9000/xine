@@ -51,35 +51,23 @@ export function QuickActions({
 
   if (!signedIn) {
     return (
-      <div className="rounded-xl border border-line bg-ink-raised p-5">
-        <p className="label">Quick actions</p>
-        <p className="mt-3 text-sm leading-relaxed text-muted">
-          Sign in to mark this watched, save it, or like it — and get a read on
-          your taste at the end of every month.
-        </p>
+      <div className="flex flex-wrap items-center gap-4">
         <Link
           href="/sign-in"
-          className="mt-4 inline-flex rounded-full bg-accent px-5 py-2 text-sm font-medium text-paper"
+          className="inline-flex rounded-full border border-line px-5 py-2.5 text-sm font-medium transition-colors hover:border-faint"
         >
-          Sign in
+          Sign in to log this
         </Link>
+        <p className="max-w-xs text-xs leading-relaxed text-faint">
+          Mark it watched, save it or like it — and get a read on your taste at
+          the end of every month.
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border border-line bg-ink-raised p-5">
-      <div className="flex items-baseline justify-between">
-        <p className="label">Quick actions</p>
-        <Link
-          href="/taste"
-          className="font-sans text-[0.625rem] tracking-[0.16em] uppercase text-faint transition-colors hover:text-gold"
-        >
-          Your month →
-        </Link>
-      </div>
-
-      <div className="mt-4 grid grid-cols-3 gap-2">
+    <div className="flex flex-wrap items-center gap-2.5">
         <Action
           label="Watched"
           on={state.watched}
@@ -128,7 +116,12 @@ export function QuickActions({
             <path d="M10 17S2.5 12.4 2.5 7.4A4.1 4.1 0 0 1 10 5.2a4.1 4.1 0 0 1 7.5 2.2c0 5-7.5 9.6-7.5 9.6Z" />
           }
         />
-      </div>
+      <Link
+        href="/taste"
+        className="ml-1 font-sans text-[0.625rem] tracking-[0.16em] uppercase text-faint transition-colors hover:text-gold"
+      >
+        Your month →
+      </Link>
     </div>
   );
 }
@@ -153,7 +146,7 @@ function Action({
       aria-pressed={on}
       // aria-pressed carries the state for a screen reader; the colour and
       // fill carry it for everyone else, so it never rests on colour alone.
-      className="group flex cursor-pointer flex-col items-center gap-2 rounded-lg border border-line px-2 py-3 transition-colors hover:border-faint focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none"
+      className="group flex cursor-pointer items-center gap-2 rounded-full border border-line px-4 py-2.5 transition-colors hover:border-faint focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none"
       style={on ? { borderColor: onColor } : undefined}
     >
       <svg
@@ -168,7 +161,7 @@ function Action({
         {icon}
       </svg>
       <span
-        className="font-sans text-[0.625rem] tracking-[0.14em] uppercase"
+        className="font-sans text-[0.6875rem] tracking-[0.12em] uppercase"
         style={{ color: on ? onColor : undefined }}
       >
         {label}

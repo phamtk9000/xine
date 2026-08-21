@@ -17,6 +17,14 @@ import type { CastMember } from "@/lib/people";
  * doesn't collapse at all: on a touch screen there is no hover, so panels
  * stay full width and the names stay visible instead of being permanently
  * hidden behind an interaction that can't happen.
+ *
+ * The headshot is a FIXED size and the panel merely clips it. The obvious
+ * `w-full object-cover` re-derives the cover scale from the panel's current
+ * width, so every panel visibly zoomed while it animated — and at rest a
+ * 168px-wide, 416px-tall panel cropped a portrait headshot down to a band
+ * across somebody's forehead. Sizing the image once, off the panel's height,
+ * means widening the panel reveals more of the same picture at the same
+ * scale, which is what an accordion should do.
  */
 export function CastAccordion({ cast }: { cast: CastMember[] }) {
   if (cast.length === 0) return null;
@@ -27,7 +35,7 @@ export function CastAccordion({ cast }: { cast: CastMember[] }) {
         <li
           key={member.slug}
           className={[
-            "group/panel relative w-full overflow-hidden rounded-lg bg-ink-raised transition-all duration-300 ease-[cubic-bezier(.5,.85,.25,1.15)]",
+            "group/panel relative h-64 w-full overflow-hidden rounded-lg bg-ink-raised transition-all duration-300 ease-[cubic-bezier(.5,.85,.25,1.15)] md:h-[22rem]",
             // Every sibling narrows while one panel is hovered or focused.
             "md:not-[&:hover]:group-hover:w-[22%]",
             "md:[&:not(:focus-within):not(:hover)]:group-focus-within:w-[22%]",
@@ -69,17 +77,21 @@ export function CastAccordion({ cast }: { cast: CastMember[] }) {
           </Link>
 
           {member.profileUrl ? (
+            // Centred and absolutely placed at a fixed width wider than any
+            // panel ever gets, so the panel is a window onto it rather than a
+            // box that rescales it. object-top keeps the face in frame.
             <Image
               src={member.profileUrl}
               alt=""
-              width={480}
-              height={720}
-              className="h-64 w-full object-cover object-top md:h-[26rem]"
+              width={421}
+              height={632}
+              sizes="(max-width: 768px) 100vw, 448px"
+              className="absolute inset-y-0 left-1/2 h-full w-full -translate-x-1/2 object-cover object-top md:w-[28rem] md:max-w-none"
             />
           ) : (
             // No headshot on TMDB — initials rather than an empty panel, so a
             // row with gaps still reads as a designed row.
-            <span className="flex h-64 w-full items-center justify-center font-display text-4xl text-faint md:h-[26rem]">
+            <span className="flex h-full w-full items-center justify-center font-display text-4xl text-faint">
               {member.name
                 .split(/\s+/)
                 .slice(0, 2)

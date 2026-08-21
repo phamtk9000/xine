@@ -156,6 +156,22 @@ export default async function FilmPage({ params }: PageProps<"/films/[slug]">) {
                   size="md"
                 />
               </div>
+
+              {/* The one-tap marks sit with the film itself rather than in the
+                  sidebar: they are the first thing most people want to do on
+                  arriving, and the sidebar is below the fold on a phone. */}
+              <div className="mt-8">
+                <QuickActions
+                  filmId={film.id}
+                  slug={film.slug}
+                  signedIn={!!user}
+                  initial={{
+                    watched: !!myLog?.watchedAt,
+                    watchlisted: onWatchlist,
+                    liked: !!myLog?.likedAt,
+                  }}
+                />
+              </div>
             </div>
           </div>
         </Container>
@@ -287,17 +303,6 @@ export default async function FilmPage({ params }: PageProps<"/films/[slug]">) {
           </div>
 
           <aside className="order-1 space-y-6 lg:order-2">
-            <QuickActions
-              filmId={film.id}
-              slug={film.slug}
-              signedIn={!!user}
-              initial={{
-                watched: !!myLog?.watchedAt,
-                watchlisted: onWatchlist,
-                liked: !!myLog?.likedAt,
-              }}
-            />
-
             <RatingForm
               filmId={film.id}
               slug={film.slug}

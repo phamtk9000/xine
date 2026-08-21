@@ -111,9 +111,14 @@ export function backdropUrl(path: string | null) {
   return path ? `${IMAGE}/w1280${path}` : null;
 }
 
-/** Headshots. w185 is the smallest size that still holds up on a cast card. */
+/**
+ * Headshots. h632 rather than w185: the cast accordion renders a panel over
+ * 300px tall, and w185 was being upscaled ~6x by the image optimiser — a
+ * blurred crop of somebody's forehead. h632 is TMDB's tall profile size
+ * (~421x632), which covers the panel at native resolution.
+ */
 export function profileUrl(path: string | null | undefined) {
-  return path ? `${IMAGE}/w185${path}` : null;
+  return path ? `${IMAGE}/h632${path}` : null;
 }
 
 /**
