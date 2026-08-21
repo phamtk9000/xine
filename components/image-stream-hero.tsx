@@ -117,6 +117,10 @@ export type StreamImage = {
   src: string;
   /** Only used if you drop the decorative treatment; the corridor is aria-hidden. */
   alt?: string;
+  /** Makes the card clickable. See `interactive` on the hero. */
+  href?: string;
+  /** Shown over the card while it is hovered. */
+  title?: string;
 };
 
 export type ImageStreamHeroProps = {
@@ -143,6 +147,28 @@ export type ImageStreamHeroProps = {
    * @default 55
    */
   axis?: number;
+  /**
+   * Deal alternating images to the two rails instead of running the same
+   * sequence down both. Interleaved rather than halved, so if the list is in
+   * rank order each rail still carries a spread of it rather than one rail
+   * taking all the best.
+   * @default false
+   */
+  split?: boolean;
+  /**
+   * Let the pointer stop and click the cards.
+   *
+   * The corridor stays `aria-hidden` and every card is `tabIndex={-1}`
+   * even here. Focusable targets that drift across the screen are a bad
+   * bargain for keyboard and screen-reader users, and these links are always
+   * a duplicate of a static list elsewhere on the page — so the accessible
+   * path is that list, not a moving one.
+   *
+   * Hovering the corridor pauses every card. Without that you would be
+   * aiming at a target that is accelerating away from you.
+   * @default false
+   */
+  interactive?: boolean;
   /** Override any part of the corridor geometry. Merged over the defaults. */
   path?: CorridorPath;
   /** Content rendered above the corridor. */
@@ -155,6 +181,8 @@ export function ImageStreamHero({
   cards = 9,
   speed = 18,
   axis = 55,
+  split = false,
+  interactive = false,
   path,
   children,
   className,
@@ -164,6 +192,9 @@ export function ImageStreamHero({
   const right = `ish-r-${id}`;
   const left = `ish-l-${id}`;
   const card = `ish-c-${id}`;
+  const rail = `ish-rail-${id}`;
+  const skin = `ish-s-${id}`;
+  const cap = `ish-cap-${id}`;
 
   const p = React.useMemo(() => ({ ...PATH, ...path }), [path]);
 
@@ -173,8 +204,23 @@ export function ImageStreamHero({
       // Pausing rather than disabling keeps the corridor whole: every card is
       // already dropped mid-flight by its negative delay, so it freezes as a
       // finished still instead of collapsing onto the axis.
-      `@media(prefers-reduced-motion:reduce){.${card}{animation-play-state:paused}}`,
-    [right, left, card, p],
+      `@media(prefers-reduced-motion:reduce){.${card}{animation-play-state:paused}}` +
+      (interactive
+        ? // Entering the band halts the corridor, so a card can be aimed at
+          // instead of chased.
+          `.${rail}:hover .${card}{animation-play-state:paused}` +
+          // Dimming is scoped with :has to a card actually being hovered.
+          // Keyed off `.rail:hover` instead, the whole corridor greyed out
+          // the moment the pointer crossed any empty black space in the band.
+          // Where :has is unsupported this rule simply never matches, and the
+          // corridor keeps its normal brightness — no fallback needed.
+          `.${rail}:has(.${card}:hover) .${card} .${skin}{opacity:.32;filter:saturate(.55)}` +
+          `.${card}:hover{z-index:50}` +
+          `.${rail} .${card}:hover .${skin}{opacity:1;filter:none;box-shadow:0 0 0 .18cqw var(--color-gold),0 1cqw 3cqw rgba(0,0,0,.65)}` +
+          `.${card} .${cap}{opacity:0;transition:opacity .18s ease}` +
+          `.${card}:hover .${cap}{opacity:1}`
+        : ""),
+    [right, left, card, rail, skin, cap, interactive, p],
   );
 
   return (
@@ -187,7 +233,11 @@ export function ImageStreamHero({
 
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0"
+        className={cn(
+          rail,
+          "absolute inset-0",
+          interactive ? "pointer-events-auto" : "pointer-events-none",
+        )}
         style={{
           perspective: `${p.perspective}cqw`,
           perspectiveOrigin: `50% ${axis}%`,
@@ -197,11 +247,15 @@ export function ImageStreamHero({
           className="absolute inset-0"
           style={{ transformStyle: "preserve-3d" }}
         >
-          {[right, left].map((name) =>
-            Array.from({ length: cards }, (_, i) => {
-              // Both rails walk the same sequence, so the left side mirrors
-              // the right at every depth.
-              const img = images[i % Math.max(images.length, 1)];
+          {[right, left].map((name, side) => {
+            // Mirrored by default. Split deals alternate entries to each
+            // rail, so the two sides never show the same film at once.
+            const pool = split
+              ? images.filter((_, n) => n % 2 === side)
+              : images;
+
+            return Array.from({ length: cards }, (_, i) => {
+              const img = pool[i % Math.max(pool.length, 1)];
               return (
                 <div
                   key={`${name}-${i}`}
@@ -222,25 +276,81 @@ export function ImageStreamHero({
                   }}
                 >
                   {img ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={img.src}
-                      alt={img.alt ?? ""}
-                      loading="lazy"
-                      decoding="async"
-                      className="h-full w-full object-cover"
-                      draggable={false}
+                    <CardFace
+                      img={img}
+                      interactive={interactive}
+                      skin={skin}
+                      cap={cap}
                     />
                   ) : null}
                 </div>
               );
-            }),
-          )}
+            });
+          })}
         </div>
       </div>
 
       {children}
     </div>
+  );
+}
+
+/**
+ * One card's contents. Split out because the interactive version wraps the
+ * same picture in an anchor, and duplicating the img tag in two branches is
+ * how the two drift apart.
+ */
+function CardFace({
+  img,
+  interactive,
+  skin,
+  cap,
+}: {
+  img: StreamImage;
+  interactive: boolean;
+  skin: string;
+  cap: string;
+}) {
+  const face = (
+    <span className={cn(skin, "block h-full w-full transition-[opacity,filter,box-shadow] duration-200")}>
+      {/* Plain img, not next/image: these are fixed-size decorative cards
+          sized in cqw, so there is no layout for the optimiser to protect and
+          nine of them would be nine more optimiser requests per rail. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={img.src}
+        alt={img.alt ?? ""}
+        loading="lazy"
+        decoding="async"
+        className="h-full w-full object-cover"
+        draggable={false}
+      />
+      {interactive && img.title ? (
+        <span
+          className={cn(
+            cap,
+            "absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent px-[0.6cqw] pt-[2cqw] pb-[0.6cqw] text-center text-[1.05cqw] leading-tight font-medium text-white",
+          )}
+        >
+          {img.title}
+        </span>
+      ) : null}
+    </span>
+  );
+
+  if (!interactive || !img.href) return face;
+
+  return (
+    <a
+      href={img.href}
+      // Never focusable: see `interactive` on the hero. The keyboard route to
+      // these films is the static list this corridor sits above.
+      tabIndex={-1}
+      className="block h-full w-full"
+      draggable={false}
+    >
+      {face}
+    </a>
   );
 }
 

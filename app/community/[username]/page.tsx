@@ -177,18 +177,21 @@ export default async function ProfilePage({
               ) : (
                 <>
                   <div className="mt-7">
+                    {/* Their highest-rated films, best first, capped at 30.
+                        The count that used to sit over the vanishing point is
+                        gone: it landed exactly where the cards converge, and
+                        the section heading above already says it. */}
                     <WatchedCorridor
-                      posters={user.ratings
-                        .map((r) => r.film.posterUrl)
-                        .filter((url): url is string => !!url)}
-                    >
-                      <p className="font-display text-6xl leading-none tracking-tight text-paper drop-shadow-[0_2px_20px_var(--color-ink)] sm:text-7xl">
-                        {user.ratings.length}
-                        <span className="ml-3 align-middle font-sans text-[0.625rem] tracking-[0.16em] uppercase text-muted">
-                          watched
-                        </span>
-                      </p>
-                    </WatchedCorridor>
+                      films={[...user.ratings]
+                        .sort((a, b) => b.overall - a.overall)
+                        .filter((r) => !!r.film.posterUrl)
+                        .slice(0, 30)
+                        .map((r) => ({
+                          src: r.film.posterUrl!,
+                          href: `/films/${r.film.slug}`,
+                          title: `${r.film.title} · ${r.overall.toFixed(1)}`,
+                        }))}
+                    />
                   </div>
                   <div className="mt-7">
                     {/* Their own score, not the crowd's — this is their record. */}
