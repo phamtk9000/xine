@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { FilmGrid } from "@/components/film-card";
 import { Container, EmptyState, PageHeader } from "@/components/ui";
-import { filmFacets, listFilms, type FilmSort } from "@/lib/films";
+import { browseFilms, filmFacets, PAGE_SIZE, type FilmSort } from "@/lib/films";
 
 export const metadata: Metadata = {
   title: "Films",
@@ -30,15 +30,22 @@ export default async function FilmsPage({ searchParams }: PageProps<"/films">) {
   const decade = decadeParam ? Number(decadeParam) : undefined;
   const search = one(params.q);
   const reviewed = one(params.reviewed) === "1";
+  const requestedPage = Number(one(params.page) ?? 1) || 1;
 
-  const [films, facets] = await Promise.all([
-    listFilms({ sort, genre, country, decade, search, reviewed }),
+  const [{ films, total, page, pages }, facets] = await Promise.all([
+    browseFilms(
+      { sort, genre, country, decade, search, reviewed },
+      requestedPage,
+    ),
     filmFacets(),
   ]);
 
   // Preserve the other filters when a facet link is clicked.
   function href(patch: Record<string, string | undefined>) {
     const next = new URLSearchParams();
+    // Changing a filter or sort resets to page 1 — staying on page 7 of a
+    // result set that just shrank to two pages lands the reader on nothing.
+    // A patch that names `page` is the pager itself, so it wins.
     const base = {
       sort,
       genre,
@@ -46,10 +53,15 @@ export default async function FilmsPage({ searchParams }: PageProps<"/films">) {
       decade: decadeParam,
       q: search,
       reviewed: reviewed ? "1" : undefined,
+      page: undefined as string | undefined,
       ...patch,
     };
     for (const [key, value] of Object.entries(base)) {
-      if (value && !(key === "sort" && value === "trending")) {
+      if (
+        value &&
+        !(key === "sort" && value === "trending") &&
+        !(key === "page" && value === "1")
+      ) {
         next.set(key, String(value));
       }
     }
@@ -69,7 +81,7 @@ export default async function FilmsPage({ searchParams }: PageProps<"/films">) {
       <PageHeader
         label="Films"
         title="The catalogue."
-        lede={`${films.length} film${films.length === 1 ? "" : "s"}, each rated on Story, Direction, Visual, Performance and Sound — not just a number out of five.`}
+        lede={`${total} film${total === 1 ? "" : "s"}, each rated on Story, Direction, Visual, Performance and Sound — not just a number out of five.`}
         action={
           <div className="flex w-full max-w-md flex-col gap-3">
             <form action="/films" className="flex gap-2">
@@ -160,12 +172,89 @@ export default async function FilmsPage({ searchParams }: PageProps<"/films">) {
                 body="No films in the catalogue fit these filters. Clear one and try again."
               />
             ) : (
-              <FilmGrid films={films} priorityCount={6} />
+              <>
+                <FilmGrid films={films} priorityCount={6} />
+                <Pager page={page} pages={pages} total={total} href={href} />
+              </>
             )}
           </div>
         </div>
       </Container>
     </>
+  );
+}
+
+/**
+ * Page N of M, with a window of numbers around the current page rather than
+ * every page — twenty-two numbered links is a worse way to find page 12 than
+ * two arrows and a count.
+ */
+function Pager({
+  page,
+  pages,
+  total,
+  href,
+}: {
+  page: number;
+  pages: number;
+  total: number;
+  href: (patch: Record<string, string | undefined>) => string;
+}) {
+  if (pages <= 1) return null;
+
+  const from = (page - 1) * PAGE_SIZE + 1;
+  const to = Math.min(page * PAGE_SIZE, total);
+
+  const window: number[] = [];
+  for (let n = Math.max(1, page - 2); n <= Math.min(pages, page + 2); n++) {
+    window.push(n);
+  }
+
+  const step =
+    "rounded-full border border-line px-3 py-1.5 text-xs transition-colors hover:border-line-bright hover:text-paper";
+
+  return (
+    <nav
+      className="mt-12 flex flex-wrap items-center gap-2 border-t border-line pt-6"
+      aria-label="Pagination"
+    >
+      <p className="mr-auto text-xs text-faint">
+        {from}–{to} of {total}
+      </p>
+
+      {page > 1 && (
+        <Link href={href({ page: String(page - 1) })} className={step}>
+          ← Prev
+        </Link>
+      )}
+
+      {window[0] > 1 && <span className="px-1 text-xs text-faint">…</span>}
+
+      {window.map((n) => (
+        <Link
+          key={n}
+          href={href({ page: String(n) })}
+          aria-current={n === page ? "page" : undefined}
+          className={`rounded-full border px-3 py-1.5 text-xs tabular-nums transition-colors ${
+            n === page
+              ? "border-gold text-gold"
+              : "border-line text-muted hover:border-line-bright hover:text-paper"
+          }`}
+        >
+          {n}
+        </Link>
+      ))}
+
+      {window[window.length - 1] < pages && (
+        <span className="px-1 text-xs text-faint">…</span>
+      )}
+
+      {page < pages && (
+        <Link href={href({ page: String(page + 1) })} className={step}>
+          Next →
+        </Link>
+      )}
+    </nav>
   );
 }
 

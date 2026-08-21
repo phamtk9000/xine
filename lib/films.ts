@@ -70,54 +70,59 @@ async function communityScores(filmIds: string[]) {
   );
 }
 
-export async function listFilms({
-  sort = "trending",
-  genre,
-  country,
-  decade,
-  search,
-  reviewed,
-  take = 120,
-}: {
+export type FilmFilters = {
   sort?: FilmSort;
   genre?: string;
   country?: string;
   decade?: number;
   search?: string;
   reviewed?: boolean;
-  take?: number;
-} = {}): Promise<FilmSummary[]> {
-  const films = await db.film.findMany({
-    where: {
-      ...(reviewed ? { reviewed: true } : {}),
-      ...(genre ? { genres: { contains: genre } } : {}),
-      ...(country ? { country } : {}),
-      ...(decade ? { year: { gte: decade, lt: decade + 10 } } : {}),
-      ...(search
-        ? {
-            OR: [
-              { title: { contains: search } },
-              { originalTitle: { contains: search } },
-              { director: { contains: search } },
-            ],
-          }
-        : {}),
-    },
-    orderBy:
-      sort === "new"
-        ? [{ year: "desc" }, { title: "asc" }]
-        : sort === "az"
-          ? [{ title: "asc" }]
-          : [{ criticScore: "desc" }, { title: "asc" }],
-    take,
-  });
+};
 
+/** Films per page in the catalogue. */
+export const PAGE_SIZE = 60;
+
+/** The `where` every catalogue query shares, so filters can't drift apart. */
+function filmWhere({ genre, country, decade, search, reviewed }: FilmFilters) {
+  return {
+    ...(reviewed ? { reviewed: true } : {}),
+    ...(genre ? { genres: { contains: genre } } : {}),
+    ...(country ? { country } : {}),
+    ...(decade ? { year: { gte: decade, lt: decade + 10 } } : {}),
+    ...(search
+      ? {
+          OR: [
+            { title: { contains: search } },
+            { originalTitle: { contains: search } },
+            { director: { contains: search } },
+          ],
+        }
+      : {}),
+  };
+}
+
+/**
+ * Two of the four sorts can be done by the database, and two cannot.
+ *
+ * `new` and `az` are plain column sorts, so SQLite orders them and pagination
+ * is a straight LIMIT/OFFSET. `trending` and `rated` rank on values that
+ * don't live on the row — rating volume and the community average, which
+ * come from a groupBy over Rating — so they're sorted in JS afterwards. That
+ * distinction is the whole reason this function exists: paginating those two
+ * at the database level would take the wrong 60 rows and *then* sort them,
+ * so every page would be ranked only against itself.
+ */
+const DB_SORTED: FilmSort[] = ["new", "az"];
+
+async function decorate(
+  films: Awaited<ReturnType<typeof db.film.findMany>>,
+): Promise<FilmSummary[]> {
   const [scores, editorial] = await Promise.all([
     communityScores(films.map((f) => f.id)),
     editorialCounts(),
   ]);
 
-  const summaries: FilmSummary[] = films.map((film) => {
+  return films.map((film) => {
     const agg = scores.get(film.id);
     return {
       id: film.id,
@@ -137,7 +142,9 @@ export async function listFilms({
       reviewCount: editorial.get(film.slug) ?? 0,
     };
   });
+}
 
+function rankInJs(summaries: FilmSummary[], sort: FilmSort) {
   // "Trending" is rating volume first, quality second — what people are
   // actually watching this week, not the all-time top of the pile.
   if (sort === "trending") {
@@ -156,8 +163,70 @@ export async function listFilms({
       (a, b) => rank(b) - rank(a) || b.ratingCount - a.ratingCount,
     );
   }
-
   return summaries;
+}
+
+function dbOrder(sort: FilmSort) {
+  return sort === "new"
+    ? [{ year: "desc" as const }, { title: "asc" as const }]
+    : sort === "az"
+      ? [{ title: "asc" as const }]
+      : [{ criticScore: "desc" as const }, { title: "asc" as const }];
+}
+
+export async function listFilms({
+  sort = "trending",
+  take = 120,
+  ...filters
+}: FilmFilters & { take?: number } = {}): Promise<FilmSummary[]> {
+  const films = await db.film.findMany({
+    where: filmWhere(filters),
+    orderBy: dbOrder(sort),
+    take,
+  });
+  return rankInJs(await decorate(films), sort);
+}
+
+/**
+ * One page of the catalogue, plus the total so the pager knows how far it
+ * goes. Page numbers are 1-based and clamped, so a hand-typed ?page=999
+ * lands on the last page rather than an empty grid.
+ */
+export async function browseFilms(
+  { sort = "trending", ...filters }: FilmFilters,
+  page = 1,
+): Promise<{
+  films: FilmSummary[];
+  total: number;
+  page: number;
+  pages: number;
+}> {
+  const where = filmWhere(filters);
+  const total = await db.film.count({ where });
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const current = Math.min(Math.max(1, page), pages);
+  const skip = (current - 1) * PAGE_SIZE;
+
+  if (DB_SORTED.includes(sort)) {
+    const films = await db.film.findMany({
+      where,
+      orderBy: dbOrder(sort),
+      skip,
+      take: PAGE_SIZE,
+    });
+    return { films: await decorate(films), total, page: current, pages };
+  }
+
+  // Ranked in JS, so the whole filtered set has to be ordered before it can
+  // be sliced. ~1,300 rows: cheap enough, and correct, which the alternative
+  // is not.
+  const all = rankInJs(await decorate(await db.film.findMany({ where })), sort);
+  return {
+    films: all.slice(skip, skip + PAGE_SIZE),
+    total,
+    page: current,
+    pages,
+  };
 }
 
 export async function getFilmBySlug(slug: string) {
