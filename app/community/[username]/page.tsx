@@ -11,6 +11,11 @@ import { getCurrentUser } from "@/lib/session";
 import { fromCsv } from "@/lib/serialize";
 import { AXES, averageAxis } from "@/lib/scores";
 import { getStage } from "@/lib/stages";
+import { WatchedCorridor } from "@/components/watched-corridor";
+import { readingFor } from "@/lib/archetype-members";
+import { ArchetypeCard } from "@/components/archetype-card";
+import { RevealGroup } from "@/components/reveal-group";
+import { CountUp } from "@/components/count-up";
 
 export async function generateMetadata({
   params,
@@ -29,10 +34,11 @@ export default async function ProfilePage({
   params,
 }: PageProps<"/community/[username]">) {
   const { username } = await params;
-  const [profile, viewer, reviewCounts] = await Promise.all([
+  const [profile, viewer, reviewCounts, reading] = await Promise.all([
     getProfile(username),
     getCurrentUser(),
     editorialCounts(),
+    readingFor(username),
   ]);
   if (!profile) notFound();
 
@@ -91,13 +97,14 @@ export default async function ProfilePage({
           )}
 
           <dl className="mt-10 grid grid-cols-2 gap-x-10 gap-y-6 border-t border-line pt-8 sm:grid-cols-3 lg:grid-cols-6">
-            <Stat label="Films watched" value={String(stats.watched)} />
+            <Stat label="Films watched" count={stats.watched} />
             <Stat
               label="Average rating"
-              value={stats.average === null ? "—" : stats.average.toFixed(1)}
+              count={stats.average}
+              decimals={1}
             />
-            <Stat label="Reviews" value={String(stats.reviews)} />
-            <Stat label="Lists" value={String(stats.lists)} />
+            <Stat label="Reviews" count={stats.reviews} />
+            <Stat label="Lists" count={stats.lists} />
             <Stat
               label="Favourite genre"
               value={stats.favouriteGenre ?? "—"}
@@ -113,8 +120,13 @@ export default async function ProfilePage({
       </header>
 
       <Container className="py-14">
+        {/* Sections rise in as you reach them; the grids inside them are
+            staggered separately so a long shelf of posters doesn't arrive as
+            one slab. */}
+        <RevealGroup selector="[data-profile-main]" />
+        <RevealGroup selector="[data-profile-aside]" />
         <div className="grid gap-14 lg:grid-cols-[1fr_20rem]">
-          <div>
+          <div data-profile-main>
             {user.projects.length > 0 && (
               <section className="mb-14">
                 <h2 className="label border-b border-line pb-3">
@@ -163,15 +175,31 @@ export default async function ProfilePage({
               {user.ratings.length === 0 ? (
                 <p className="mt-5 text-sm text-muted">Nothing rated yet.</p>
               ) : (
-                <div className="mt-7">
-                  {/* Their own score, not the crowd's — this is their record. */}
-                  <FilmGrid
-                    films={user.ratings.map((r) => toSummary(r.film))}
-                    scores={
-                      new Map(user.ratings.map((r) => [r.film.id, r.overall]))
-                    }
-                  />
-                </div>
+                <>
+                  <div className="mt-7">
+                    <WatchedCorridor
+                      posters={user.ratings
+                        .map((r) => r.film.posterUrl)
+                        .filter((url): url is string => !!url)}
+                    >
+                      <p className="font-display text-6xl leading-none tracking-tight text-paper drop-shadow-[0_2px_20px_var(--color-ink)] sm:text-7xl">
+                        {user.ratings.length}
+                        <span className="ml-3 align-middle font-sans text-[0.625rem] tracking-[0.16em] uppercase text-muted">
+                          watched
+                        </span>
+                      </p>
+                    </WatchedCorridor>
+                  </div>
+                  <div className="mt-7">
+                    {/* Their own score, not the crowd's — this is their record. */}
+                    <FilmGrid
+                      films={user.ratings.map((r) => toSummary(r.film))}
+                      scores={
+                        new Map(user.ratings.map((r) => [r.film.id, r.overall]))
+                      }
+                    />
+                  </div>
+                </>
               )}
             </section>
 
@@ -223,7 +251,14 @@ export default async function ProfilePage({
             )}
           </div>
 
-          <aside className="space-y-8">
+          <aside data-profile-aside className="space-y-8">
+            {reading && (
+              <ArchetypeCard
+                reading={reading}
+                href={`/community/types/${reading.archetype.key}`}
+              />
+            )}
+
             <div className="rounded-xl border border-line p-6">
               <p className="label">Taste profile</p>
               {stats.watched === 0 ? (
@@ -296,13 +331,21 @@ export default async function ProfilePage({
   );
 }
 
+/**
+ * `count` animates; `value` is printed as given. Numbers earn the count-up,
+ * a director's name would just look broken mid-flight.
+ */
 function Stat({
   label,
   value,
+  count,
+  decimals = 0,
   wide = false,
 }: {
   label: string;
-  value: string;
+  value?: string;
+  count?: number | null;
+  decimals?: number;
   wide?: boolean;
 }) {
   return (
@@ -313,7 +356,11 @@ function Stat({
           wide ? "text-sm text-paper" : "font-display text-3xl leading-none"
         }`}
       >
-        {value}
+        {count === null || count === undefined ? (
+          (value ?? "—")
+        ) : (
+          <CountUp value={count} decimals={decimals} />
+        )}
       </dd>
     </div>
   );

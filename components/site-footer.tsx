@@ -18,6 +18,7 @@ const COLUMNS = [
     links: [
       { href: "/community", label: "Activity" },
       { href: "/community/members", label: "Members" },
+      { href: "/community/types", label: "The six types" },
       { href: "/reviews", label: "Recent reviews" },
       { href: "/sign-up", label: "Create an account" },
     ],

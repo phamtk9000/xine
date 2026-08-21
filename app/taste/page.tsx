@@ -13,6 +13,8 @@ import {
   type Dossier,
 } from "@/lib/month";
 import { formatScore } from "@/lib/scores";
+import { readingFor } from "@/lib/archetype-members";
+import { ArchetypeCard } from "@/components/archetype-card";
 
 export const metadata: Metadata = {
   title: "Your month in film",
@@ -30,7 +32,10 @@ export default async function TastePage({
   const thisMonth = monthKey(new Date());
   const key = requested ?? thisMonth;
 
-  const dossier = await getDossier(user.id, key);
+  const [dossier, reading] = await Promise.all([
+    getDossier(user.id, key),
+    readingFor(user.username),
+  ]);
   const previous = shiftMonth(key, -1);
   const next = shiftMonth(key, 1);
   // Never offer a month that hasn't happened.
@@ -77,6 +82,23 @@ export default async function TastePage({
       ) : (
         <>
           <Ledger dossier={dossier} />
+
+          {reading && (
+            <section className="border-b border-line py-14">
+              <Container>
+                <h2 className="label border-b border-line pb-3">
+                  Who this makes you
+                </h2>
+                <div className="mt-8 max-w-xl">
+                  <ArchetypeCard
+                    reading={reading}
+                    href={`/community/types/${reading.archetype.key}`}
+                  />
+                </div>
+              </Container>
+            </section>
+          )}
+
           <Lean dossier={dossier} />
           <GutAndJudgement dossier={dossier} />
           <Contrarian dossier={dossier} />
