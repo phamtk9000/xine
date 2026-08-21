@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { listArticles } from "@/lib/journal";
 import { AXES, averageAxis, averageOverall, round1 } from "@/lib/scores";
 import { fromCsv } from "@/lib/serialize";
+import { inChunks } from "@/lib/batch";
 
 export type FilmSort = "trending" | "new" | "rated" | "az";
 
@@ -52,12 +53,16 @@ async function communityScores(filmIds: string[]) {
   if (filmIds.length === 0)
     return new Map<string, { score: number; count: number }>();
 
-  const grouped = await db.rating.groupBy({
-    by: ["filmId"],
-    where: { filmId: { in: filmIds } },
-    _avg: { overall: true },
-    _count: { _all: true },
-  });
+  // Batched: the ranked sorts ask for every filtered film at once, which
+  // blows SQLite's bound-parameter cap once the catalogue is big enough.
+  const grouped = await inChunks(filmIds, (batch) =>
+    db.rating.groupBy({
+      by: ["filmId"],
+      where: { filmId: { in: batch } },
+      _avg: { overall: true },
+      _count: { _all: true },
+    }),
+  );
 
   return new Map(
     grouped.map((row) => [

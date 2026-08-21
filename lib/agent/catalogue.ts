@@ -2,6 +2,7 @@ import "server-only";
 import { db } from "@/lib/db";
 import { AXES, averageAxis, averageOverall } from "@/lib/scores";
 import { fromCsv } from "@/lib/serialize";
+import { inChunks } from "@/lib/batch";
 
 /**
  * The data layer the finder agent works against.
@@ -43,9 +44,10 @@ async function toRows(
 ): Promise<CatalogueRow[]> {
   if (films.length === 0) return [];
 
-  const ratings = await db.rating.findMany({
-    where: { filmId: { in: films.map((f) => f.id) } },
-  });
+  const ratings = await inChunks(
+    films.map((f) => f.id),
+    (batch) => db.rating.findMany({ where: { filmId: { in: batch } } }),
+  );
 
   const byFilm = new Map<string, typeof ratings>();
   for (const rating of ratings) {

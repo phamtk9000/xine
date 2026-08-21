@@ -9,6 +9,7 @@ import {
   type AxisKey,
 } from "@/lib/scores";
 import { fromCsv } from "@/lib/serialize";
+import { inChunks } from "@/lib/batch";
 
 /**
  * The monthly read on someone's taste.
@@ -152,14 +153,14 @@ export async function getDossier(
 
   // One grouped query for the room's average on this month's films, rather
   // than a per-film aggregate in the loop.
-  const room = filmIds.length
-    ? await db.rating.groupBy({
-        by: ["filmId"],
-        where: { filmId: { in: filmIds } },
-        _avg: { overall: true },
-        _count: { overall: true },
-      })
-    : [];
+  const room = await inChunks(filmIds, (batch) =>
+    db.rating.groupBy({
+      by: ["filmId"],
+      where: { filmId: { in: batch } },
+      _avg: { overall: true },
+      _count: { overall: true },
+    }),
+  );
   const roomBy = new Map(room.map((r) => [r.filmId, r]));
 
   const entries: Entry[] = logs.map((log) => {
@@ -396,18 +397,24 @@ async function prescribe(userId: string, genre: string | null) {
     where: { userId },
     select: { filmId: true },
   });
-  const seenIds = seen.map((s) => s.filmId);
+  const seenIds = new Set(seen.map((s) => s.filmId));
 
-  const pick = await db.film.findFirst({
+  // Take the genre's best few and drop the seen ones here, rather than
+  // passing every id they have ever logged as a `notIn` — that list only
+  // grows, and would eventually blow SQLite's bound-parameter cap on a page
+  // that has nothing to do with how much someone has watched.
+  const candidates = await db.film.findMany({
     where: {
       reviewed: true,
       criticScore: { not: null },
       genres: { contains: genre },
-      id: { notIn: seenIds.length ? seenIds : ["-"] },
     },
     orderBy: { criticScore: "desc" },
-    select: { slug: true, title: true, year: true, posterUrl: true },
+    take: 50,
+    select: { id: true, slug: true, title: true, year: true, posterUrl: true },
   });
+
+  const pick = candidates.find((f) => !seenIds.has(f.id));
   if (!pick) return null;
 
   return {

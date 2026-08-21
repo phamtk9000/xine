@@ -7,6 +7,7 @@ import {
   type DiscoverParams,
 } from "@/lib/tmdb";
 import { db } from "@/lib/db";
+import { inChunks } from "@/lib/batch";
 
 /**
  * The breadth half of the recommendation engine.
@@ -53,10 +54,12 @@ async function attachKnownSlugs(candidates: ExternalCandidate[]) {
   const ids = candidates.map((c) => c.tmdbId);
   if (ids.length === 0) return candidates;
 
-  const known = await db.film.findMany({
-    where: { tmdbId: { in: ids } },
-    select: { tmdbId: true, slug: true },
-  });
+  const known = await inChunks(ids, (batch) =>
+    db.film.findMany({
+      where: { tmdbId: { in: batch } },
+      select: { tmdbId: true, slug: true },
+    }),
+  );
   const bySlug = new Map(known.map((f) => [f.tmdbId, f.slug]));
 
   return candidates.map((c) => ({ ...c, slug: bySlug.get(c.tmdbId) ?? null }));
