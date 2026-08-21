@@ -1,15 +1,28 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useActionState } from "react";
 import { signIn, type AuthState } from "@/app/actions/auth";
 import { Button, Container, Field, Input, Notice } from "@/components/ui";
 
 export default function SignInPage() {
+  // useSearchParams needs a Suspense boundary above it.
+  return (
+    <Suspense>
+      <SignInForm />
+    </Suspense>
+  );
+}
+
+function SignInForm() {
   const [state, action, pending] = useActionState<AuthState, FormData>(
     signIn,
     null,
   );
+  // Carries through from links like /sign-in?next=/taste. The action
+  // validates it before redirecting.
+  const next = useSearchParams().get("next");
 
   return (
     <Container className="py-20">
@@ -22,6 +35,7 @@ export default function SignInPage() {
         </p>
 
         <form action={action} className="mt-10 space-y-5">
+          {next && <input type="hidden" name="next" value={next} />}
           <Field label="Email">
             <Input
               name="email"

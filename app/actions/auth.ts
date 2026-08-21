@@ -66,7 +66,22 @@ export async function signUp(
   });
 
   await createSession(user.id);
-  redirect(`/community/${user.username}`);
+  redirect(safeNext(formData.get("next")) ?? `/community/${user.username}`);
+}
+
+/**
+ * Where to land after signing in.
+ *
+ * Only a path on this site is ever accepted. A bare `next` taken on trust is
+ * an open redirect — `?next=https://evil.example` would send someone who just
+ * typed their password straight off the site, with xine's sign-in page as the
+ * thing that vouched for it. Protocol-relative `//host` is the same attack
+ * without the scheme, so it is rejected too.
+ */
+function safeNext(value: FormDataEntryValue | null): string | null {
+  const next = typeof value === "string" ? value.trim() : "";
+  if (!next.startsWith("/") || next.startsWith("//")) return null;
+  return next;
 }
 
 export async function signIn(
@@ -86,7 +101,7 @@ export async function signIn(
   }
 
   await createSession(user.id);
-  redirect(`/community/${user.username}`);
+  redirect(safeNext(formData.get("next")) ?? `/community/${user.username}`);
 }
 
 export async function signOut() {

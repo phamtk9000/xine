@@ -29,6 +29,7 @@ model User {
   ratings   Rating[]
   reviews   Review[]
   watchlist WatchlistItem[]
+  logs      FilmLog[]
   lists     FilmList[]
   projects  Project[]
   briefs    TrailerBrief[]
@@ -78,6 +79,7 @@ model Film {
   reviews        Review[]
   listEntries    ListEntry[]
   watchlistItems WatchlistItem[]
+  logs           FilmLog[]
   activity       Activity[]
   credits        Credit[]
 
@@ -174,6 +176,34 @@ model WatchlistItem {
   film Film @relation(fields: [filmId], references: [id], onDelete: Cascade)
 
   @@unique([userId, filmId])
+}
+
+/// One person's private relationship with one film: seen it, liked it.
+///
+/// The two columns are nullable timestamps rather than booleans on purpose.
+/// "Watched" is not a fact on its own — the monthly digest needs to know
+/// *when*, and a boolean would force a second table to carry the date. This
+/// way a month's viewing is one indexed range scan over `watchedAt`, and
+/// un-marking something is a write of null rather than a delete that loses
+/// the history.
+///
+/// Separate from WatchlistItem, which is intent rather than record: the
+/// watchlist is what you mean to see, this is what you did.
+model FilmLog {
+  id        String    @id @default(cuid())
+  userId    String
+  filmId    String
+  watchedAt DateTime?
+  likedAt   DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  film Film @relation(fields: [filmId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, filmId])
+  @@index([userId, watchedAt])
+  @@index([userId, likedAt])
 }
 
 model FilmList {
@@ -273,7 +303,7 @@ model ServiceEnquiry {
 model Activity {
   id        String   @id @default(cuid())
   userId    String
-  type      String // rated | reviewed | watchlisted | listed | pitched
+  type      String // rated | reviewed | watched | liked | watchlisted | listed | pitched
   filmId    String?
   listId    String?
   payload   String? // JSON blob for type-specific detail

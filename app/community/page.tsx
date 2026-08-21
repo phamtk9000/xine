@@ -14,6 +14,8 @@ const VERBS: Record<string, string> = {
   rated: "rated",
   reviewed: "reviewed",
   watchlisted: "added to their watchlist",
+  watched: "watched",
+  liked: "liked",
   listed: "published a list",
   pitched: "started a film",
 };

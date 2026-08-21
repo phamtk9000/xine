@@ -326,6 +326,8 @@ export default async function HomePage() {
                         {item.type === "rated" && "rated"}
                         {item.type === "reviewed" && "reviewed"}
                         {item.type === "watchlisted" && "saved"}
+                        {item.type === "watched" && "watched"}
+                        {item.type === "liked" && "liked"}
                         {item.type === "listed" && "published"}
                         {item.type === "pitched" && "started"}
                       </span>{" "}

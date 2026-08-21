@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
-import { rateFilm, toggleWatchlist, type ActionResult } from "@/app/actions/films";
+import { rateFilm, type ActionResult } from "@/app/actions/films";
 import { AXES, deriveOverall, formatScore, type AxisKey } from "@/lib/scores";
 import { Button, Notice } from "@/components/ui";
 
@@ -28,13 +28,11 @@ export function RatingForm({
   slug,
   existing,
   signedIn,
-  onWatchlist,
 }: {
   filmId: string;
   slug: string;
   existing: Existing;
   signedIn: boolean;
-  onWatchlist: boolean;
 }) {
   const hadBreakdown =
     !!existing && AXES.some(({ key }) => existing[key] !== null);
@@ -70,19 +68,12 @@ export function RatingForm({
     startTransition(async () => setResult(await rateFilm(formData)));
   }
 
-  function watchlist(formData: FormData) {
-    formData.set("filmId", filmId);
-    formData.set("slug", slug);
-    startTransition(async () => setResult(await toggleWatchlist(formData)));
-  }
-
   if (!signedIn) {
     return (
       <div className="rounded-xl border border-line bg-ink-raised p-6">
         <p className="label">Your rating</p>
         <p className="mt-3 text-sm leading-relaxed text-muted">
-          Sign in to rate this on six axes, review it, or put it on your
-          watchlist.
+          Sign in to rate this on six axes and say why.
         </p>
         <Link
           href="/sign-in"
@@ -163,12 +154,6 @@ export function RatingForm({
             {existing ? "Update rating" : "Save rating"}
           </Button>
         </div>
-      </form>
-
-      <form action={watchlist} className="mt-3">
-        <Button type="submit" variant="outline" disabled={pending} className="w-full">
-          {onWatchlist ? "On your watchlist — remove" : "Add to watchlist"}
-        </Button>
       </form>
 
       {result?.message && (

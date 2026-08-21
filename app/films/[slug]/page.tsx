@@ -5,6 +5,7 @@ import { Backdrop, Poster } from "@/components/poster";
 import { AxisBreakdown, AxisSpark, ScoreDial } from "@/components/score";
 import { SealBadge } from "@/components/seal";
 import { CastAccordion } from "@/components/cast-accordion";
+import { QuickActions } from "@/components/quick-actions";
 import { RatingForm } from "@/components/rating-form";
 import { ReviewForm } from "@/components/review-form";
 import {
@@ -61,11 +62,17 @@ export default async function FilmPage({ params }: PageProps<"/films/[slug]">) {
   const myReview = user
     ? (film.reviews.find((r) => r.userId === user.id) ?? null)
     : null;
-  const onWatchlist = user
-    ? (await db.watchlistItem.count({
-        where: { userId: user.id, filmId: film.id },
-      })) > 0
-    : false;
+  const [onWatchlist, myLog] = user
+    ? await Promise.all([
+        db.watchlistItem
+          .count({ where: { userId: user.id, filmId: film.id } })
+          .then((n) => n > 0),
+        db.filmLog.findUnique({
+          where: { userId_filmId: { userId: user.id, filmId: film.id } },
+          select: { watchedAt: true, likedAt: true },
+        }),
+      ])
+    : [false, null];
 
   const genres = fromCsv(film.genres);
   const runtime = formatRuntime(film.runtime);
@@ -280,12 +287,22 @@ export default async function FilmPage({ params }: PageProps<"/films/[slug]">) {
           </div>
 
           <aside className="order-1 space-y-6 lg:order-2">
+            <QuickActions
+              filmId={film.id}
+              slug={film.slug}
+              signedIn={!!user}
+              initial={{
+                watched: !!myLog?.watchedAt,
+                watchlisted: onWatchlist,
+                liked: !!myLog?.likedAt,
+              }}
+            />
+
             <RatingForm
               filmId={film.id}
               slug={film.slug}
               existing={myRating}
               signedIn={!!user}
-              onWatchlist={onWatchlist}
             />
 
             {myRating && (
