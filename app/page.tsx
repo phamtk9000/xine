@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { ArticleCard } from "@/components/article-card";
 import { IndexList } from "@/components/index-list";
-import { FilmGrid } from "@/components/film-card";
 import { FilmMarquee } from "@/components/film-marquee";
+import { TrendingCoverflow } from "@/components/trending-coverflow";
 import { MastheadBackdrop } from "@/components/masthead-backdrop";
 import { RevealGroup } from "@/components/reveal-group";
 import { TitleSequence } from "@/components/title-sequence";
@@ -133,11 +133,7 @@ export default async function HomePage() {
             href="/films"
             hrefLabel="The catalogue"
           />
-          <FilmGrid id="trending-grid" films={trending} />
-          {/* Slower and more deliberate than the other grids' default — eight
-              posters revealing one at a time reads as a considered lineup,
-              not a wall arriving all at once. */}
-          <RevealGroup selector="#trending-grid" stagger={120} />
+          <TrendingCoverflow films={trending} />
         </Container>
       </section>
 

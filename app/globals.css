@@ -1539,3 +1539,12 @@ a.genre-tag:hover {
   border-color: var(--tag-color);
   color: color-mix(in srgb, var(--tag-color) 85%, var(--color-paper));
 }
+
+/* Coverflow caption — remounts on every slide change (keyed in
+   components/coverflow-carousel.tsx), so it re-announces the centred film
+   rather than silently swapping text. */
+@media (prefers-reduced-motion: no-preference) {
+  .cf-caption {
+    animation: hero-caption-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
