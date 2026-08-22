@@ -216,7 +216,10 @@ export function ImageStreamHero({
           // corridor keeps its normal brightness — no fallback needed.
           `.${rail}:has(.${card}:hover) .${card} .${skin}{opacity:.32;filter:saturate(.55)}` +
           `.${card}:hover{z-index:50}` +
-          `.${rail} .${card}:hover .${skin}{opacity:1;filter:none;box-shadow:0 0 0 .18cqw var(--color-gold),0 1cqw 3cqw rgba(0,0,0,.65)}` +
+          // The scale sits on the face, never on the card: the card's own
+          // transform is the keyframe that flies it down the corridor, and
+          // anything written there is overwritten on the next frame.
+          `.${rail} .${card}:hover .${skin}{opacity:1;filter:none;transform:scale(1.18);box-shadow:0 0 0 .18cqw var(--color-gold),0 1cqw 3cqw rgba(0,0,0,.65)}` +
           `.${card} .${cap}{opacity:0;transition:opacity .18s ease}` +
           `.${card}:hover .${cap}{opacity:1}`
         : ""),
@@ -259,7 +262,7 @@ export function ImageStreamHero({
               return (
                 <div
                   key={`${name}-${i}`}
-                  className={cn(card, "absolute overflow-hidden")}
+                  className={cn(card, "absolute")}
                   style={{
                     left: "50%",
                     top: `${axis}%`,
@@ -267,7 +270,6 @@ export function ImageStreamHero({
                     height: `${p.cardHeight}cqw`,
                     marginLeft: `${-p.cardWidth / 2}cqw`,
                     marginTop: `${-p.cardHeight / 2}cqw`,
-                    borderRadius: `${p.cardRadius}cqw`,
                     animation: `${name} ${speed}s linear infinite`,
                     // Negative delay drops each card mid-flight, so the
                     // corridor is already full on the first frame.
@@ -281,6 +283,7 @@ export function ImageStreamHero({
                       interactive={interactive}
                       skin={skin}
                       cap={cap}
+                      radius={p.cardRadius}
                     />
                   ) : null}
                 </div>
@@ -305,14 +308,24 @@ function CardFace({
   interactive,
   skin,
   cap,
+  radius,
 }: {
   img: StreamImage;
   interactive: boolean;
   skin: string;
   cap: string;
+  radius: number;
 }) {
-  const face = (
-    <span className={cn(skin, "block h-full w-full transition-[opacity,filter,box-shadow] duration-200")}>
+  // The clipping and rounding live here rather than on the animated card, so
+  // the face can scale on hover and still keep its corners.
+  const faceClass = cn(
+    skin,
+    "block h-full w-full overflow-hidden transition-[opacity,filter,box-shadow,transform] duration-200",
+  );
+  const faceStyle = { borderRadius: `${radius}cqw` };
+
+  const inner = (
+    <>
       {/* Plain img, not next/image: these are fixed-size decorative cards
           sized in cqw, so there is no layout for the optimiser to protect and
           nine of them would be nine more optimiser requests per rail. */}
@@ -335,21 +348,31 @@ function CardFace({
           {img.title}
         </span>
       ) : null}
-    </span>
+    </>
   );
 
-  if (!interactive || !img.href) return face;
+  if (!interactive || !img.href) {
+    return (
+      <span className={faceClass} style={faceStyle}>
+        {inner}
+      </span>
+    );
+  }
 
+  // The anchor IS the face, so the clickable area is exactly the thing that
+  // grows — a separate wrapper would leave the hit box at the original size
+  // while the picture overflowed past it.
   return (
     <a
       href={img.href}
       // Never focusable: see `interactive` on the hero. The keyboard route to
       // these films is the static list this corridor sits above.
       tabIndex={-1}
-      className="block h-full w-full"
+      className={faceClass}
+      style={faceStyle}
       draggable={false}
     >
-      {face}
+      {inner}
     </a>
   );
 }

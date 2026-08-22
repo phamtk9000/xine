@@ -169,8 +169,12 @@ export default async function ProfilePage({
             )}
 
             <section>
+              {/* The corridor is their best films; the grid is everything.
+                  Two headings rather than one, because they are answering two
+                  different questions. */}
               <h2 className="label border-b border-line pb-3">
-                Watched · {user.ratings.length}
+                {user.displayName}&rsquo;s Top{" "}
+                {Math.min(30, user.ratings.length)}
               </h2>
               {user.ratings.length === 0 ? (
                 <p className="mt-5 text-sm text-muted">Nothing rated yet.</p>
@@ -193,6 +197,9 @@ export default async function ProfilePage({
                         }))}
                     />
                   </div>
+                  <h2 className="label mt-14 border-b border-line pb-3">
+                    {user.displayName}&rsquo;s Seen · {user.ratings.length}
+                  </h2>
                   <div className="mt-7">
                     {/* Their own score, not the crowd's — this is their record. */}
                     <FilmGrid
