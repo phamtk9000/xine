@@ -90,8 +90,25 @@ const PATH: Required<CorridorPath> = {
   stops: 24,
 };
 
+/**
+ * The stretch of the journey where a card is a sane thing to point at.
+ *
+ * Outside it a card is either a 30px chip nobody can hit, or — far worse —
+ * so enlarged by the perspective that its box blankets the whole band. Those
+ * near-exit giants are frontmost in the 3D stack, so they swallow every
+ * pointer event meant for the cards behind them, and exactly one card in the
+ * corridor ends up clickable.
+ *
+ * `pointer-events` is discretely animatable and inherited, so the keyframes
+ * can switch it per card along the path and the anchor inside picks it up.
+ * That is the only way to gate on size here: the size is produced by the
+ * projection at run time, so no static selector knows about it.
+ */
+const HIT_FROM = 0.3;
+const HIT_TO = 0.85;
+
 /** Sample the path once so the CSS keyframes trace the real curve. */
-function keyframes(dir: 1 | -1, name: string, p: Required<CorridorPath>) {
+function keyframes(dir: 1 | -1, name: string, p: Required<CorridorPath>, interactive = false) {
   const steps: string[] = [];
   for (let s = 0; s <= p.stops; s++) {
     const u = s / p.stops;
@@ -104,10 +121,13 @@ function keyframes(dir: 1 | -1, name: string, p: Required<CorridorPath>) {
     const rail =
       p.railExit - (p.railExit - p.railBirth) * Math.pow(1 - u, p.fan);
     const turn = p.turnBirth + (p.turnExit - p.turnBirth) * u;
+    const hit = interactive
+      ? `;pointer-events:${u >= HIT_FROM && u <= HIT_TO ? "auto" : "none"}`
+      : "";
     steps.push(
       `${(u * 100).toFixed(2)}%{transform:translate3d(${(dir * rail).toFixed(
         2,
-      )}cqw,0,${z.toFixed(2)}cqw) rotateY(${(-dir * turn).toFixed(2)}deg)}`,
+      )}cqw,0,${z.toFixed(2)}cqw) rotateY(${(-dir * turn).toFixed(2)}deg)${hit}}`,
     );
   }
   return `@keyframes ${name}{${steps.join("")}}`;
@@ -200,7 +220,7 @@ export function ImageStreamHero({
 
   const css = React.useMemo(
     () =>
-      `${keyframes(1, right, p)}${keyframes(-1, left, p)}` +
+      `${keyframes(1, right, p, interactive)}${keyframes(-1, left, p, interactive)}` +
       // Pausing rather than disabling keeps the corridor whole: every card is
       // already dropped mid-flight by its negative delay, so it freezes as a
       // finished still instead of collapsing onto the axis.

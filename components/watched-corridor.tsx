@@ -4,6 +4,15 @@ import { ImageStreamHero, type StreamImage } from "@/components/image-stream-her
 const PER_RAIL = 15;
 
 /**
+ * Never fewer than the corridor's own default. Card size is geometric across
+ * the whole run, so cutting the count widens the ratio between neighbours —
+ * at six a side the jump is 62% a step, the ribbon comes apart into scattered
+ * chips, and the far cards shrink to 30px. Short lists repeat instead, which
+ * the corridor supports and which nobody notices.
+ */
+const MIN_PER_RAIL = 9;
+
+/**
  * Somebody's best-rated films, flying at the reader.
  *
  * A band above the grid rather than instead of it. The cards are clickable —
@@ -23,9 +32,10 @@ export function WatchedCorridor({ films }: { films: StreamImage[] }) {
   // by the grid alone.
   if (films.length < 4) return null;
 
-  // Each rail draws from half the list, so a rail can't run out and start
-  // repeating before the other one does.
-  const perRail = Math.max(3, Math.min(PER_RAIL, Math.ceil(films.length / 2)));
+  const perRail = Math.min(
+    PER_RAIL,
+    Math.max(MIN_PER_RAIL, Math.ceil(films.length / 2)),
+  );
 
   return (
     <div className="relative overflow-hidden rounded-xl border border-line bg-ink-sunk">
