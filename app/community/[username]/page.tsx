@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { FilmGrid } from "@/components/film-card";
-import { AxisBreakdown, AxisSpark } from "@/components/score";
+import { AxisSpark } from "@/components/score";
 import { Container, formatDate } from "@/components/ui";
 import { signOut } from "@/app/actions/auth";
 import { editorialCounts } from "@/lib/films";
@@ -16,6 +16,12 @@ import { readingFor } from "@/lib/archetype-members";
 import { ArchetypeCard } from "@/components/archetype-card";
 import { RevealGroup } from "@/components/reveal-group";
 import { CountUp } from "@/components/count-up";
+import { countriesWatched } from "@/lib/geography";
+import { tasteNeighbours } from "@/lib/neighbours";
+import { readEra } from "@/lib/era";
+import { FilmAtlas } from "@/components/film-atlas";
+import { CinemaEra } from "@/components/cinema-era";
+import { TasteDna } from "@/components/taste-dna";
 
 export async function generateMetadata({
   params,
@@ -34,12 +40,15 @@ export default async function ProfilePage({
   params,
 }: PageProps<"/community/[username]">) {
   const { username } = await params;
-  const [profile, viewer, reviewCounts, reading] = await Promise.all([
-    getProfile(username),
-    getCurrentUser(),
-    editorialCounts(),
-    readingFor(username),
-  ]);
+  const [profile, viewer, reviewCounts, reading, neighbours, atlas] =
+    await Promise.all([
+      getProfile(username),
+      getCurrentUser(),
+      editorialCounts(),
+      readingFor(username),
+      tasteNeighbours(username),
+      countriesWatched(username),
+    ]);
   if (!profile) notFound();
 
   const { user, stats } = profile;
@@ -48,6 +57,8 @@ export default async function ProfilePage({
   const axisAverages = Object.fromEntries(
     AXES.map(({ key }) => [key, averageAxis(user.ratings, key)]),
   );
+
+  const era = readEra(user.ratings.map((r) => r.film.year));
 
   const toSummary = (film: {
     id: string;
@@ -270,7 +281,7 @@ export default async function ProfilePage({
             )}
 
             <div className="rounded-xl border border-line p-6">
-              <p className="label">Taste profile</p>
+              <p className="label">Taste DNA</p>
               {stats.watched === 0 ? (
                 <p className="mt-4 text-sm text-muted">
                   Rate a few films and this fills in.
@@ -278,7 +289,7 @@ export default async function ProfilePage({
               ) : (
                 <>
                   <div className="mt-5">
-                    <AxisBreakdown scores={axisAverages} compact />
+                    <TasteDna scores={axisAverages} className="w-full" />
                   </div>
                   {stats.lean && (
                     <p className="mt-5 border-t border-line pt-4 text-sm leading-relaxed text-muted">
@@ -337,6 +348,90 @@ export default async function ProfilePage({
           </aside>
         </div>
       </Container>
+
+      {era && (
+        <section className="border-t border-line py-16">
+          <Container>
+            <CinemaEra era={era} />
+          </Container>
+        </section>
+      )}
+
+      {atlas.countries.length > 0 && (
+        <section className="border-t border-line py-16">
+          <Container>
+            <div className="flex flex-wrap items-end justify-between gap-6">
+              <div>
+                <p className="label">Cinema without borders</p>
+                <h2 className="mt-4 max-w-2xl font-display text-4xl leading-[1.05] tracking-tight sm:text-5xl">
+                  {user.displayName} has watched cinema from{" "}
+                  <span className="text-gold">{atlas.total}</span>{" "}
+                  {atlas.total === 1 ? "country" : "countries"}
+                </h2>
+              </div>
+            </div>
+            <div className="mt-10">
+              <FilmAtlas
+                countries={atlas.countries}
+                unplaced={atlas.filmsUnplaced}
+              />
+            </div>
+          </Container>
+        </section>
+      )}
+
+      {neighbours.length > 0 && (
+        <section className="border-t border-line py-16">
+          <Container>
+            <p className="label">Taste neighbours</p>
+            <h2 className="mt-4 max-w-2xl font-display text-4xl leading-[1.05] tracking-tight sm:text-5xl">
+              People who watch like {user.displayName}
+            </h2>
+            <p className="mt-5 max-w-xl text-base leading-relaxed text-muted">
+              Not who rated the same films the same way — who rewards the same
+              things, reaches for the same genres, and lives in the same decades
+              and countries of cinema.
+            </p>
+
+            <RevealGroup selector="[data-neighbours]" />
+            <ul
+              data-neighbours
+              className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3"
+            >
+              {neighbours.map((n) => (
+                <li key={n.username}>
+                  <Link
+                    href={`/community/${n.username}`}
+                    className="group block h-full rounded-xl border border-line p-6 transition-colors hover:border-faint"
+                  >
+                    <div className="flex items-baseline justify-between gap-3">
+                      <p className="font-display text-2xl leading-tight transition-colors group-hover:text-gold">
+                        {n.displayName}
+                      </p>
+                      <span className="font-sans text-sm text-gold tabular-nums">
+                        {n.overlap}%
+                      </span>
+                    </div>
+                    <p className="label mt-1">@{n.username}</p>
+
+                    {/* A percentage alone is a number to argue with; the
+                        reason is what makes it worth acting on. */}
+                    {n.because.length > 0 && (
+                      <p className="mt-4 text-sm leading-relaxed text-muted">
+                        You {n.because.join(" and ")}.
+                      </p>
+                    )}
+
+                    <p className="mt-4 font-sans text-[0.625rem] tracking-[0.16em] uppercase text-faint">
+                      {n.watched} rated{n.location && ` · ${n.location}`}
+                    </p>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </Container>
+        </section>
+      )}
     </>
   );
 }

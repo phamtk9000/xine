@@ -54,6 +54,11 @@ model Film {
   runtime       Int?
   director      String
   country       String?
+  /// ISO 3166-1 alpha-2 codes from TMDB's production_countries, comma
+  /// separated. Distinct from `country`, which holds the import REGION label
+  /// ("Europe") and is therefore useless as geography. Co-productions are the
+  /// norm in the cinema this catalogue covers, so it is a list, not a column.
+  productionCountries String?
   language      String?
   synopsis      String
   genres        String // comma-separated

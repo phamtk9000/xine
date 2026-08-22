@@ -26,6 +26,8 @@ type TmdbMovie = {
   backdrop_path: string | null;
   genres?: { id: number; name: string }[];
   original_language?: string;
+  production_countries?: { iso_3166_1: string; name: string }[];
+  origin_country?: string[];
   vote_average?: number;
   vote_count?: number;
 };
@@ -310,6 +312,7 @@ type TmdbSeries = {
   id: number;
   name: string;
   original_name: string;
+  production_countries?: { iso_3166_1: string }[];
   overview: string;
   first_air_date?: string;
   episode_run_time?: number[];
@@ -395,6 +398,7 @@ export async function fetchSeriesDetail(id: number) {
     posterUrl: posterUrl(series.poster_path),
     backdropUrl: backdropUrl(series.backdrop_path),
     language: series.original_language ?? null,
+    productionCountries: productionCountries(series),
     releasedAt: series.first_air_date ? new Date(series.first_air_date) : null,
   };
 }
@@ -466,6 +470,27 @@ export async function fetchFilmDetail(id: number) {
     posterUrl: posterUrl(movie.poster_path),
     backdropUrl: backdropUrl(movie.backdrop_path),
     language: movie.original_language ?? null,
+    productionCountries: productionCountries(movie),
     releasedAt: movie.release_date ? new Date(movie.release_date) : null,
   };
+}
+
+/**
+ * Where a film was actually made, as ISO codes.
+ *
+ * `production_countries` is the authoritative list; `origin_country` is the
+ * fallback TMDB fills in for some titles when the former is empty. Both are
+ * real production metadata, unlike the region label the importer pages by.
+ */
+export function productionCountries(movie: {
+  production_countries?: { iso_3166_1: string }[];
+  origin_country?: string[];
+}): string | null {
+  const codes = (movie.production_countries ?? [])
+    .map((c) => c.iso_3166_1)
+    .concat(movie.origin_country ?? [])
+    .map((c) => c?.toUpperCase())
+    .filter(Boolean);
+  const unique = [...new Set(codes)];
+  return unique.length ? unique.join(",") : null;
 }

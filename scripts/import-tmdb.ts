@@ -141,6 +141,7 @@ async function main() {
         director: detail.director,
         country: region.label,
         language: detail.language,
+      productionCountries: detail.productionCountries,
         synopsis: detail.synopsis || "No synopsis available yet.",
         genres: detail.genres,
         cast: detail.cast,
