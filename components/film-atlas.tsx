@@ -1,24 +1,36 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { COUNTRIES, project } from "@/lib/atlas";
+import { useEffect, useRef, useState } from "react";
+import "leaflet/dist/leaflet.css";
+import { COUNTRIES } from "@/lib/atlas";
 import type { CountryStat } from "@/lib/geography";
 
 /**
- * Cinema without borders — where the films came from.
+ * Cinema without borders — real geography, on Leaflet + CARTO raster tiles.
  *
- * A bubble per production country on an equirectangular graticule, sized by
- * how many films and lit by how highly they were rated. No coastlines: the
- * outlines would be a megabyte of paths in service of one dot per country,
- * and a filled map would have to pick a single country for every
- * co-production. The grid is enough to read longitude at a glance, and the
- * shape the bubbles make is the actual subject.
+ * Raster tiles rather than Mapbox or Google: no API key, no billing account,
+ * nothing to leak into the client bundle, and the tiles are free under
+ * attribution. The trade is that they arrive pre-styled, so the palette is
+ * matched with a CSS grade over the tile pane rather than a style JSON —
+ * which is also why the dark basemap is the one to start from here.
  *
- * Selecting a country is a plain button, so this works from a keyboard, and
- * the list beside the map is the same data in a form a screen reader can
- * read straight through — the map itself is `aria-hidden`.
+ * Leaflet touches `window` at import time, so it is imported dynamically
+ * inside the mount effect. The server renders the frame and the country list;
+ * the map itself arrives after hydration. The list beside it is the same data
+ * in a form that works without any of this.
+ *
+ * Markers are circles sized by film count, not pins. A pin points at a spot,
+ * and "France, 25 films" is not a spot — it is a whole country's output.
  */
+
+const TILES = {
+  url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+  attribution:
+    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+  subdomains: "abcd",
+};
+
 export function FilmAtlas({
   countries,
   unplaced,
@@ -26,87 +38,114 @@ export function FilmAtlas({
   countries: CountryStat[];
   unplaced: number;
 }) {
-  const [active, setActive] = useState<string | null>(
-    countries[0]?.code ?? null,
-  );
-  if (countries.length === 0) return null;
+  const elRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<unknown>(null);
+  const [active, setActive] = useState<string | null>(countries[0]?.code ?? null);
+  // Mirrors `active` for the Leaflet layer, which lives outside React and
+  // would otherwise close over the value from the render that built it.
+  const activeRef = useRef(active);
 
   const peak = Math.max(...countries.map((c) => c.films), 1);
   const selected = countries.find((c) => c.code === active) ?? null;
 
+  useEffect(() => {
+    if (!elRef.current || mapRef.current || countries.length === 0) return;
+    let cancelled = false;
+
+    import("leaflet").then(({ default: L }) => {
+      if (cancelled || !elRef.current || mapRef.current) return;
+
+      const map = L.map(elRef.current, {
+        center: [24, 12],
+        zoom: 2,
+        minZoom: 1,
+        zoomControl: true,
+        // Never hijack the page's scroll — the map is inside a long article.
+        scrollWheelZoom: false,
+        worldCopyJump: true,
+        attributionControl: true,
+      });
+      L.tileLayer(TILES.url, {
+        attribution: TILES.attribution,
+        subdomains: TILES.subdomains,
+        maxZoom: 8,
+        detectRetina: true,
+      }).addTo(map);
+      map.zoomControl.setPosition("bottomright");
+      mapRef.current = map;
+
+      const layer = L.layerGroup().addTo(map);
+      const points: [number, number][] = [];
+
+      for (const c of countries) {
+        const place = COUNTRIES[c.code];
+        if (!place) continue;
+        const [, lat, lon] = place;
+        points.push([lat, lon]);
+
+        // Radius on sqrt so area tracks the count — twice the films looks
+        // like twice the ink, not four times.
+        const r = 5 + Math.sqrt(c.films / peak) * 17;
+        const marker = L.circleMarker([lat, lon], {
+          radius: r,
+          color: "#c9a227",
+          weight: 1.25,
+          fillColor: "#c9a227",
+          fillOpacity: 0.28,
+        });
+
+        marker.bindTooltip(
+          `${c.name} · ${c.films} film${c.films === 1 ? "" : "s"}`,
+          { direction: "top", className: "xine-map-tip" },
+        );
+        marker.on("click", () => setActive(c.code));
+        marker.addTo(layer);
+        (marker as L.CircleMarker & { _code?: string })._code = c.code;
+      }
+
+      if (points.length > 1) {
+        map.fitBounds(L.latLngBounds(points).pad(0.2), { maxZoom: 5 });
+      }
+
+      // Re-style on selection without rebuilding the layer.
+      const paint = () => {
+        layer.eachLayer((l) => {
+          const m = l as L.CircleMarker & { _code?: string };
+          const on = m._code === activeRef.current;
+          m.setStyle({
+            fillOpacity: on ? 0.75 : 0.28,
+            weight: on ? 2 : 1.25,
+          });
+        });
+      };
+      paint();
+      (map as unknown as { _xinePaint?: () => void })._xinePaint = paint;
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [countries, peak]);
+
+  // Repaint whenever the selection changes, from the map or the list.
+  useEffect(() => {
+    activeRef.current = active;
+    const map = mapRef.current as { _xinePaint?: () => void } | null;
+    map?._xinePaint?.();
+  }, [active]);
+
+  if (countries.length === 0) return null;
+
   return (
-    <div className="grid gap-10 lg:grid-cols-[1fr_18rem]">
+    <div className="grid gap-8 lg:grid-cols-[1fr_18rem]">
       <div>
         <div
-          className="relative w-full overflow-hidden rounded-xl border border-line bg-ink-sunk"
-          style={{ aspectRatio: "350 / 122" }}
-        >
-          {/* Graticule. */}
-          <svg
-            viewBox="0 0 100 100"
-            preserveAspectRatio="none"
-            className="absolute inset-0 h-full w-full"
-            aria-hidden="true"
-          >
-            {[-150, -120, -90, -60, -30, 0, 30, 60, 90, 120, 150].map((lon) => (
-              <line
-                key={lon}
-                x1={project(0, lon).x}
-                y1={0}
-                x2={project(0, lon).x}
-                y2={100}
-                stroke="var(--color-line)"
-                strokeWidth={lon === 0 ? 0.28 : 0.14}
-              />
-            ))}
-            {[60, 30, 0, -30].map((lat) => (
-              <line
-                key={lat}
-                x1={0}
-                y1={project(lat, 0).y}
-                x2={100}
-                y2={project(lat, 0).y}
-                stroke="var(--color-line)"
-                strokeWidth={lat === 0 ? 0.28 : 0.14}
-              />
-            ))}
-          </svg>
-
-          {/* Bubbles. Area scales with count — radius on sqrt — so twice the
-              films looks like twice as much ink, not four times. */}
-          {countries.map((c) => {
-            const place = COUNTRIES[c.code];
-            if (!place) return null;
-            const { x, y } = project(place[1], place[2]);
-            const size = 10 + Math.sqrt(c.films / peak) * 30;
-            const isOn = c.code === active;
-            return (
-              <button
-                key={c.code}
-                type="button"
-                onClick={() => setActive(c.code)}
-                aria-pressed={isOn}
-                className="group absolute -translate-x-1/2 -translate-y-1/2 rounded-full transition-transform hover:scale-110 focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none"
-                style={{
-                  left: `${x}%`,
-                  top: `${y}%`,
-                  width: size,
-                  height: size,
-                  background: isOn ? "var(--color-gold)" : "var(--color-accent)",
-                  opacity: isOn ? 0.95 : 0.42,
-                  boxShadow: isOn ? "0 0 0 2px var(--color-gold)" : undefined,
-                }}
-              >
-                <span className="sr-only">
-                  {c.name}, {c.films} film{c.films === 1 ? "" : "s"}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
+          ref={elRef}
+          className="xine-map w-full overflow-hidden rounded-xl border border-line bg-ink-sunk"
+          style={{ height: 420 }}
+        />
         <p className="mt-4 font-sans text-[0.625rem] tracking-[0.16em] uppercase text-faint">
-          Bubble area is films watched · gold is selected
+          Circle area is films watched
           {unplaced > 0 && ` · ${unplaced} without production data`}
         </p>
       </div>
@@ -144,7 +183,7 @@ export function FilmAtlas({
           </div>
         )}
 
-        <ul className="mt-5 max-h-64 space-y-1 overflow-y-auto pr-2">
+        <ul className="mt-5 max-h-56 space-y-1 overflow-y-auto pr-2">
           {countries.map((c) => (
             <li key={c.code}>
               <button

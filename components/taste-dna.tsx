@@ -1,21 +1,26 @@
 import { AXES, type AxisKey } from "@/lib/scores";
 
 /**
- * Taste DNA — the five axes as a strip of film rather than a bar chart.
+ * Taste DNA — the five axes as one irregular shape.
  *
- * A bar chart is a instrument reading: it invites you to compare lengths and
- * says nothing about what is being measured. This says cinema before it says
- * anything else. Five frames on a perforated strip, each exposed to the depth
- * of its score — a dark frame is an axis this person does not reward, a bright
- * one is an axis they do — so the profile reads as an image at a glance and
- * only resolves into numbers when you look closer.
+ * A bar chart asks you to compare five lengths and reports nothing about the
+ * person as a whole. A closed polygon has a silhouette: it is lopsided toward
+ * whatever they reward, and two viewers are told apart at a glance by outline
+ * alone, before a single number is read. That is the point of calling it DNA
+ * rather than a breakdown.
  *
- * The frame colours are the archetype palette from lib/archetype.ts, so
- * somebody's DNA and the figure it makes them are visibly the same object.
+ * Deliberately not a radar chart. No concentric grid, no spokes to the rim,
+ * no axis ticks — those are the furniture that makes radar charts read as
+ * analytics. What is left is the shape, one faint reference ring for the
+ * scale, and the vertices.
  *
- * Drawn as one SVG with a viewBox and no fixed width, so it scales to any
- * column without reflowing, and every value is committed to geometry at
- * render — nothing here depends on the client.
+ * The scale starts at 5, not 0. Ratings in practice live between about 6 and
+ * 10, so a 0-based polygon is a near-perfect pentagon for everybody and tells
+ * you nothing; anchoring the floor at the bottom of the real range is what
+ * makes the lopsidedness visible.
+ *
+ * Colours are the archetype palette from lib/archetype.ts, so somebody's DNA
+ * and the figure it makes them are visibly the same object.
  */
 
 const AXIS_COLOR: Record<AxisKey, string> = {
@@ -26,11 +31,19 @@ const AXIS_COLOR: Record<AxisKey, string> = {
   sound: "#4a9d8f",
 };
 
-const FRAME_W = 58;
-const FRAME_H = 96;
-const GAP = 8;
-const PAD = 16;
-const SPROCKET_H = 13;
+const SIZE = 260;
+const CX = SIZE / 2;
+const CY = SIZE / 2 + 4;
+const R = 84;
+/** Scores below this all collapse to the centre — see the note above. */
+const FLOOR = 5;
+
+function point(index: number, count: number, radius: number) {
+  // Start at twelve o'clock and go clockwise, so Story is always at the top
+  // and the same profile always draws the same way round.
+  const angle = (index / count) * Math.PI * 2 - Math.PI / 2;
+  return [CX + Math.cos(angle) * radius, CY + Math.sin(angle) * radius] as const;
+}
 
 export function TasteDna({
   scores,
@@ -39,12 +52,36 @@ export function TasteDna({
   scores: Partial<Record<AxisKey, number | null>>;
   className?: string;
 }) {
-  const width = PAD * 2 + AXES.length * FRAME_W + (AXES.length - 1) * GAP;
-  const height = FRAME_H + SPROCKET_H * 2 + 20;
+  const n = AXES.length;
+  const rated = AXES.filter(({ key }) => typeof scores[key] === "number");
+
+  // Fewer than three vertices cannot enclose anything.
+  if (rated.length < 3) {
+    return (
+      <p className={`text-sm text-muted ${className ?? ""}`}>
+        Rate a few films on the breakdown and your shape appears here.
+      </p>
+    );
+  }
+
+  const radius = (v: number | null | undefined) =>
+    typeof v === "number"
+      ? Math.max(0.12, (v - FLOOR) / (10 - FLOOR)) * R
+      : 0.12 * R;
+
+  const hull = AXES.map(({ key }, i) => point(i, n, radius(scores[key])));
+  const path = hull.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
+
+  // Blend the axis colours in proportion to what they actually score, so the
+  // fill of a Visual-led profile leans magenta without being told to.
+  const total = AXES.reduce(
+    (s, { key }) => s + (typeof scores[key] === "number" ? scores[key]! : 0),
+    0,
+  );
 
   return (
     <svg
-      viewBox={`0 0 ${width} ${height}`}
+      viewBox={`0 0 ${SIZE} ${SIZE}`}
       className={className}
       role="img"
       aria-label={
@@ -56,102 +93,70 @@ export function TasteDna({
         ).join(", ")
       }
     >
-      {/* The stock itself. */}
-      <rect
-        x={0}
-        y={0}
-        width={width}
-        height={FRAME_H + SPROCKET_H * 2}
-        rx={3}
-        fill="var(--color-ink-sunk)"
+      <defs>
+        <radialGradient id="dna-fill" cx="50%" cy="50%" r="60%">
+          {AXES.map(({ key }, i) => (
+            <stop
+              key={key}
+              offset={`${(i / (n - 1)) * 100}%`}
+              stopColor={AXIS_COLOR[key]}
+              stopOpacity={
+                total > 0 && typeof scores[key] === "number"
+                  ? 0.1 + (scores[key]! / total) * 1.6
+                  : 0.1
+              }
+            />
+          ))}
+        </radialGradient>
+      </defs>
+
+      {/* One reference ring at 8.0, the only scale mark. Anything more and it
+          becomes a radar chart again. */}
+      <polygon
+        points={AXES.map((_, i) => point(i, n, radius(8)))
+          .map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`)
+          .join(" ")}
+        fill="none"
         stroke="var(--color-line)"
+        strokeDasharray="2 4"
       />
 
-      {/* Perforations, top and bottom. Spaced off the frame pitch so they
-          line up with the frames the way real stock does. */}
-      {Array.from({ length: AXES.length * 2 + 1 }, (_, i) => {
-        const x = PAD - 6 + i * ((FRAME_W + GAP) / 2);
-        return (
-          <g key={i}>
-            <rect x={x} y={4} width={7} height={5} rx={1.4} fill="var(--color-line)" />
-            <rect
-              x={x}
-              y={FRAME_H + SPROCKET_H * 2 - 9}
-              width={7}
-              height={5}
-              rx={1.4}
-              fill="var(--color-line)"
-            />
-          </g>
-        );
-      })}
+      <polygon
+        points={path}
+        fill="url(#dna-fill)"
+        stroke="var(--color-paper)"
+        strokeOpacity={0.55}
+        strokeWidth={1.25}
+        strokeLinejoin="round"
+      />
 
       {AXES.map(({ key, label }, i) => {
-        const value = scores[key];
-        const rated = typeof value === "number";
-        const x = PAD + i * (FRAME_W + GAP);
-        const y = SPROCKET_H;
-        // Exposure: how much of the frame the score fills, from the base up.
-        const fill = rated ? Math.max(0.06, value! / 10) : 0;
-        const color = AXIS_COLOR[key];
-
+        const has = typeof scores[key] === "number";
+        const [vx, vy] = hull[i];
+        const [lx, ly] = point(i, n, R + 30);
         return (
           <g key={key}>
-            <rect
-              x={x}
-              y={y}
-              width={FRAME_W}
-              height={FRAME_H}
-              rx={2}
-              fill="var(--color-ink)"
-              stroke="var(--color-line)"
-            />
-            {rated && (
-              <>
-                <defs>
-                  <linearGradient id={`dna-${key}`} x1="0" y1="1" x2="0" y2="0">
-                    <stop offset="0%" stopColor={color} stopOpacity={0.95} />
-                    <stop offset="100%" stopColor={color} stopOpacity={0.28} />
-                  </linearGradient>
-                </defs>
-                <rect
-                  x={x + 1}
-                  y={y + FRAME_H - FRAME_H * fill}
-                  width={FRAME_W - 2}
-                  height={FRAME_H * fill}
-                  rx={1.5}
-                  fill={`url(#dna-${key})`}
-                />
-                {/* The exposure line — where this axis actually sits. */}
-                <rect
-                  x={x + 1}
-                  y={y + FRAME_H - FRAME_H * fill}
-                  width={FRAME_W - 2}
-                  height={1.4}
-                  fill={color}
-                />
-              </>
-            )}
+            {has && <circle cx={vx} cy={vy} r={3} fill={AXIS_COLOR[key]} />}
             <text
-              x={x + FRAME_W / 2}
-              y={y + FRAME_H - 9}
-              textAnchor="middle"
-              fill="var(--color-paper)"
-              fontSize={17}
-              fontFamily="var(--font-display), Georgia, serif"
-            >
-              {rated ? value!.toFixed(1) : "—"}
-            </text>
-            <text
-              x={x + FRAME_W / 2}
-              y={height - 4}
+              x={lx}
+              y={ly - 4}
               textAnchor="middle"
               fill="var(--color-faint)"
               fontSize={7.5}
-              letterSpacing={1.4}
+              letterSpacing={1.5}
               fontFamily="var(--font-sans), system-ui, sans-serif"
             >
               {label.toUpperCase()}
+            </text>
+            <text
+              x={lx}
+              y={ly + 9}
+              textAnchor="middle"
+              fill={has ? AXIS_COLOR[key] : "var(--color-faint)"}
+              fontSize={14}
+              fontFamily="var(--font-display), Georgia, serif"
+            >
+              {has ? scores[key]!.toFixed(1) : "—"}
             </text>
           </g>
         );

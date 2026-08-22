@@ -30,6 +30,7 @@
     "bcryptjs": "^3.0.3",
     "gray-matter": "^4.0.3",
     "jose": "^6.2.9",
+    "leaflet": "^1.9.4",
     "next": "16.3.1",
     "prisma": "^7.9.1",
     "react": "19.2.8",
@@ -42,6 +43,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/leaflet": "^1.9.22",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

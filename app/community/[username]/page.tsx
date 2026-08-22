@@ -18,7 +18,7 @@ import { RevealGroup } from "@/components/reveal-group";
 import { CountUp } from "@/components/count-up";
 import { countriesWatched } from "@/lib/geography";
 import { tasteNeighbours } from "@/lib/neighbours";
-import { readEra } from "@/lib/era";
+import { readEraPair } from "@/lib/era";
 import { FilmAtlas } from "@/components/film-atlas";
 import { CinemaEra } from "@/components/cinema-era";
 import { TasteDna } from "@/components/taste-dna";
@@ -58,7 +58,17 @@ export default async function ProfilePage({
     AXES.map(({ key }) => [key, averageAxis(user.ratings, key)]),
   );
 
-  const era = readEra(user.ratings.map((r) => r.film.year));
+  // Both readings need the film itself, not just its year: the reference
+  // points name the earliest and latest titles, and the loved distribution
+  // is filtered on this person's own score.
+  const era = readEraPair(
+    user.ratings.map((r) => ({
+      year: r.film.year,
+      title: r.film.title,
+      slug: r.film.slug,
+      score: r.overall,
+    })),
+  );
 
   const toSummary = (film: {
     id: string;

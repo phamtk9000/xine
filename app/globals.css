@@ -1548,3 +1548,79 @@ a.genre-tag:hover {
     animation: hero-caption-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 }
+
+/* ============================================================
+   FILM ATLAS
+
+   Leaflet's own stylesheet is imported by the component; everything
+   here is the grade that pulls CARTO's dark basemap into xine's ink
+   and gold instead of leaving a stock map pasted onto the page.
+
+   The tiles arrive pre-styled — raster, not a style JSON — so this
+   is the only lever: knock the blue out, drop the contrast so the
+   land reads as a texture rather than a subject, and let the gold
+   circles be the only saturated thing in the frame.
+   ============================================================ */
+
+.xine-map .leaflet-tile-pane {
+  filter: grayscale(0.75) brightness(0.78) contrast(0.92) sepia(0.28)
+    hue-rotate(346deg);
+}
+
+/* Leaflet puts `leaflet-container` on the element we already class as
+   `.xine-map`, so this is one element and not a descendant — written as a
+   descendant it silently never matched and the map kept Leaflet's default
+   #ddd showing through wherever tiles hadn't painted. */
+.xine-map.leaflet-container {
+  background: var(--color-ink-sunk);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+.xine-map .leaflet-control-zoom a {
+  background: var(--color-ink-raised);
+  color: var(--color-muted);
+  border: 1px solid var(--color-line);
+  width: 28px;
+  height: 28px;
+  line-height: 26px;
+  font-size: 15px;
+  font-weight: 400;
+  border-radius: 4px;
+}
+
+.xine-map .leaflet-control-zoom a:hover {
+  color: var(--color-gold);
+  border-color: var(--color-faint);
+}
+
+.xine-map .leaflet-control-zoom {
+  border: none;
+  margin: 0 12px 12px 0;
+}
+
+.xine-map .leaflet-control-attribution {
+  background: rgba(6, 6, 5, 0.78);
+  color: var(--color-faint);
+  font-size: 9px;
+  padding: 2px 6px;
+}
+
+.xine-map .leaflet-control-attribution a {
+  color: var(--color-muted);
+}
+
+/* Tooltip, restyled off Leaflet's white default. */
+.xine-map .xine-map-tip {
+  background: var(--color-ink);
+  border: 1px solid var(--color-line);
+  color: var(--color-paper);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  box-shadow: none;
+}
+
+.xine-map .xine-map-tip::before {
+  border-top-color: var(--color-line);
+}
