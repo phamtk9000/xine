@@ -145,8 +145,8 @@ export function FilmAtlas({
           style={{ height: 420 }}
         />
         <p className="mt-4 font-sans text-[0.625rem] tracking-[0.16em] uppercase text-faint">
-          Circle area is films watched
-          {unplaced > 0 && ` · ${unplaced} without production data`}
+          Circle area is films watched · placed by country of origin
+          {unplaced > 0 && ` · ${unplaced} unplaced`}
         </p>
       </div>
 
@@ -165,6 +165,16 @@ export function FilmAtlas({
                   {selected.mean?.toFixed(1) ?? "—"}
                 </dd>
               </div>
+              {/* Co-production is context, not geography — the film still
+                  belongs to the country it came from. */}
+              {selected.coProductions > 0 && (
+                <div className="flex justify-between">
+                  <dt className="text-muted">Co-produced</dt>
+                  <dd className="tabular-nums text-faint">
+                    {selected.coProductions}
+                  </dd>
+                </div>
+              )}
             </dl>
             {selected.favourite && (
               <div className="mt-5 border-t border-line pt-4">

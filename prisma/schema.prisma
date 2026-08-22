@@ -59,6 +59,12 @@ model Film {
   /// ("Europe") and is therefore useless as geography. Co-productions are the
   /// norm in the cinema this catalogue covers, so it is a list, not a column.
   productionCountries String?
+  /// TMDB's `origin_country` — where the film is FROM, as opposed to who
+  /// helped pay for it. Narrower than productionCountries and the only one
+  /// of the two that answers "whose cinema is this": Inside the Yellow
+  /// Cocoon Shell is produced with French, Singaporean, Spanish and Dutch
+  /// money, and is a Vietnamese film. The first code is treated as home.
+  originCountry String?
   language      String?
   synopsis      String
   genres        String // comma-separated

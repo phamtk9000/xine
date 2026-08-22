@@ -399,6 +399,7 @@ export async function fetchSeriesDetail(id: number) {
     backdropUrl: backdropUrl(series.backdrop_path),
     language: series.original_language ?? null,
     productionCountries: productionCountries(series),
+    originCountry: originCountry(series),
     releasedAt: series.first_air_date ? new Date(series.first_air_date) : null,
   };
 }
@@ -471,6 +472,7 @@ export async function fetchFilmDetail(id: number) {
     backdropUrl: backdropUrl(movie.backdrop_path),
     language: movie.original_language ?? null,
     productionCountries: productionCountries(movie),
+    originCountry: originCountry(movie),
     releasedAt: movie.release_date ? new Date(movie.release_date) : null,
   };
 }
@@ -482,6 +484,21 @@ export async function fetchFilmDetail(id: number) {
  * fallback TMDB fills in for some titles when the former is empty. Both are
  * real production metadata, unlike the region label the importer pages by.
  */
+/**
+ * Where the film is FROM. Falls back to the production list only when TMDB
+ * has no origin, so a co-production financed from four countries still
+ * reports the one it actually belongs to.
+ */
+export function originCountry(movie: {
+  origin_country?: string[];
+  production_countries?: { iso_3166_1: string }[];
+}): string | null {
+  const origin = (movie.origin_country ?? []).map((c) => c?.toUpperCase()).filter(Boolean);
+  if (origin.length) return [...new Set(origin)].join(",");
+  const first = movie.production_countries?.[0]?.iso_3166_1;
+  return first ? first.toUpperCase() : null;
+}
+
 export function productionCountries(movie: {
   production_countries?: { iso_3166_1: string }[];
   origin_country?: string[];

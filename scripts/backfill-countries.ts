@@ -33,10 +33,13 @@ async function detail(tmdbId: number, kind: string) {
   };
 }
 
-function codesOf(movie: {
+type Detail = {
   production_countries?: { iso_3166_1: string }[];
   origin_country?: string[];
-}) {
+};
+
+/** Everyone who helped make it. */
+function codesOf(movie: Detail) {
   const codes = (movie.production_countries ?? [])
     .map((c) => c.iso_3166_1)
     .concat(movie.origin_country ?? [])
@@ -44,6 +47,16 @@ function codesOf(movie: {
     .filter(Boolean);
   const unique = [...new Set(codes)];
   return unique.length ? unique.join(",") : null;
+}
+
+/** Where it is from. See lib/tmdb.ts for why the two differ. */
+function originOf(movie: Detail) {
+  const origin = (movie.origin_country ?? [])
+    .map((c) => c?.toUpperCase())
+    .filter(Boolean);
+  if (origin.length) return [...new Set(origin)].join(",");
+  const first = movie.production_countries?.[0]?.iso_3166_1;
+  return first ? first.toUpperCase() : null;
 }
 
 async function main() {
@@ -58,7 +71,7 @@ async function main() {
   const films = await db.film.findMany({
     where: {
       tmdbId: { not: null },
-      ...(all ? {} : { productionCountries: null }),
+      ...(all ? {} : { originCountry: null }),
     },
     select: { id: true, tmdbId: true, kind: true, title: true },
     orderBy: { createdAt: "asc" },
@@ -70,12 +83,17 @@ async function main() {
   let done = 0, failed = 0, empty = 0;
   for (const film of films) {
     try {
-      const codes = codesOf(await detail(film.tmdbId!, film.kind));
-      if (!codes) empty++;
-      if (!dry && codes) {
+      const raw = await detail(film.tmdbId!, film.kind);
+      const codes = codesOf(raw);
+      const origin = originOf(raw);
+      if (!codes && !origin) empty++;
+      if (!dry && (codes || origin)) {
         await db.film.update({
           where: { id: film.id },
-          data: { productionCountries: codes },
+          data: {
+            ...(codes ? { productionCountries: codes } : {}),
+            ...(origin ? { originCountry: origin } : {}),
+          },
         });
       }
       done++;
