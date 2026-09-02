@@ -7,7 +7,7 @@ import { fromCsv } from "@/lib/serialize";
  * The recommender that costs nothing.
  *
  * No model, no API key, no per-search bill. It reads the request for signals
- * it can match against structured data — the six axes, genre, country, era,
+ * it can match against structured data — the five axes, genre, country, era,
  * runtime — scores every candidate, and picks three at different distances
  * from what was asked.
  *

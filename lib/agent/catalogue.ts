@@ -135,7 +135,7 @@ export async function searchCatalogue(query: string, limit = 12) {
 }
 
 /**
- * Films ranked by a single axis. This is the query the six-axis rating system
+ * Films ranked by a single axis. This is the query the five-axis rating system
  * exists to make possible — "show me the ones people rate highest on Visual"
  * is not answerable on a five-star site.
  */

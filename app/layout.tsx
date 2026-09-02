@@ -39,7 +39,7 @@ export const metadata: Metadata = {
     template: "%s · xine",
   },
   description:
-    "An editorial film magazine, a rating system with six axes instead of five stars, and a workspace that takes a film from a one-line idea to a pitch package.",
+    "An editorial film magazine, a rating system that asks six questions instead of one, and a workspace that takes a film from a one-line idea to a pitch package.",
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {

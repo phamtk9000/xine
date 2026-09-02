@@ -1,6 +1,7 @@
 # xine
 
-An editorial film magazine, a rating system with six axes instead of five stars,
+An editorial film magazine, a rating system that asks six questions instead of
+one (five axes plus an overall),
 and a workspace that takes a film from a one-line idea to a pitch package.
 
 Next.js 16 (App Router) · React 19 · Tailwind v4 · Prisma 7 on SQLite.
@@ -25,7 +26,7 @@ accounts (`huy`, `mai`, `kovacs`, `dan`) use the same password.
 
 | Route | What it is |
 | --- | --- |
-| `/films` | Catalogue with facets, film pages, six-axis ratings, reviews, watchlist |
+| `/films` | Catalogue with facets, film pages, five-axis ratings, reviews, watchlist |
 | `/journal` | Editorial — markdown in `content/journal`, not the database |
 | `/lists` | Editorial and community collections |
 | `/community` | Activity feed, members, profiles with derived taste profiles |
@@ -159,16 +160,142 @@ npm run films:sync
 
 Editorial fields — our synopses and critic scores — are never overwritten.
 
+`npm run films:trending` pulls the week's trending titles from TMDB so the
+homepage row has catalogue pages to link to. The row itself reads TMDB live
+(`lib/trending.ts`) and falls back to the catalogue's own rating-volume sort
+when TMDB is unreachable or unconfigured, so it degrades to what it used to be
+rather than to nothing. The daily cron in `app/api/cron/refresh` runs the same
+sync as its first job.
+
+## Profiles
+
+`/settings` edits the signed-in member's display name, bio, location and
+picture; `/community/[username]` is the public read of it.
+
+Avatars are stored inline on the row as a data URI rather than in an object
+store. The browser crops the image square, scales it to 256px and re-encodes
+it as WebP before it is submitted (`components/profile-form.tsx`), which
+turns a phone photograph into roughly ten kilobytes; the server re-checks the
+format and refuses anything over 96KB, because the column is read on every
+page that lists members. Nobody has to upload anything — a member with no
+picture gets a plate generated from their username in the same cold hue band
+as the film type plates.
+
+## Community
+
+Members can follow each other (`Follow`, one row per direction — following is
+a reading choice, not a relationship, and the interesting follows are rarely
+reciprocated). `/community` then reads either everyone or only the people you
+follow.
+
+Ratings can be left anywhere a film appears: the catalogue grid and list rows
+carry a ten-step scale that writes `overall` alone, since that is the valid
+minimum the model was built around. The axis breakdown stays on the film
+page — offering both in a grid would turn a one-tap control into a form.
+
+`ListEntry.note` is finally writable: the owner of a list edits a line per
+film in place, which is what separates a list that argues from one that
+enumerates.
+
+The monthly dossier now has two addresses. `/taste` is the private read with
+month navigation; `/community/[username]/[month]` is the same reading at a
+URL somebody can send. Nothing new becomes public there — watched films,
+ratings and reviews are already on the profile it hangs off.
+
+## Genres
+
+One vocabulary, eighteen labels, in `lib/genres.ts`. TMDB films and TMDB
+series use different genre id spaces with different names — "Science Fiction"
+against "Sci-Fi & Fantasy", "Action" against "Action & Adventure" — and the
+hand-written editorial films had a few labels of their own on top. Left
+alone that is not just untidy: this site rates films and series alike, so
+filtering by Science Fiction was silently hiding a hundred and eighty series
+that are science fiction.
+
+Every label now resolves to a house genre where titles are read out of TMDB
+(`lib/tmdb.ts`) and where the editorial films are seeded, so imports cannot
+grow the list again. To fix a catalogue imported by an older build:
+
+```bash
+npm run genres:normalise            # --dry-run to see what would change
+```
+
+## The release calendar
+
+`/calendar` reads forward from today: everything with a date, grouped by
+month, films and series together, filterable by kind. The page only reads —
+titles get into the catalogue through:
+
+```bash
+npm run films:upcoming                  # nine months ahead
+npm run films:upcoming -- --months 12   # further out
+```
+
+Two different things are merged. A film or a brand new series has a *release
+date*; a running series has a *next season*, which is not a release at all as
+far as the model is concerned and is the thing people are actually waiting
+for — nobody counts down to a show they have never heard of. Returning
+seasons come from TMDB's `next_episode_to_air`:
+
+```bash
+npm run series:seasons              # every series in the catalogue
+npm run series:seasons -- --limit 100
+```
+
+Signed in, the calendar also opens with what is landing off your own
+watchlist this month, marks those rows, and offers them as a filter.
+
+Discover is queried by popularity inside a date window rather than by date:
+there are three thousand films dated in the next nine months, and sorted by
+date the first hundred are regional uploads nobody is waiting for. The
+calendar sorts them back into date order itself. Unreleased titles are also
+the one case where the importer accepts a missing runtime and director — a
+film that has not been cut yet has neither — provided it has a date and a
+poster. The daily cron refreshes the calendar too, because dates move.
+
+## Lists and collections
+
+Editorial lists are grouped into ten collections — `power-wealth-ambition`,
+`crime`, `psychological` and so on — named in `lib/collections.ts` and joined
+by the `collection` column on `FilmList`. `/lists` is the hub,
+`/collections/[slug]` is one shelf, `/lists/[slug]` is one list.
+
+The seventy-two lists and the 344 titles they cite live in
+`prisma/seed-data/collections.ts` and are built by:
+
+```bash
+npm run lists:seed              # resolve every title, then write the lists
+npm run lists:seed -- --dry-run # resolve only; report what is missing
+```
+
+Titles are referenced by name, with a year and a kind, because most of them
+are not in the catalogue to begin with — the seeder matches each against the
+catalogue first and pulls the rest from TMDB. The year is load-bearing:
+Solaris, Suspiria, Scarface and Cape Fear all name more than one real film,
+and TMDB's search ranks by popularity. A handful of names beat scoring
+outright and carry a pinned `tmdbId` instead; see the note on `SeedTitle`.
+
+Re-running is safe: lists are upserted on their slug and their entries are
+rebuilt in order. `db:reset` deliberately leaves them alone, since rebuilding
+them costs several minutes of TMDB calls.
+
 ## Design
 
-The palette comes from the key art: distressed screenprint on black, bone-cream
-type, oxblood and ochre accents. Tokens live at the top of `app/globals.css`.
+Cold instrument. The ground and the type sit on the blue side of neutral, so
+the artwork is the only warm thing on any page and the interface around it
+reads as instrumentation: hairlines, corner ticks, squared controls, tabular
+readouts, and no glow anywhere. Tokens live at the top of `app/globals.css`.
 Committed to a single dark theme rather than following the system — a film site
 is a projection surface, and every poster and plate assumes it sits on ink.
 
-Oxblood (`--color-accent`) is the CTA and the brand. Ochre (`--color-gold`) is
-every number: scores, axis bars, focus rings. Keeping those two jobs separate is
-what stops the interface competing with the artwork.
+Oxblood (`--color-accent`) is the CTA and the brand, and stays warm on purpose:
+it is the one thing that should stop the eye on a cold ground. Steel cyan
+(`--color-signal`) is every number — scores, axis bars, focus rings. The utility
+name is still `gold` for now, so `text-gold` across the app keeps meaning "the
+number colour"; only the value changed.
+
+Two utilities carry most of the register: `readout` (mono, tabular) for any
+number the interface reports, and `ticked` for corner marks on a panel.
 
 ## Moving off SQLite
 
@@ -187,4 +314,9 @@ are or become real arrays.
 | `npm run db:reset` | Recreate and reseed the database |
 | `npm run db:studio` | Prisma Studio |
 | `npm run films:sync` | Enrich the catalogue from TMDB |
+| `npm run films:trending` | Pull this week's TMDB trending titles into the catalogue |
+| `npm run films:upcoming` | Fill the release calendar from TMDB |
+| `npm run series:seasons` | Ask TMDB when running series come back |
+| `npm run lists:seed` | Build the ten editorial collections and their 72 lists |
+| `npm run genres:normalise` | Rewrite stored genres through the house vocabulary |
 | `npm run media:sync` | Copy artwork into `public/media` |

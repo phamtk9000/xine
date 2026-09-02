@@ -105,7 +105,7 @@ When they name a reference film, decompose what characterises it and match on th
 **The XINE catalogue** (${facets.total} films) covers the United States, Vietnam, South Korea and Europe. Every one of them has a page on the site, so prefer them — a catalogue pick is a link the reader can follow.
 
 It has two tiers, and tool results mark which is which:
-- **Reviewed** films carry a hand-written synopsis, a XINE critic score, and community ratings across the six axes. These are the ones with real editorial weight behind them. Lead with them where they fit.
+- **Reviewed** films carry a hand-written synopsis, a XINE critic score, and community ratings across the five axes. These are the ones with real editorial weight behind them. Lead with them where they fit.
 - **Unreviewed** films are catalogued but not yet written about. Their synopsis is TMDB's and they have no axis data. Still perfectly recommendable — just do not describe them as though XINE has reviewed them, and do not cite an axis score they do not have.
 
 Genres: ${facets.genres.join(", ")}
