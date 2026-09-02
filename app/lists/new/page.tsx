@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Container, EmptyState, ButtonLink } from "@/components/ui";
 import { NewListForm } from "@/components/new-list-form";
-import { listFilms } from "@/lib/films";
+import { searchCatalogue } from "@/app/actions/lists";
 import { getCurrentUser } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Build a list" };
@@ -23,7 +23,9 @@ export default async function NewListPage() {
     );
   }
 
-  const films = await listFilms({ sort: "az", take: 300 });
+  // The opening shelf only. Everything after this is searched on the server
+  // as the reader types — see searchCatalogue.
+  const initial = await searchCatalogue("");
 
   return (
     <Container className="py-16">
@@ -38,7 +40,7 @@ export default async function NewListPage() {
         </p>
 
         <div className="mt-10">
-          <NewListForm films={films} />
+          <NewListForm initial={initial} />
         </div>
       </div>
     </Container>

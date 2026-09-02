@@ -8,6 +8,104 @@ import { getCurrentUser } from "@/lib/session";
 
 export type ListState = { error?: string } | null;
 
+/** One catalogue row, in the shape the list builder's picker renders. */
+export type FilmPick = {
+  id: string;
+  slug: string;
+  title: string;
+  year: number;
+  director: string;
+  posterUrl: string | null;
+  kind: string;
+};
+
+const PICK_FIELDS = {
+  id: true,
+  slug: true,
+  title: true,
+  year: true,
+  director: true,
+  posterUrl: true,
+  kind: true,
+} as const;
+
+/** How many hits the picker shows, and how deep it looks to rank them. */
+const PICKER_LIMIT = 24;
+const PICKER_SCAN = 80;
+
+/**
+ * Catalogue search for the list builder.
+ *
+ * The builder used to be handed the first 300 films alphabetically and filter
+ * them in the browser, which meant that in a catalogue of fifteen hundred
+ * titles everything past the letter C simply did not exist as far as anyone
+ * building a list was concerned. Search belongs on the server for the same
+ * reason the catalogue page does it there: the answer depends on rows the
+ * browser was never sent.
+ *
+ * Ranked here rather than by the database, because SQL orders on columns and
+ * what matters is *where* the match landed — someone typing "heat" wants
+ * Heat, not the eleven films with a cinematographer called Heather. Title
+ * beats director, the front of a title beats the middle, and reviewed films
+ * edge out imported ones at equal footing, since those are the ones this site
+ * has actually written about.
+ */
+export async function searchCatalogue(query: string): Promise<FilmPick[]> {
+  const q = query.trim();
+
+  if (q.length === 0) {
+    // The opening shelf: recognisable titles with art, so the picker reads as
+    // a catalogue rather than an empty box waiting to be typed into.
+    return db.film.findMany({
+      where: { posterUrl: { not: null } },
+      orderBy: [{ tmdbVotes: "desc" }],
+      take: 12,
+      select: PICK_FIELDS,
+    });
+  }
+
+  const rows = await db.film.findMany({
+    where: {
+      OR: [
+        { title: { contains: q } },
+        { originalTitle: { contains: q } },
+        { director: { contains: q } },
+      ],
+    },
+    orderBy: [{ tmdbVotes: "desc" }],
+    take: PICKER_SCAN,
+    select: { ...PICK_FIELDS, originalTitle: true, reviewed: true, tmdbVotes: true },
+  });
+
+  const needle = q.toLowerCase();
+  const rank = (row: (typeof rows)[number]) => {
+    const title = row.title.toLowerCase();
+    const original = row.originalTitle?.toLowerCase() ?? "";
+    if (title === needle || original === needle) return 4;
+    if (title.startsWith(needle) || original.startsWith(needle)) return 3;
+    if (title.includes(needle) || original.includes(needle)) return 2;
+    return 1;
+  };
+
+  return rows
+    .sort(
+      (a, b) =>
+        rank(b) - rank(a) ||
+        Number(b.reviewed) - Number(a.reviewed) ||
+        b.tmdbVotes - a.tmdbVotes,
+    )
+    .slice(0, PICKER_LIMIT)
+    .map((row) => ({
+      id: row.id,
+      slug: row.slug,
+      title: row.title,
+      year: row.year,
+      director: row.director,
+      posterUrl: row.posterUrl,
+      kind: row.kind,
+    }));
+}
+
 const schema = z.object({
   title: z.string().trim().min(3, "Give the list a title").max(120),
   description: z.string().trim().max(600).default(""),
@@ -43,7 +141,19 @@ export async function createList(
     slug = `${base}-${n}`;
   }
 
-  const films = formData.getAll("films").map(String).filter(Boolean);
+  // The ids arrive from a form, so they are a claim rather than a fact:
+  // check them against the catalogue and drop duplicates, or one stale id
+  // fails the whole write on a foreign key.
+  const claimed = [...new Set(formData.getAll("films").map(String).filter(Boolean))];
+  const known = new Set(
+    (
+      await db.film.findMany({
+        where: { id: { in: claimed } },
+        select: { id: true },
+      })
+    ).map((film) => film.id),
+  );
+  const films = claimed.filter((id) => known.has(id));
 
   const list = await db.filmList.create({
     data: {
@@ -83,5 +193,40 @@ export async function removeFromList(formData: FormData) {
   if (!entry || entry.list.ownerId !== user.id) return;
 
   await db.listEntry.delete({ where: { id: entryId } });
+  revalidatePath(`/lists/${entry.list.slug}`);
+}
+
+/**
+ * The one-line argument for why a film is on a list.
+ *
+ * `ListEntry.note` has been in the schema since the beginning and nothing
+ * ever wrote to it, which left every list an enumeration: eight posters and
+ * no reason. A sentence per entry is what makes a list a claim — it is the
+ * difference between "films about money" and "the one where the money is
+ * the antagonist" — so it is editable in place by whoever owns the list.
+ *
+ * Empty clears it rather than storing an empty string, so a note either
+ * exists and is worth rendering or does not exist at all.
+ */
+export async function setEntryNote(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) return;
+
+  const entryId = String(formData.get("entryId") ?? "");
+  const note = String(formData.get("note") ?? "")
+    .trim()
+    .slice(0, 280);
+
+  const entry = await db.listEntry.findUnique({
+    where: { id: entryId },
+    include: { list: { select: { ownerId: true, slug: true } } },
+  });
+  if (!entry || entry.list.ownerId !== user.id) return;
+
+  await db.listEntry.update({
+    where: { id: entryId },
+    data: { note: note || null },
+  });
+
   revalidatePath(`/lists/${entry.list.slug}`);
 }

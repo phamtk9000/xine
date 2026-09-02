@@ -6,6 +6,7 @@ import { AxisBreakdown, AxisSpark, ScoreDial } from "@/components/score";
 import { SealBadge } from "@/components/seal";
 import { CastAccordion } from "@/components/cast-accordion";
 import { QuickActions } from "@/components/quick-actions";
+import { AddToList } from "@/components/add-to-list";
 import { RatingForm } from "@/components/rating-form";
 import { ReviewForm } from "@/components/review-form";
 import {
@@ -62,7 +63,7 @@ export default async function FilmPage({ params }: PageProps<"/films/[slug]">) {
   const myReview = user
     ? (film.reviews.find((r) => r.userId === user.id) ?? null)
     : null;
-  const [onWatchlist, myLog] = user
+  const [onWatchlist, myLog, myLists] = user
     ? await Promise.all([
         db.watchlistItem
           .count({ where: { userId: user.id, filmId: film.id } })
@@ -71,8 +72,18 @@ export default async function FilmPage({ params }: PageProps<"/films/[slug]">) {
           where: { userId_filmId: { userId: user.id, filmId: film.id } },
           select: { watchedAt: true, likedAt: true },
         }),
+        // Their own lists, for the add-to-list control below the marks.
+        db.filmList.findMany({
+          where: { ownerId: user.id },
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            title: true,
+            _count: { select: { entries: true } },
+          },
+        }),
       ])
-    : [false, null];
+    : [false, null, []];
 
   const genres = fromCsv(film.genres);
   const runtime = formatRuntime(film.runtime);
@@ -171,6 +182,20 @@ export default async function FilmPage({ params }: PageProps<"/films/[slug]">) {
                     liked: !!myLog?.likedAt,
                   }}
                 />
+
+                {user && (
+                  <div className="mt-4 max-w-sm">
+                    <AddToList
+                      filmId={film.id}
+                      slug={film.slug}
+                      lists={myLists.map((list) => ({
+                        id: list.id,
+                        title: list.title,
+                        count: list._count.entries,
+                      }))}
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -311,7 +336,7 @@ export default async function FilmPage({ params }: PageProps<"/films/[slug]">) {
             />
 
             {myRating && (
-              <div className="rounded-xl border border-line p-6">
+              <div className="rounded-[4px] border border-line p-6">
                 <p className="label">Your breakdown</p>
                 <div className="mt-5">
                   <AxisBreakdown scores={myRating} compact />
@@ -325,7 +350,7 @@ export default async function FilmPage({ params }: PageProps<"/films/[slug]">) {
             )}
 
             {film.listEntries.length > 0 && (
-              <div className="rounded-xl border border-line p-6">
+              <div className="rounded-[4px] border border-line p-6">
                 <p className="label">Appears in</p>
                 <ul className="mt-4 space-y-3">
                   {film.listEntries.map((entry) => (

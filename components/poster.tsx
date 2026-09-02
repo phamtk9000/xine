@@ -18,13 +18,17 @@ function hash(value: string) {
 
 export function plateColors(slug: string) {
   const h = hash(slug);
-  const hue = h % 360;
+  // A cold band rather than the full wheel: 190–280 is steel through to
+  // indigo, which keeps a wall of plates on the blue side of neutral where
+  // the rest of the interface now lives. Warmth on these pages belongs to
+  // the artwork, and a plate is what stands in for artwork that is missing.
+  const hue = 190 + (h % 90);
   // Deliberately low chroma and lightness: the plate is a ground for type,
   // not an image, and a grid of saturated rectangles would be unreadable.
   return {
-    from: `oklch(0.28 0.055 ${hue})`,
-    to: `oklch(0.14 0.03 ${(hue + 40) % 360})`,
-    rule: `oklch(0.55 0.09 ${hue})`,
+    from: `oklch(0.27 0.045 ${hue})`,
+    to: `oklch(0.13 0.025 ${(hue + 30) % 360})`,
+    rule: `oklch(0.56 0.075 ${hue})`,
   };
 }
 
@@ -45,7 +49,7 @@ export function Poster({
 }) {
   if (film.posterUrl) {
     return (
-      <div className="relative aspect-2/3 overflow-hidden rounded-md bg-ink-raised">
+      <div className="relative aspect-2/3 overflow-hidden rounded-[3px] bg-ink-raised">
         <Image
           src={film.posterUrl}
           alt={`${film.title} poster`}
@@ -62,7 +66,7 @@ export function Poster({
 
   return (
     <div
-      className="relative flex aspect-2/3 flex-col justify-between overflow-hidden rounded-md p-4"
+      className="relative flex aspect-2/3 flex-col justify-between overflow-hidden rounded-[3px] p-4"
       style={{ background: `linear-gradient(160deg, ${from}, ${to})` }}
       role="img"
       aria-label={`${film.title}, ${film.year}, directed by ${film.director}`}
@@ -87,6 +91,59 @@ export function Poster({
           {film.year}
         </p>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Poster at row height — a picker result, a search hit, a line in a list
+ * being built.
+ *
+ * Separate from Poster rather than a size prop on it, because the type plate
+ * does not survive the shrink: it is a designed object with 16px of padding
+ * and a clamped display face, and at 40px wide that resolves to a smear.
+ * Here the plate keeps only what reads at that size — its colour, and the
+ * initial — so a film with no art is still a distinct, stable mark next to
+ * its title rather than an empty grey box.
+ */
+export function PosterThumb({
+  film,
+  className = "",
+}: {
+  film: {
+    slug: string;
+    title: string;
+    posterUrl?: string | null;
+  };
+  className?: string;
+}) {
+  if (film.posterUrl) {
+    return (
+      <div
+        className={`relative aspect-2/3 overflow-hidden rounded-sm bg-ink-raised ${className}`}
+      >
+        <Image
+          src={film.posterUrl}
+          alt=""
+          fill
+          sizes="48px"
+          className="object-cover"
+        />
+      </div>
+    );
+  }
+
+  const { from, to } = plateColors(film.slug);
+
+  return (
+    <div
+      className={`flex aspect-2/3 items-center justify-center overflow-hidden rounded-sm ${className}`}
+      style={{ background: `linear-gradient(160deg, ${from}, ${to})` }}
+      aria-hidden
+    >
+      <span className="font-display text-sm leading-none text-paper/70">
+        {film.title.slice(0, 1)}
+      </span>
     </div>
   );
 }
