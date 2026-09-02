@@ -116,9 +116,9 @@ export function SealCrest({
 
 const MARK_COLOR: Record<SealTier, string> = {
   select: "text-gold",
-  frame: "text-[#4f9d86]",
-  mixed: "text-[#c98a3c]",
-  burnt: "text-[#cf4b41]",
+  frame: "text-[#2fd99a]",
+  mixed: "text-[#ffb03a]",
+  burnt: "text-[#ff4d33]",
 };
 
 /**

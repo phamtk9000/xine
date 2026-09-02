@@ -80,9 +80,9 @@ export const SEAL_TIERS: Record<SealTier, SealMeta> = {
  */
 export const TIER_COLOR: Record<SealTier, string> = {
   select: "var(--color-accent)", // paired with --color-signal on the star
-  frame: "#4f9d86",
-  mixed: "#c98a3c",
-  burnt: "#cf4b41",
+  frame: "#2fd99a",
+  mixed: "#ffb03a",
+  burnt: "#ff4d33",
 };
 
 /** Score and voice count together decide XINE Select — see the module note. */

@@ -55,9 +55,9 @@ export function Avatar({
     );
   }
 
-  // Same cold band as the poster plates, so a wall of members and a wall of
+  // Same wheel as the poster plates, so a wall of members and a wall of
   // films belong to one palette.
-  const hue = 190 + (hash(user.username) % 90);
+  const hue = hash(user.username) % 360;
 
   return (
     <span
@@ -65,12 +65,12 @@ export function Avatar({
       style={{
         width: size,
         height: size,
-        background: `linear-gradient(150deg, oklch(0.3 0.045 ${hue}), oklch(0.15 0.025 ${(hue + 30) % 360}))`,
+        background: `linear-gradient(150deg, oklch(0.45 0.17 ${hue}), oklch(0.18 0.08 ${(hue + 45) % 360}))`,
       }}
       aria-hidden="true"
     >
       <span
-        className="font-display leading-none text-paper/80"
+        className="font-display leading-none text-white/90"
         style={{ fontSize: Math.max(11, Math.round(size * 0.36)) }}
       >
         {initials(user.displayName, user.username)}

@@ -32,13 +32,13 @@
  * palette that would sit outside it.
  */
 export const KICKER_COLORS: Record<string, string> = {
-  Review: "#d99a2b", // --color-gold
-  Essay: "#5a8377", // --color-teal
-  Analysis: "#b53a30", // --color-accent
-  Craft: "#8a9a52",
-  "Character Study": "#a9835a",
-  "Film & Society": "#c2634a",
-  "Film & Philosophy": "#6f7880",
+  Review: "#2fe4e0", // --color-signal, because a review is tied to a score
+  Essay: "#8b6bff", // --color-violet
+  Analysis: "#ff4d33", // --color-accent
+  Craft: "#7fd94f",
+  "Character Study": "#ffb03a",
+  "Film & Society": "#ff5fa2",
+  "Film & Philosophy": "#4bb8ff",
 };
 
 /**
@@ -70,7 +70,11 @@ function hash(value: string) {
  */
 function hashColor(value: string): string {
   const hue = hash(value) % 360;
-  return `oklch(0.62 0.1 ${hue})`;
+  // Chroma raised from 0.1: at that level every genre tag was the same
+  // desaturated putty at a glance, which defeats the point of colouring
+  // them at all. 0.19 at this lightness stays legible on ink and actually
+  // distinguishes Horror from Romance across a rail of eighteen.
+  return `oklch(0.74 0.19 ${hue})`;
 }
 
 export function genreColor(genre: string): string {

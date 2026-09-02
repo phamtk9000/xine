@@ -18,17 +18,18 @@ function hash(value: string) {
 
 export function plateColors(slug: string) {
   const h = hash(slug);
-  // A cold band rather than the full wheel: 190–280 is steel through to
-  // indigo, which keeps a wall of plates on the blue side of neutral where
-  // the rest of the interface now lives. Warmth on these pages belongs to
-  // the artwork, and a plate is what stands in for artwork that is missing.
-  const hue = 190 + (h % 90);
-  // Deliberately low chroma and lightness: the plate is a ground for type,
-  // not an image, and a grid of saturated rectangles would be unreadable.
+  // The full wheel, not the cold quarter it was narrowed to. A plate stands
+  // in for artwork, and artwork is the one thing on this site allowed to be
+  // any colour it likes — a wall of plates in nine shades of blue looked
+  // like a system diagram of films rather than a shelf of them.
+  const hue = h % 360;
+  // Chroma up, lightness still low: the plate is a ground for type, so it
+  // has to hold white text at 12px. The gradient falls to a much darker,
+  // hue-shifted corner, which is what keeps a saturated rectangle readable.
   return {
-    from: `oklch(0.27 0.045 ${hue})`,
-    to: `oklch(0.13 0.025 ${(hue + 30) % 360})`,
-    rule: `oklch(0.56 0.075 ${hue})`,
+    from: `oklch(0.42 0.16 ${hue})`,
+    to: `oklch(0.16 0.07 ${(hue + 45) % 360})`,
+    rule: `oklch(0.78 0.19 ${hue})`,
   };
 }
 

@@ -15,38 +15,45 @@
  */
 
 @theme {
-  /* Cold instrument.
+  /* Cold instrument, run hot.
    *
-   * The palette used to be pulled straight out of the key art: warm black,
-   * bone-cream type, ochre numbers. It read as printed matter, which was the
-   * intent, and it also meant every screen looked like a document that had
-   * been sitting in the sun. This is the same idea run cold — the ground and
-   * the type step onto the blue side of neutral, so the artwork stays the
-   * only warm thing on any page and the interface around it reads as
-   * instrumentation rather than paper.
+   * The structure is unchanged — hairlines, tick marks, tabular readouts,
+   * squared controls — and the colour inside it is no longer holding its
+   * breath. The first cold pass was correct about temperature and timid
+   * about chroma: a desaturated steel signal at 11px reads as grey on a
+   * screenshot, which made a site about *cinema* look like a settings panel.
    *
-   * Nothing glows. The future here is precision, not neon: hairlines,
-   * tick marks, tabular readouts, and one signal colour used sparingly. */
-  --color-ink: #07080a;
-  --color-ink-raised: #0e1116;
-  --color-ink-sunk: #040507;
-  --color-paper: #dee4e9;
-  --color-muted: #8a949e;
-  --color-faint: #59626c;
-  --color-line: #181c22;
-  --color-line-bright: #2a3138;
-  /* Oxblood stays: it is the brand and the only warm thing in the interface,
-     which is exactly why a CTA in it still stops the eye on a cold ground. */
-  --color-accent: #b8443a;
-  --color-accent-dim: #7e2922;
-  /* The readout colour — scores, axis bars, focus, live values. Cool steel
-     rather than the old ochre, and deliberately desaturated: it has to be
-     legible at 11px on ink without ever looking like it is lit from behind.
-     `--color-gold` is kept as the utility name so the forty files that say
-     `text-gold` still mean "the number colour"; the value is what changed. */
-  --color-signal: #93c5c9;
+   * So the ground goes deeper and bluer, the type goes brighter, and the
+   * three carriers of colour — signal, accent, and the violet that joins
+   * them — are saturated enough to be a colour rather than a tint. What
+   * stays disciplined is how much surface they cover: this is a vivid
+   * palette used in thin strokes and small type, against a ground that is
+   * still almost black. Vibrancy from contrast, not from filling things in. */
+  --color-ink: #05070c;
+  --color-ink-raised: #0d1119;
+  --color-ink-sunk: #03050a;
+  --color-paper: #e8eef5;
+  --color-muted: #94a1b0;
+  --color-faint: #5d6a7a;
+  --color-line: #1a2029;
+  --color-line-bright: #2f3947;
+  /* Oxblood was the brand and it was also the only thing keeping a cold
+     interface from going inert. Pushed to a live vermilion: same family,
+     twice the voltage, still the only warm hue in the chrome. */
+  --color-accent: #ff4d33;
+  --color-accent-dim: #a02a1a;
+  /* The readout colour — scores, axis bars, focus, live values. Electric
+     cyan now, not steel: it is the colour of every number on the site, and
+     numbers are what this place is for. `--color-gold` is kept as the
+     utility name so the forty files that say `text-gold` still mean "the
+     number colour"; the value is what changed. */
+  --color-signal: #2fe4e0;
   --color-gold: var(--color-signal);
-  --color-teal: #5f8f9c;
+  /* The third: a cold violet that belongs to neither of the other two, for
+     the places that need a colour but must not read as a score or a CTA —
+     the second series in a chart, a member's plate, a shelf card. */
+  --color-violet: #8b6bff;
+  --color-teal: #34b3c9;
 
   /* Display — hero headlines, article titles, pull quotes (italic). */
   --font-display: "Instrument Serif", ui-serif, Georgia, serif;
@@ -110,19 +117,24 @@ body {
   background-color: var(--color-ink);
   background-image:
     radial-gradient(
-      120rem 60rem at 8% -10%,
-      color-mix(in srgb, #4d6f8a 9%, transparent) 0%,
-      transparent 60%
+      120rem 60rem at 6% -12%,
+      color-mix(in srgb, var(--color-signal) 18%, transparent) 0%,
+      transparent 62%
     ),
     radial-gradient(
-      90rem 50rem at 110% 8%,
-      color-mix(in srgb, #5b6d86 6%, transparent) 0%,
-      transparent 55%
+      95rem 55rem at 112% 6%,
+      color-mix(in srgb, var(--color-violet) 17%, transparent) 0%,
+      transparent 58%
+    ),
+    radial-gradient(
+      70rem 40rem at 50% 108%,
+      color-mix(in srgb, var(--color-accent) 11%, transparent) 0%,
+      transparent 60%
     ),
     linear-gradient(
       to bottom,
       transparent 0%,
-      color-mix(in srgb, var(--color-ink-sunk) 55%, transparent) 100%
+      color-mix(in srgb, var(--color-ink-sunk) 60%, transparent) 100%
     );
   background-attachment: fixed;
   background-repeat: no-repeat;
@@ -134,7 +146,7 @@ body {
 
 ::selection {
   background: var(--color-accent);
-  color: var(--color-paper);
+  color: #fff;
 }
 
 /* Gold rather than oxblood: it is the only accent with enough contrast
@@ -164,7 +176,7 @@ body {
   background-image: linear-gradient(
     to bottom,
     transparent 0%,
-    color-mix(in srgb, #46617a 5%, transparent) 55%,
+    color-mix(in srgb, var(--color-signal) 9%, transparent) 55%,
     color-mix(in srgb, var(--color-ink-sunk) 70%, transparent) 100%
   );
 }
@@ -174,9 +186,24 @@ body {
 @utility lifted {
   background-image: linear-gradient(
     to bottom,
-    color-mix(in srgb, #5c7c96 6%, transparent) 0%,
+    color-mix(in srgb, var(--color-violet) 11%, transparent) 0%,
     transparent 45%
   );
+}
+
+/* The one place light is allowed: a CTA lifts and blooms very slightly on
+   hover. Cold instrument said no glow anywhere, which kept the palette
+   honest and also made the single most important control on a page feel
+   like a disabled one. This is four pixels of it. */
+@utility bloom {
+  transition:
+    box-shadow 200ms ease,
+    transform 200ms ease;
+
+  &:hover {
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-accent) 45%, transparent),
+      0 6px 24px -8px color-mix(in srgb, var(--color-accent) 65%, transparent);
+  }
 }
 
 /* A readout: any number the interface is reporting rather than setting in
@@ -1653,9 +1680,10 @@ body {
   --color-accent-dim: #7e2922;
   /* Darkened from the dark-mode signal — the same value reads washed out
      against a light ground instead of ink. */
-  --color-signal: #2c6a71;
+  --color-signal: #0d7f80;
   --color-gold: var(--color-signal);
-  --color-teal: #35646f;
+  --color-violet: #5a3ecc;
+  --color-teal: #0f6f80;
   color-scheme: light;
 
   /* `color` is inherited as a resolved value, not re-evaluated per element —

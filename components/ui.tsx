@@ -64,7 +64,7 @@ export function SectionHeading({
         {/* The tick before the label is the smallest piece of the
             instrument language: it marks where the section starts the way a
             scale marks a division. */}
-        <p className="label flex items-center gap-2 before:block before:h-2 before:w-px before:bg-line-bright">
+        <p className="label flex items-center gap-2 before:block before:h-2 before:w-px before:bg-gold">
           {label}
         </p>
         <h2 className="mt-2 font-display text-3xl leading-none sm:text-4xl">
@@ -87,9 +87,9 @@ type ButtonVariant = "accent" | "outline" | "ghost";
 
 const VARIANTS: Record<ButtonVariant, string> = {
   accent:
-    "bg-accent text-paper hover:-translate-y-px disabled:bg-accent-dim disabled:translate-y-0",
+    "bloom bg-accent text-white hover:-translate-y-px disabled:bg-accent-dim disabled:translate-y-0",
   outline:
-    "border border-line-bright text-paper hover:border-paper disabled:opacity-50",
+    "border border-line-bright text-paper hover:border-gold hover:text-gold disabled:opacity-50",
   ghost: "text-muted hover:text-paper disabled:opacity-50",
 };
 
