@@ -23,7 +23,7 @@ export function ArticleCard({
     <Link href={`/journal/${article.slug}`} className="group block">
       {article.hero && (
         <div
-          className={`relative mb-5 overflow-hidden rounded-md bg-ink-raised ${
+          className={`relative mb-5 overflow-hidden rounded-[3px] bg-ink-raised ${
             size === "lg" ? "aspect-16/9" : "aspect-3/2"
           }`}
         >

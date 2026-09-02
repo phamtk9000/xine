@@ -114,7 +114,7 @@ export default async function TypePage({
                 <li key={m.username}>
                   <Link
                     href={`/community/${m.username}`}
-                    className="group block h-full rounded-xl border border-line p-6 transition-colors hover:border-faint"
+                    className="group block h-full rounded-[4px] border border-line p-6 transition-colors hover:border-faint"
                   >
                     <div className="flex items-baseline justify-between gap-3">
                       <p className="font-display text-2xl leading-tight transition-colors group-hover:text-gold">

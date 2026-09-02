@@ -67,7 +67,7 @@ export function ArchetypeCard({
   );
 
   const frame =
-    "rounded-xl border p-6 transition-colors" +
+    "rounded-[4px] border p-6 transition-colors" +
     (href ? " hover:bg-ink-raised" : "");
 
   if (href) {

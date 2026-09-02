@@ -72,11 +72,17 @@ export const SEAL_TIERS: Record<SealTier, SealMeta> = {
  * hues already spoken for elsewhere on the site — Select's own oxblood and
  * gold, the teal on Audience Score, the kicker and genre palettes.
  */
+/**
+ * Cooled with the rest of the interface: the same four judgements, pulled
+ * toward the blue side so a wall of crests sits inside the palette instead
+ * of on top of it. Still four clearly different hues, because the tier has
+ * to be readable at eleven pixels without the number beside it.
+ */
 export const TIER_COLOR: Record<SealTier, string> = {
-  select: "var(--color-accent)", // paired with --color-gold on the star
-  frame: "#4a9d5f",
-  mixed: "#cc6b1f",
-  burnt: "#e0452e",
+  select: "var(--color-accent)", // paired with --color-signal on the star
+  frame: "#4f9d86",
+  mixed: "#c98a3c",
+  burnt: "#cf4b41",
 };
 
 /** Score and voice count together decide XINE Select — see the module note. */

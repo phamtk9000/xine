@@ -38,7 +38,7 @@ export function WatchedCorridor({ films }: { films: StreamImage[] }) {
   );
 
   return (
-    <div className="relative overflow-hidden rounded-xl border border-line bg-ink-sunk">
+    <div className="relative overflow-hidden rounded-[4px] border border-line bg-ink-sunk">
       <ImageStreamHero
         images={films}
         split

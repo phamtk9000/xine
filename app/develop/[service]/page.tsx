@@ -83,7 +83,7 @@ export default async function ServicePage({
         </div>
 
         <aside>
-          <div className="rounded-xl border border-line bg-ink-raised p-6 lg:sticky lg:top-24">
+          <div className="rounded-[4px] border border-line bg-ink-raised p-6 lg:sticky lg:top-24">
             <p className="label">Start a conversation</p>
             <p className="mt-3 text-sm leading-relaxed text-muted">
               No account needed. We reply within two working days with a scope

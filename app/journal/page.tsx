@@ -43,7 +43,7 @@ export default async function JournalPage({
         <nav className="mb-12 flex flex-wrap gap-2" aria-label="Categories">
           <Link
             href="/journal"
-            className={`rounded-full border px-4 py-1.5 text-xs transition-colors ${
+            className={`rounded-[3px] border px-4 py-1.5 text-xs transition-colors ${
               !kicker
                 ? "border-paper text-paper"
                 : "border-line text-muted hover:border-line-bright hover:text-paper"
@@ -64,7 +64,7 @@ export default async function JournalPage({
                   ? { borderColor: kickerColor(k), color: kickerColor(k) }
                   : undefined
               }
-              className={`rounded-full border px-4 py-1.5 text-xs transition-colors ${
+              className={`rounded-[3px] border px-4 py-1.5 text-xs transition-colors ${
                 kicker === k
                   ? ""
                   : "border-line text-muted hover:border-line-bright hover:text-paper"

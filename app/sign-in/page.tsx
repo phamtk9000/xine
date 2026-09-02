@@ -30,7 +30,8 @@ function SignInForm() {
         <p className="label">Community</p>
         <h1 className="mt-4 font-display text-5xl leading-none">Sign in</h1>
         <p className="mt-4 text-sm leading-relaxed text-muted">
-          Rate films across six axes, keep a watchlist, build lists, and start a
+          Rate films on five axes plus an overall, keep a watchlist, build lists,
+          and start a
           project in Create.
         </p>
 
@@ -69,7 +70,7 @@ function SignInForm() {
           .
         </p>
 
-        <div className="mt-10 rounded-lg border border-line bg-ink-raised px-4 py-4">
+        <div className="mt-10 rounded-[3px] border border-line bg-ink-raised px-4 py-4">
           <p className="label">Seeded accounts</p>
           <p className="mt-2 text-xs leading-relaxed text-muted">
             The local database ships with four members. Sign in as{" "}

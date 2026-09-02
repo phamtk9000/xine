@@ -37,7 +37,7 @@ export default async function CreatePage() {
               <Link
                 key={project.id}
                 href={`/create/projects/${project.id}`}
-                className="group rounded-xl border border-line p-5 transition-colors hover:border-line-bright"
+                className="group rounded-[4px] border border-line p-5 transition-colors hover:border-line-bright"
               >
                 <p className="label !text-gold">{project.genre}</p>
                 <p className="mt-2 font-display text-2xl transition-colors group-hover:text-gold">
@@ -80,7 +80,7 @@ export default async function CreatePage() {
           </section>
 
           <aside className="space-y-6">
-            <div className="rounded-xl border border-line bg-ink-raised p-6">
+            <div className="rounded-[4px] border border-line bg-ink-raised p-6">
               <p className="label">Trailer Studio</p>
               <p className="mt-3 font-display text-3xl leading-none">
                 Build the ninety seconds
@@ -98,7 +98,7 @@ export default async function CreatePage() {
               </ButtonLink>
             </div>
 
-            <div className="rounded-xl border border-line p-6">
+            <div className="rounded-[4px] border border-line p-6">
               <p className="label">When you are serious</p>
               <p className="mt-3 text-sm leading-relaxed text-muted">
                 The workspace gets you a draft. For a project going in front of

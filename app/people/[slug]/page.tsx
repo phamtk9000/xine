@@ -40,7 +40,7 @@ export default async function PersonPage({
         <Container>
           <div className="flex flex-wrap items-end gap-8">
             {person.profileUrl && (
-              <div className="relative aspect-2/3 w-32 shrink-0 overflow-hidden rounded-md bg-ink-raised sm:w-40">
+              <div className="relative aspect-2/3 w-32 shrink-0 overflow-hidden rounded-[3px] bg-ink-raised sm:w-40">
                 <Image
                   src={person.profileUrl}
                   alt=""

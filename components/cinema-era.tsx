@@ -223,7 +223,7 @@ function Mode({
       type="button"
       onClick={onClick}
       aria-pressed={on}
-      className={`rounded-full border px-4 py-1.5 font-sans text-[0.625rem] tracking-[0.16em] uppercase transition-colors focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none ${
+      className={`rounded-[3px] border px-4 py-1.5 font-sans text-[0.625rem] tracking-[0.16em] uppercase transition-colors focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none ${
         on
           ? "border-gold text-gold"
           : "border-line text-faint hover:border-faint hover:text-muted"

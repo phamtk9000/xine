@@ -49,7 +49,7 @@ export function Finder() {
                 key={starter.key}
                 type="button"
                 onClick={() => applyStarter(starter.prompt)}
-                className="rounded-xl border border-line p-5 text-left transition-colors hover:border-line-bright"
+                className="rounded-[4px] border border-line p-5 text-left transition-colors hover:border-line-bright"
               >
                 <span className="block font-display text-2xl leading-tight">
                   {starter.label}
@@ -72,7 +72,7 @@ export function Finder() {
                     type="button"
                     onClick={() => toggleConstraint(option.key)}
                     aria-pressed={on}
-                    className={`rounded-full border px-4 py-1.5 text-xs transition-colors ${
+                    className={`rounded-[3px] border px-4 py-1.5 text-xs transition-colors ${
                       on
                         ? "border-gold text-gold"
                         : "border-line text-muted hover:border-line-bright hover:text-paper"
@@ -154,7 +154,7 @@ function Results({
 }) {
   if (state.kind === "question") {
     return (
-      <section className="rounded-xl border border-gold/40 bg-ink-raised p-8">
+      <section className="rounded-[4px] border border-gold/40 bg-ink-raised p-8">
         <p className="label !text-gold">One thing first</p>
         <p className="mt-3 font-display text-3xl leading-tight">
           {state.question}
@@ -206,7 +206,7 @@ function Results({
               );
               if (!film) return null;
               return (
-                <div className="mt-12 rounded-xl border border-gold/40 bg-ink-raised p-8">
+                <div className="mt-12 rounded-[4px] border border-gold/40 bg-ink-raised p-8">
                   <p className="label !text-gold">If I had to pick only one</p>
                   <p className="mt-3 font-display text-4xl leading-none uppercase">
                     {film.title}
@@ -281,7 +281,7 @@ function PickBody({ pick, showMatch }: { pick: PickCard; showMatch: boolean }) {
           </p>
 
           {!pick.inCatalogue && (
-            <p className="mt-3 inline-block rounded-full border border-line px-3 py-1 text-[0.625rem] font-sans uppercase tracking-[0.16em] text-muted">
+            <p className="mt-3 inline-block rounded-[3px] border border-line px-3 py-1 text-[0.625rem] font-sans uppercase tracking-[0.16em] text-muted">
               Not in the XINE catalogue
             </p>
           )}
@@ -310,7 +310,7 @@ function PickBody({ pick, showMatch }: { pick: PickCard; showMatch: boolean }) {
             {pick.vibeCheck.map((item) => (
               <li
                 key={item}
-                className="rounded-full border border-line px-3 py-1 text-xs text-muted"
+                className="rounded-[3px] border border-line px-3 py-1 text-xs text-muted"
               >
                 {item}
               </li>
@@ -367,7 +367,7 @@ function PickBody({ pick, showMatch }: { pick: PickCard; showMatch: boolean }) {
 function PickPoster({ pick }: { pick: PickCard }) {
   if (!pick.inCatalogue && pick.posterUrl) {
     return (
-      <div className="relative aspect-2/3 overflow-hidden rounded-md bg-ink-raised">
+      <div className="relative aspect-2/3 overflow-hidden rounded-[3px] bg-ink-raised">
         <Image
           src={pick.posterUrl}
           alt={`${pick.title} poster`}

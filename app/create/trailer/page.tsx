@@ -102,7 +102,7 @@ export default async function TrailerStudioPage({
             ))}
           </ol>
 
-          <div className="mt-10 rounded-xl border border-line bg-ink-raised p-5">
+          <div className="mt-10 rounded-[4px] border border-line bg-ink-raised p-5">
             <p className="label">The beat map</p>
             <ul className="mt-3 space-y-1.5">
               {BEATS.map((beat) => (

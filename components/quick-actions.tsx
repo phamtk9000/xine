@@ -54,7 +54,7 @@ export function QuickActions({
       <div className="flex flex-wrap items-center gap-4">
         <Link
           href="/sign-in"
-          className="inline-flex rounded-full border border-line px-5 py-2.5 text-sm font-medium transition-colors hover:border-faint"
+          className="inline-flex rounded-[3px] border border-line px-5 py-2.5 text-sm font-medium transition-colors hover:border-faint"
         >
           Sign in to log this
         </Link>
@@ -146,7 +146,7 @@ function Action({
       aria-pressed={on}
       // aria-pressed carries the state for a screen reader; the colour and
       // fill carry it for everyone else, so it never rests on colour alone.
-      className="group flex cursor-pointer items-center gap-2 rounded-full border border-line px-4 py-2.5 transition-colors hover:border-faint focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none"
+      className="group flex cursor-pointer items-center gap-2 rounded-[3px] border border-line px-4 py-2.5 transition-colors hover:border-faint focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none"
       style={on ? { borderColor: onColor } : undefined}
     >
       <svg

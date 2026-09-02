@@ -116,9 +116,9 @@ export function SealCrest({
 
 const MARK_COLOR: Record<SealTier, string> = {
   select: "text-gold",
-  frame: "text-[#4a9d5f]",
-  mixed: "text-[#cc6b1f]",
-  burnt: "text-[#e0452e]",
+  frame: "text-[#4f9d86]",
+  mixed: "text-[#c98a3c]",
+  burnt: "text-[#cf4b41]",
 };
 
 /**
@@ -140,15 +140,22 @@ export function SealMark({
   if (percent === null) return null;
   const tier = sealTier(percent, reviewCount);
 
+  // The number needs saying out loud: everything else on the site is a score
+  // out of ten, so a bare "91%" beside a film is the one figure a reader has
+  // to guess the units of. The crest carries that for the eye; this carries
+  // it for a screen reader and for anyone who hovers.
+  const description = `XINE score ${percent}% — ${SEAL_TIERS[tier].seal}`;
+
   return (
-    <span
-      className="inline-flex items-center gap-1.5"
-      title={SEAL_TIERS[tier].seal}
-    >
+    <span className="inline-flex items-center gap-1.5" title={description}>
       <SealCrest tier={tier} size={size} />
-      <span className={`font-sans text-xs tabular-nums ${MARK_COLOR[tier]}`}>
+      <span
+        className={`readout text-[0.6875rem] ${MARK_COLOR[tier]}`}
+        aria-hidden="true"
+      >
         {percent}%
       </span>
+      <span className="sr-only">{description}</span>
     </span>
   );
 }
@@ -181,7 +188,7 @@ export function SealBadge({
   const audiencePercent = toPercent(audienceScore);
 
   return (
-    <div className="rounded-xl border border-line bg-ink p-7">
+    <div className="rounded-[4px] border border-line bg-ink p-7">
       <p className="label">Xine Score</p>
 
       <div className="mt-5 flex items-start gap-5">

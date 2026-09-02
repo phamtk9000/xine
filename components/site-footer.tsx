@@ -36,13 +36,14 @@ const COLUMNS = [
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-line bg-ink-sunk">
+    <footer className="shaded border-t border-line bg-ink-sunk">
       <div className="mx-auto max-w-[1400px] px-5 py-16 sm:px-8">
         <div className="grid gap-12 md:grid-cols-[1.4fr_repeat(3,1fr)]">
           <div>
             <p className="font-display text-5xl leading-none">xine</p>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted">
-              A film magazine that rates on six axes and a workspace that takes
+              A film magazine that rates on five axes plus an overall, and a
+              workspace that takes
               an idea to a pitch package. Read, rate, then make one.
             </p>
             <Link

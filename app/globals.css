@@ -15,18 +15,38 @@
  */
 
 @theme {
-  --color-ink: #0a0a09;
-  --color-ink-raised: #141310;
-  --color-ink-sunk: #060605;
-  --color-paper: #e6d9bf;
-  --color-muted: #948a76;
-  --color-faint: #635c4e;
-  --color-line: #262319;
-  --color-line-bright: #3d382a;
-  --color-accent: #b53a30;
+  /* Cold instrument.
+   *
+   * The palette used to be pulled straight out of the key art: warm black,
+   * bone-cream type, ochre numbers. It read as printed matter, which was the
+   * intent, and it also meant every screen looked like a document that had
+   * been sitting in the sun. This is the same idea run cold — the ground and
+   * the type step onto the blue side of neutral, so the artwork stays the
+   * only warm thing on any page and the interface around it reads as
+   * instrumentation rather than paper.
+   *
+   * Nothing glows. The future here is precision, not neon: hairlines,
+   * tick marks, tabular readouts, and one signal colour used sparingly. */
+  --color-ink: #07080a;
+  --color-ink-raised: #0e1116;
+  --color-ink-sunk: #040507;
+  --color-paper: #dee4e9;
+  --color-muted: #8a949e;
+  --color-faint: #59626c;
+  --color-line: #181c22;
+  --color-line-bright: #2a3138;
+  /* Oxblood stays: it is the brand and the only warm thing in the interface,
+     which is exactly why a CTA in it still stops the eye on a cold ground. */
+  --color-accent: #b8443a;
   --color-accent-dim: #7e2922;
-  --color-gold: #d99a2b;
-  --color-teal: #5a8377;
+  /* The readout colour — scores, axis bars, focus, live values. Cool steel
+     rather than the old ochre, and deliberately desaturated: it has to be
+     legible at 11px on ink without ever looking like it is lit from behind.
+     `--color-gold` is kept as the utility name so the forty files that say
+     `text-gold` still mean "the number colour"; the value is what changed. */
+  --color-signal: #93c5c9;
+  --color-gold: var(--color-signal);
+  --color-teal: #5f8f9c;
 
   /* Display — hero headlines, article titles, pull quotes (italic). */
   --font-display: "Instrument Serif", ui-serif, Georgia, serif;
@@ -49,7 +69,7 @@
   --text-display--line-height: 0.92;
   --text-display--letter-spacing: -0.03em;
 
-  --tracking-label: 0.18em;
+  --tracking-label: 0.2em;
 }
 
 :root {
@@ -72,8 +92,40 @@ html {
   }
 }
 
+/* The ground is not flat.
+ *
+ * A single hex behind two thousand pixels of scroll reads as an absence
+ * rather than a surface — every section boundary has to be drawn with a rule
+ * because nothing else distinguishes one band from the next. These three
+ * fixed washes give the page a light source instead: a cool one at the top
+ * left where the masthead sits, a fainter counter-light at the right, and a
+ * slow vertical fall to a deeper ink at the bottom of the viewport.
+ *
+ * Fixed rather than scrolled, so the shading belongs to the screen and the
+ * content moves through it. Very low alpha on purpose — at these values it
+ * is felt rather than seen, which is the whole point: sections that carry
+ * their own ground (`bg-ink-sunk`, the light section) still sit visibly
+ * above or below it. */
 body {
-  background: var(--color-ink);
+  background-color: var(--color-ink);
+  background-image:
+    radial-gradient(
+      120rem 60rem at 8% -10%,
+      color-mix(in srgb, #4d6f8a 9%, transparent) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      90rem 50rem at 110% 8%,
+      color-mix(in srgb, #5b6d86 6%, transparent) 0%,
+      transparent 55%
+    ),
+    linear-gradient(
+      to bottom,
+      transparent 0%,
+      color-mix(in srgb, var(--color-ink-sunk) 55%, transparent) 100%
+    );
+  background-attachment: fixed;
+  background-repeat: no-repeat;
   color: var(--color-paper);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -101,6 +153,68 @@ body {
   letter-spacing: var(--tracking-label);
   text-transform: uppercase;
   color: var(--color-muted);
+}
+
+/* A band with its own shading: a soft cool wash rising from the bottom
+   edge, so a section reads as a plane sitting on the page rather than a
+   stripe of a different colour. Pairs with, and is subtler than, the
+   `bg-ink-sunk` panels. */
+@utility shaded {
+  position: relative;
+  background-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    color-mix(in srgb, #46617a 5%, transparent) 55%,
+    color-mix(in srgb, var(--color-ink-sunk) 70%, transparent) 100%
+  );
+}
+
+/* The counterpart for a band that should feel lifted rather than sunk —
+   light gathering along its top edge. */
+@utility lifted {
+  background-image: linear-gradient(
+    to bottom,
+    color-mix(in srgb, #5c7c96 6%, transparent) 0%,
+    transparent 45%
+  );
+}
+
+/* A readout: any number the interface is reporting rather than setting in
+   prose — a score, a count, a date, an index. Mono and tabular, so columns
+   of them line up and a changing value does not shift the layout around it.
+   This is most of what makes the chrome read as an instrument. */
+@utility readout {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+/* Corner ticks on a panel, drawn in the border colour. Cheaper than a frame
+   and quieter: the eye reads the corners and infers the box. */
+@utility ticked {
+  position: relative;
+
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    width: 0.5rem;
+    height: 0.5rem;
+    border: 1px solid var(--color-line-bright);
+    pointer-events: none;
+  }
+  &::before {
+    top: -1px;
+    left: -1px;
+    border-right: 0;
+    border-bottom: 0;
+  }
+  &::after {
+    right: -1px;
+    bottom: -1px;
+    border-top: 0;
+    border-left: 0;
+  }
 }
 
 /* Editorial body copy, used for journal articles and long project stages. */
@@ -1374,6 +1488,50 @@ body {
     );
 }
 
+/* On a phone the copy is not a left-hand column — it runs the full width of
+   the section, straight into the clear right-hand end of that first gradient
+   where the plate is only 12% covered. Against a bright frame (the Narcos
+   plate, say) the lede then sits on the artwork with almost nothing behind
+   it. So below the width at which the copy stops being a column, the
+   horizontal pass is dropped and the vertical one carries it instead:
+   heaviest at the top where the label and headline are, clearing only past
+   the buttons. */
+@media (max-width: 767px) {
+  .masthead-scrim {
+    background: linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--color-ink) 78%, transparent) 0%,
+      color-mix(in srgb, var(--color-ink) 70%, transparent) 45%,
+      color-mix(in srgb, var(--color-ink) 55%, transparent) 78%,
+      color-mix(in srgb, var(--color-ink) 32%, transparent) 100%
+    );
+  }
+}
+
+/* The verdict band's scrim, and the same lesson as the masthead's: a
+   left-to-right gradient only works where the copy is a left-hand column.
+   On a phone the quote runs the full width, so the band is read bottom-up
+   instead — art at the top, ink under the type. */
+.verdict-scrim {
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--color-ink) 35%, transparent) 0%,
+    color-mix(in srgb, var(--color-ink) 62%, transparent) 45%,
+    color-mix(in srgb, var(--color-ink) 88%, transparent) 100%
+  );
+}
+
+@media (min-width: 768px) {
+  .verdict-scrim {
+    background: linear-gradient(
+      to right,
+      color-mix(in srgb, var(--color-ink) 92%, transparent) 0%,
+      color-mix(in srgb, var(--color-ink) 78%, transparent) 55%,
+      color-mix(in srgb, var(--color-ink) 45%, transparent) 100%
+    );
+  }
+}
+
 /* The scrim alone can't carry legibility once it's this light, so the
    masthead's own text gets a shadow doing the rest of the work — a tight
    pass to hold the edge of each letterform, a wide soft pass so the type
@@ -1483,20 +1641,21 @@ body {
    ============================================================ */
 
 .section-light {
-  --color-ink: #faf3e8;
-  --color-ink-raised: #f2e6d2;
-  --color-ink-sunk: #ecdec2;
-  --color-paper: #1c1710;
-  --color-muted: #6b5d47;
-  --color-faint: #93815f;
-  --color-line: #e0d0ac;
-  --color-line-bright: #cbb587;
+  --color-ink: #eef1f3;
+  --color-ink-raised: #e3e8ec;
+  --color-ink-sunk: #d8dee3;
+  --color-paper: #11151a;
+  --color-muted: #4f5964;
+  --color-faint: #78838e;
+  --color-line: #cfd6dc;
+  --color-line-bright: #aeb8c1;
   --color-accent: #a3352c;
   --color-accent-dim: #7e2922;
-  /* Darkened from the dark-mode gold — the same hex reads washed out
-     against paper instead of ink. */
-  --color-gold: #93630f;
-  --color-teal: #3d6357;
+  /* Darkened from the dark-mode signal — the same value reads washed out
+     against a light ground instead of ink. */
+  --color-signal: #2c6a71;
+  --color-gold: var(--color-signal);
+  --color-teal: #35646f;
   color-scheme: light;
 
   /* `color` is inherited as a resolved value, not re-evaluated per element —
@@ -1524,7 +1683,9 @@ body {
 
 .genre-tag {
   display: inline-block;
-  border-radius: 9999px;
+  /* Squared off with the rest of the chrome: a pill reads as a tag you
+     could peel off, a rectangle reads as a field on a panel. */
+  border-radius: 2px;
   border-width: 1px;
   padding: 0.25rem 0.75rem;
   font-size: 0.75rem;

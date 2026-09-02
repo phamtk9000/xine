@@ -30,7 +30,7 @@ export default async function TypesPage() {
           </h1>
           <p className="mt-7 max-w-2xl text-base leading-relaxed text-muted">
             Nobody picks a type. Each one is read off how you actually score
-            films on the six axes, so it shifts as your taste does — and every
+            films on the five axes, so it shifts as your taste does — and every
             figure comes with the thing that taste costs you.
           </p>
         </Container>
@@ -47,7 +47,7 @@ export default async function TypesPage() {
               <li key={key}>
                 <Link
                   href={`/community/types/${key}`}
-                  className="group block h-full rounded-xl border p-6 transition-colors hover:bg-ink-raised"
+                  className="group block h-full rounded-[4px] border p-6 transition-colors hover:bg-ink-raised"
                   style={{ borderColor: isMine ? a.color : "var(--color-line)" }}
                 >
                   <div className="flex items-center justify-between">

@@ -28,7 +28,7 @@ export function PageHeader({
   action?: ReactNode;
 }) {
   return (
-    <header className="border-b border-line py-14 sm:py-20">
+    <header className="lifted border-b border-line py-14 sm:py-20">
       <Container>
         <p className="label">{label}</p>
         <div className="mt-5 flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
@@ -61,7 +61,12 @@ export function SectionHeading({
   return (
     <div className="mb-8 flex items-end justify-between gap-6 border-b border-line pb-4">
       <div>
-        <p className="label">{label}</p>
+        {/* The tick before the label is the smallest piece of the
+            instrument language: it marks where the section starts the way a
+            scale marks a division. */}
+        <p className="label flex items-center gap-2 before:block before:h-2 before:w-px before:bg-line-bright">
+          {label}
+        </p>
         <h2 className="mt-2 font-display text-3xl leading-none sm:text-4xl">
           {title}
         </h2>
@@ -88,8 +93,14 @@ const VARIANTS: Record<ButtonVariant, string> = {
   ghost: "text-muted hover:text-paper disabled:opacity-50",
 };
 
+/**
+ * Buttons are squared off and set in the label face rather than rounded
+ * pills in sentence case. A pill is a friendly, soft object; this interface
+ * is meant to read as instrumentation, and the control that carries the most
+ * weight on the page is where that reads first.
+ */
 const BUTTON_BASE =
-  "inline-flex items-center justify-center gap-2 rounded-full px-6 py-2.5 text-sm font-medium transition-all disabled:cursor-not-allowed";
+  "inline-flex items-center justify-center gap-2 rounded-[3px] px-5 py-3 font-sans text-[0.6875rem] font-medium uppercase tracking-[0.14em] transition-all disabled:cursor-not-allowed";
 
 export function Button({
   variant = "accent",
@@ -139,7 +150,7 @@ export function Field({
 }
 
 const CONTROL =
-  "w-full rounded-lg border border-line bg-ink-raised px-4 py-3 text-[0.9375rem] text-paper placeholder:text-faint focus:border-line-bright focus:outline-none";
+  "w-full rounded-[3px] border border-line bg-ink-raised px-4 py-3 text-[0.9375rem] text-paper placeholder:text-faint focus:border-line-bright focus:outline-none";
 
 export function Input({ className = "", ...props }: ComponentProps<"input">) {
   return <input {...props} className={`${CONTROL} ${className}`} />;
@@ -222,7 +233,7 @@ export function Tag({
    *  callers omit this and get the plain grey pill. */
   color?: string;
 }) {
-  const className = `inline-block rounded-full border px-3 py-1 text-xs transition-colors ${
+  const className = `inline-block rounded-[3px] border px-3 py-1 text-xs transition-colors ${
     color ? "" : "border-line text-muted"
   }`;
   const style = color
@@ -253,7 +264,7 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-dashed border-line px-8 py-16 text-center">
+    <div className="rounded-[4px] border border-dashed border-line px-8 py-16 text-center">
       <p className="font-display text-2xl">{title}</p>
       <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-muted">
         {body}
@@ -272,7 +283,7 @@ export function Notice({
 }) {
   return (
     <p
-      className={`rounded-lg border px-4 py-3 text-sm ${
+      className={`rounded-[3px] border px-4 py-3 text-sm ${
         tone === "error"
           ? "border-accent/40 bg-accent/5 text-accent"
           : "border-line bg-ink-raised text-muted"

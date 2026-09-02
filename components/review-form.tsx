@@ -41,7 +41,7 @@ export function ReviewForm({
   }
 
   return (
-    <form action={submit} className="rounded-xl border border-line bg-ink-raised p-6">
+    <form action={submit} className="rounded-[4px] border border-line bg-ink-raised p-6">
       <Textarea
         name="body"
         rows={8}

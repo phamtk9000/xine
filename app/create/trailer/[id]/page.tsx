@@ -93,7 +93,7 @@ export default async function BriefPage({
           {shots.map((shot) => (
             <div
               key={shot.n}
-              className="rounded-lg border border-line bg-ink-raised p-5"
+              className="rounded-[3px] border border-line bg-ink-raised p-5"
             >
               <p className="font-sans text-xs text-faint tabular-nums">
                 Shot {String(shot.n).padStart(2, "0")}
@@ -131,7 +131,7 @@ export default async function BriefPage({
 
       <section className="py-12">
         <p className="label">04 — Concept trailer</p>
-        <div className="mt-7 max-w-2xl rounded-xl border border-dashed border-line p-8">
+        <div className="mt-7 max-w-2xl rounded-[4px] border border-dashed border-line p-8">
           <p className="font-display text-3xl leading-tight">
             This is where it stops being a document.
           </p>

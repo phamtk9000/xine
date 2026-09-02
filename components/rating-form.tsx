@@ -70,14 +70,14 @@ export function RatingForm({
 
   if (!signedIn) {
     return (
-      <div className="rounded-xl border border-line bg-ink-raised p-6">
+      <div className="rounded-[4px] border border-line bg-ink-raised p-6">
         <p className="label">Your rating</p>
         <p className="mt-3 text-sm leading-relaxed text-muted">
-          Sign in to rate this on six axes and say why.
+          Sign in to rate this on five axes plus an overall, and say why.
         </p>
         <Link
           href="/sign-in"
-          className="mt-5 inline-flex rounded-full bg-accent px-5 py-2 text-sm font-medium text-paper"
+          className="mt-5 inline-flex rounded-[3px] bg-accent px-5 py-2 text-sm font-medium text-paper"
         >
           Sign in
         </Link>
@@ -86,7 +86,7 @@ export function RatingForm({
   }
 
   return (
-    <div className="rounded-xl border border-line bg-ink-raised p-6">
+    <div className="rounded-[4px] border border-line bg-ink-raised p-6">
       <form action={submit}>
         <div className="flex items-baseline justify-between">
           <p className="label">Your rating</p>

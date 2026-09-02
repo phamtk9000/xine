@@ -35,7 +35,7 @@ export function CastAccordion({ cast }: { cast: CastMember[] }) {
         <li
           key={member.slug}
           className={[
-            "group/panel relative h-64 w-full overflow-hidden rounded-lg bg-ink-raised transition-all duration-300 ease-[cubic-bezier(.5,.85,.25,1.15)] md:h-[22rem]",
+            "group/panel relative h-64 w-full overflow-hidden rounded-[3px] bg-ink-raised transition-all duration-300 ease-[cubic-bezier(.5,.85,.25,1.15)] md:h-[22rem]",
             // Every sibling narrows while one panel is hovered or focused.
             "md:not-[&:hover]:group-hover:w-[22%]",
             "md:[&:not(:focus-within):not(:hover)]:group-focus-within:w-[22%]",

@@ -141,7 +141,7 @@ export function FilmAtlas({
       <div>
         <div
           ref={elRef}
-          className="xine-map w-full overflow-hidden rounded-xl border border-line bg-ink-sunk"
+          className="xine-map w-full overflow-hidden rounded-[4px] border border-line bg-ink-sunk"
           style={{ height: 420 }}
         />
         <p className="mt-4 font-sans text-[0.625rem] tracking-[0.16em] uppercase text-faint">
@@ -152,7 +152,7 @@ export function FilmAtlas({
 
       <aside>
         {selected && (
-          <div className="rounded-xl border border-line p-6">
+          <div className="rounded-[4px] border border-line p-6">
             <p className="font-display text-3xl leading-none">{selected.name}</p>
             <dl className="mt-5 space-y-3 text-sm">
               <div className="flex justify-between">

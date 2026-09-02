@@ -46,7 +46,7 @@ export function ScorePill({
   if (value === null) return null;
   return (
     <span
-      className={`font-sans text-xs tabular-nums ${
+      className={`readout text-xs ${
         muted ? "text-muted" : "text-gold"
       }`}
     >
@@ -89,7 +89,7 @@ export function AxisBreakdown({
                 />
               )}
             </dd>
-            <dd className="text-right font-sans text-xs tabular-nums text-muted">
+            <dd className="text-right readout text-xs text-muted">
               {formatScore(value ?? null)}
             </dd>
           </div>

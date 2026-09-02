@@ -311,7 +311,7 @@ export function CoverflowCarousel({
                 role="group"
                 aria-roledescription="slide"
                 aria-label={`${index + 1} of ${count}`}
-                className="absolute top-0 left-1/2 aspect-2/3 overflow-hidden rounded-lg bg-ink-raised shadow-xl will-change-transform"
+                className="absolute top-0 left-1/2 aspect-2/3 overflow-hidden rounded-[3px] bg-ink-raised shadow-xl will-change-transform"
                 style={{ width: "var(--cf-card)" }}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
