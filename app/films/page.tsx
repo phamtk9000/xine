@@ -1,13 +1,15 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { FilmGrid } from "@/components/film-card";
+import { getCurrentUser } from "@/lib/session";
+import { db } from "@/lib/db";
 import { Container, EmptyState, PageHeader } from "@/components/ui";
 import { browseFilms, filmFacets, PAGE_SIZE, type FilmSort } from "@/lib/films";
 
 export const metadata: Metadata = {
   title: "Films",
   description:
-    "The catalogue: trending, new releases, and everything rated across six axes.",
+    "The catalogue: trending, new releases, and everything rated on five axes plus an overall.",
 };
 
 const SORTS: { key: FilmSort; label: string }[] = [
@@ -32,13 +34,28 @@ export default async function FilmsPage({ searchParams }: PageProps<"/films">) {
   const reviewed = one(params.reviewed) === "1";
   const requestedPage = Number(one(params.page) ?? 1) || 1;
 
-  const [{ films, total, page, pages }, facets] = await Promise.all([
+  const [{ films, total, page, pages }, facets, user] = await Promise.all([
     browseFilms(
       { sort, genre, country, decade, search, reviewed },
       requestedPage,
     ),
     filmFacets(),
+    getCurrentUser(),
   ]);
+
+  // One query for the whole page: whatever this reader has already said
+  // about the sixty films in front of them, so the scales render filled
+  // rather than blank and a second press does not look like a first.
+  const mine = user
+    ? new Map(
+        (
+          await db.rating.findMany({
+            where: { userId: user.id, filmId: { in: films.map((f) => f.id) } },
+            select: { filmId: true, overall: true },
+          })
+        ).map((row) => [row.filmId, row.overall]),
+      )
+    : new Map<string, number>();
 
   // Preserve the other filters when a facet link is clicked.
   function href(patch: Record<string, string | undefined>) {
@@ -81,7 +98,7 @@ export default async function FilmsPage({ searchParams }: PageProps<"/films">) {
       <PageHeader
         label="Films"
         title="The catalogue."
-        lede={`${total} film${total === 1 ? "" : "s"}, each rated on Story, Direction, Visual, Performance and Sound — not just a number out of five.`}
+        lede={`${total} film${total === 1 ? "" : "s"}, each open to a rating on five axes plus an overall — Story, Direction, Visual, Performance, Sound — rather than one number out of five.`}
         action={
           <div className="flex w-full max-w-md flex-col gap-3">
             <form action="/films" className="flex gap-2">
@@ -90,7 +107,7 @@ export default async function FilmsPage({ searchParams }: PageProps<"/films">) {
                 defaultValue={search}
                 placeholder="Search title or director"
                 aria-label="Search films"
-                className="w-full rounded-full border border-line bg-ink-raised px-4 py-2 text-sm placeholder:text-faint focus:border-line-bright focus:outline-none"
+                className="w-full rounded-[3px] border border-line bg-ink-raised px-4 py-2 text-sm placeholder:text-faint focus:border-line-bright focus:outline-none"
               />
             </form>
             <Link
@@ -158,7 +175,7 @@ export default async function FilmsPage({ searchParams }: PageProps<"/films">) {
                   <Link
                     key={chip.label}
                     href={chip.href}
-                    className="rounded-full border border-line-bright px-3 py-1 text-xs text-paper transition-colors hover:border-accent hover:text-accent"
+                    className="rounded-[3px] border border-line-bright px-3 py-1 text-xs text-paper transition-colors hover:border-accent hover:text-accent"
                   >
                     {chip.label} ✕
                   </Link>
@@ -173,7 +190,11 @@ export default async function FilmsPage({ searchParams }: PageProps<"/films">) {
               />
             ) : (
               <>
-                <FilmGrid films={films} priorityCount={6} />
+                <FilmGrid
+                  films={films}
+                  priorityCount={6}
+                  viewer={{ signedIn: !!user, ratings: mine }}
+                />
                 <Pager page={page} pages={pages} total={total} href={href} />
               </>
             )}
@@ -211,7 +232,7 @@ function Pager({
   }
 
   const step =
-    "rounded-full border border-line px-3 py-1.5 text-xs transition-colors hover:border-line-bright hover:text-paper";
+    "rounded-[3px] border border-line px-3 py-1.5 text-xs transition-colors hover:border-line-bright hover:text-paper";
 
   return (
     <nav
@@ -235,7 +256,7 @@ function Pager({
           key={n}
           href={href({ page: String(n) })}
           aria-current={n === page ? "page" : undefined}
-          className={`rounded-full border px-3 py-1.5 text-xs tabular-nums transition-colors ${
+          className={`rounded-[3px] border px-3 py-1.5 text-xs tabular-nums transition-colors ${
             n === page
               ? "border-gold text-gold"
               : "border-line text-muted hover:border-line-bright hover:text-paper"

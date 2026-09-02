@@ -4,9 +4,11 @@ import type { Metadata } from "next";
 import { FilmRow } from "@/components/film-card";
 import { Container, PageHeader } from "@/components/ui";
 import { db } from "@/lib/db";
+import { findShelf } from "@/lib/collections";
 import { editorialCounts } from "@/lib/films";
 import { getCurrentUser } from "@/lib/session";
 import { removeFromList } from "@/app/actions/lists";
+import { EntryNote } from "@/components/entry-note";
 import { fromCsv } from "@/lib/serialize";
 import { round1 } from "@/lib/scores";
 
@@ -38,6 +40,24 @@ export default async function ListPage({ params }: PageProps<"/lists/[slug]">) {
 
   if (!list) notFound();
   const mine = !!user && list.ownerId === user.id;
+
+  // This reader's own ratings for the films on the list, for the one-tap
+  // scale under each row.
+  const myRatings = user
+    ? new Map(
+        (
+          await db.rating.findMany({
+            where: {
+              userId: user.id,
+              filmId: { in: list.entries.map((entry) => entry.filmId) },
+            },
+            select: { filmId: true, overall: true },
+          })
+        ).map((row) => [row.filmId, row.overall]),
+      )
+    : new Map<string, number>();
+  // Which shelf this list sits on, if any — the way back up a level.
+  const shelf = findShelf(list.collection);
 
   const films = list.entries.map((entry) => {
     const ratings = entry.film.ratings;
@@ -73,11 +93,13 @@ export default async function ListPage({ params }: PageProps<"/lists/[slug]">) {
     <>
       <PageHeader
         label={
-          list.editorial
-            ? "Editorial list"
-            : list.owner
-              ? `List by ${list.owner.displayName}`
-              : "List"
+          shelf
+            ? shelf.name
+            : list.editorial
+              ? "Editorial list"
+              : list.owner
+                ? `List by ${list.owner.displayName}`
+                : "List"
         }
         title={list.title}
         lede={list.description}
@@ -92,7 +114,17 @@ export default async function ListPage({ params }: PageProps<"/lists/[slug]">) {
           <div className="mt-2">
             {films.map((entry, i) => (
               <div key={entry.entryId} className="relative">
-                <FilmRow film={entry.film} position={i + 1} note={entry.note} />
+                <FilmRow
+                  film={entry.film}
+                  position={i + 1}
+                  note={entry.note}
+                  noteSlot={
+                    mine ? (
+                      <EntryNote entryId={entry.entryId} note={entry.note} />
+                    ) : undefined
+                  }
+                  viewer={{ signedIn: !!user, ratings: myRatings }}
+                />
                 {mine && (
                   <form
                     action={removeFromList}
@@ -115,6 +147,19 @@ export default async function ListPage({ params }: PageProps<"/lists/[slug]">) {
           {films.length === 0 && (
             <p className="py-12 text-sm text-muted">
               This list is empty. Add films from any film page.
+            </p>
+          )}
+
+          {shelf && (
+            <p className="mt-10 text-sm text-muted">
+              One of {shelf.name.toLowerCase()} —{" "}
+              <Link
+                href={`/collections/${shelf.slug}`}
+                className="text-gold underline underline-offset-4"
+              >
+                see the whole collection
+              </Link>
+              .
             </p>
           )}
 
