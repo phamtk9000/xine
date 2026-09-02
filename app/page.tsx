@@ -3,54 +3,61 @@ import { ArticleCard } from "@/components/article-card";
 import { IndexList } from "@/components/index-list";
 import { FilmMarquee } from "@/components/film-marquee";
 import { TrendingCoverflow } from "@/components/trending-coverflow";
+import { RatingSplit } from "@/components/rating-split";
 import { MastheadBackdrop } from "@/components/masthead-backdrop";
 import { RevealGroup } from "@/components/reveal-group";
 import { TitleSequence } from "@/components/title-sequence";
-import { Poster } from "@/components/poster";
+import { VerdictBand } from "@/components/verdict-band";
+import {
+  CatalogueNumbers,
+  CatalogueNumbersFooter,
+} from "@/components/catalogue-numbers";
 import {
   ButtonLink,
   Container,
   SectionHeading,
   relativeTime,
 } from "@/components/ui";
-import { listFilms } from "@/lib/films";
+import { catalogueStats, listFilms } from "@/lib/films";
+import { weeklyTrending } from "@/lib/trending";
 import { listArticles } from "@/lib/journal";
 import { recentActivity } from "@/lib/profile";
-import { AXES } from "@/lib/scores";
 import { STAGES } from "@/lib/stages";
 import { db } from "@/lib/db";
 import { parseJson } from "@/lib/serialize";
+import { SHELVES } from "@/lib/collections";
 
 export default async function HomePage() {
-  const [articles, trending, newest, lists, activity] = await Promise.all([
-    listArticles(),
-    listFilms({ sort: "trending", take: 8 }),
-    listFilms({ sort: "new", take: 16 }),
-    db.filmList.findMany({
-      where: { editorial: true },
-      orderBy: { createdAt: "desc" },
-      take: 3,
-      include: {
-        entries: {
-          orderBy: { position: "asc" },
-          take: 4,
-          include: {
-            film: {
-              select: {
-                slug: true,
-                title: true,
-                year: true,
-                director: true,
-                posterUrl: true,
-              },
-            },
-          },
+  const [articles, trending, newest, shelfLists, stats, activity] =
+    await Promise.all([
+      listArticles(),
+      // What the world is watching this week, per TMDB, resolved against the
+      // catalogue and split by whether it is out yet — see lib/trending.
+      weeklyTrending({ take: 10, comingTake: 5 }),
+      listFilms({ sort: "new", take: 16 }),
+      // Every shelf, counted. No posters: the lists index below is type only.
+      db.filmList.findMany({
+        where: { collection: { not: null } },
+        orderBy: [{ collection: "asc" }, { position: "asc" }],
+        select: {
+          id: true,
+          collection: true,
+          _count: { select: { entries: true } },
         },
-        _count: { select: { entries: true } },
-      },
-    }),
-    recentActivity(8),
-  ]);
+      }),
+      catalogueStats(),
+      recentActivity(8),
+    ]);
+
+  // The ten shelves with their weight, in house order.
+  const shelves = SHELVES.map((shelf) => {
+    const mine = shelfLists.filter((list) => list.collection === shelf.slug);
+    return {
+      ...shelf,
+      lists: mine.length,
+      films: mine.reduce((sum, list) => sum + list._count.entries, 0),
+    };
+  }).filter((shelf) => shelf.lists > 0);
 
   // Same rule as /journal: the big card wants an article that has artwork.
   const leadIndex = Math.max(
@@ -60,9 +67,42 @@ export default async function HomePage() {
   const lead = articles[leadIndex];
   const more = articles.filter((_, i) => i !== leadIndex);
 
+  // The change-of-gear band below the journal block wants a piece with
+  // artwork that the reader is not already looking at: not the lead card,
+  // and preferably not one of the five in the index under it either. A
+  // Review is the first choice, because the band states a verdict.
+  const spare = more.slice(5);
+  const bandArticle =
+    spare.find((a) => a.hero && a.kicker === "Review") ??
+    spare.find((a) => a.hero) ??
+    more.find((a) => a.hero && a.kicker === "Review") ??
+    more.find((a) => a.hero) ??
+    null;
+
+  const bandFilm =
+    bandArticle?.films[0] !== undefined
+      ? await db.film.findUnique({
+          where: { slug: bandArticle.films[0] },
+          select: {
+            slug: true,
+            title: true,
+            year: true,
+            criticScore: true,
+            reviewed: true,
+          },
+        })
+      : null;
+
+  // How many Journal pieces reference that film — the seal reads it to tell
+  // a XINE Select from a plain score. Counted from the articles already in
+  // hand rather than with another pass over the filesystem.
+  const bandReviewCount = bandFilm
+    ? articles.filter((a) => a.films.includes(bandFilm.slug)).length
+    : 0;
+
   // The title sequence cuts through real posters from the catalogue rather
   // than stock art, so it is the site introducing itself with its own stock.
-  const titleFrames = trending
+  const titleFrames = trending.now
     .map((film) => film.posterUrl)
     .filter((url): url is string => Boolean(url))
     .slice(0, 12);
@@ -124,6 +164,23 @@ export default async function HomePage() {
         </section>
       )}
 
+      {/* The change of gear: one image, one sentence, one link. */}
+      {bandArticle?.hero && (
+        <VerdictBand
+          article={{
+            slug: bandArticle.slug,
+            title: bandArticle.title,
+            dek: bandArticle.dek,
+            kicker: bandArticle.kicker,
+            hero: bandArticle.hero,
+            heroAlt: bandArticle.heroAlt,
+          }}
+          film={
+            bandFilm ? { ...bandFilm, reviewCount: bandReviewCount } : null
+          }
+        />
+      )}
+
       {/* Trending */}
       <section className="border-b border-line">
         <Container className="py-14">
@@ -133,17 +190,69 @@ export default async function HomePage() {
             href="/films"
             hrefLabel="The catalogue"
           />
-          <TrendingCoverflow films={trending} />
+          <TrendingCoverflow films={trending.now} />
+
+          {/* Trending, but not out yet. TMDB's feed mixes the two and the
+              rake above promises something you can watch tonight, so the
+              trailers get their own line instead of a poster each. */}
+          {trending.coming.length > 0 && (
+            <div className="mt-12 flex flex-wrap items-baseline gap-x-6 gap-y-3 border-t border-line pt-5">
+              <Link
+                href="/calendar"
+                className="label shrink-0 transition-colors hover:text-paper"
+              >
+                Coming →
+              </Link>
+              <ul className="flex flex-wrap items-baseline gap-x-5 gap-y-2">
+                {trending.coming.map((film) => (
+                  <li key={film.id} className="text-sm">
+                    <Link
+                      href={`/films/${film.slug}`}
+                      className="text-muted transition-colors hover:text-gold"
+                    >
+                      {film.title}
+                    </Link>
+                    <span className="ml-2 font-sans text-xs text-faint tabular-nums">
+                      {film.releasedAt
+                        ? film.releasedAt.toLocaleDateString("en-GB", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })
+                        : film.year}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </Container>
       </section>
 
-      {/* The rating system — the site's one deliberate break from a single
-          dark palette, the same beat the reference uses to stop a long
-          black scroll from numbing out. */}
-      <section className="section-light border-b border-line bg-ink-sunk">
-        <Container className="py-16">
-          <div className="grid gap-12 lg:grid-cols-[1fr_1.1fr] lg:items-center">
-            <div>
+      {/* The catalogue, stated rather than shown — the page's one module
+          with no artwork in it at all. */}
+      <section className="shaded border-b border-line bg-ink-sunk">
+        <Container className="py-16 sm:py-20">
+          <SectionHeading
+            label="The catalogue"
+            title="What is in here"
+            href="/films"
+            hrefLabel="Browse it"
+          />
+          <CatalogueNumbers stats={stats} />
+          <CatalogueNumbersFooter />
+        </Container>
+      </section>
+
+      {/* The rating system — argued rather than described. The panel is a
+          disagreement, not a readout; see components/rating-split.tsx. */}
+      <section
+        id="rating-system"
+        className="shaded border-b border-line bg-ink-sunk"
+      >
+        <Container className="py-16 sm:py-20">
+          <div className="grid gap-12 lg:grid-cols-[0.85fr_1.35fr] lg:gap-16">
+            <div className="lg:sticky lg:top-24 lg:self-start">
               <p className="label">The rating system</p>
               <h2 className="mt-5 font-display text-4xl leading-[0.98] tracking-tight sm:text-6xl">
                 Five stars tells you almost nothing.
@@ -151,8 +260,9 @@ export default async function HomePage() {
               <p className="mt-6 max-w-lg text-base leading-relaxed text-muted">
                 Two people give the same film four stars and mean completely
                 different things. One was floored by the images. One thought the
-                script was airtight. xine records both, on six axes, and the one
-                that matters most turns out to be the difference between them.
+                script was airtight. xine records both, on five axes plus the
+                overall, and the one that matters most turns out to be the
+                difference between them.
               </p>
               <p className="mt-5 max-w-lg text-sm leading-relaxed text-faint">
                 The breakdown is optional. Rate overall in one tap and the rest
@@ -164,86 +274,53 @@ export default async function HomePage() {
               </ButtonLink>
             </div>
 
-            <div className="rounded-xl border border-line bg-ink p-8">
-              <div className="flex items-baseline justify-between border-b border-line pb-5">
-                <div>
-                  <p className="label">Sample film</p>
-                  <p className="mt-1.5 font-display text-3xl leading-none">
-                    Overall
-                  </p>
-                </div>
-                <p className="font-display text-6xl leading-none text-gold tabular-nums">
-                  8.6
-                </p>
-              </div>
-              <dl className="mt-6 space-y-4">
-                {[
-                  ["Story", 8.2],
-                  ["Direction", 9.1],
-                  ["Visual", 9.5],
-                  ["Performance", 8.4],
-                  ["Sound", 9.0],
-                ].map(([label, value]) => (
-                  <div
-                    key={String(label)}
-                    className="grid grid-cols-[6rem_1fr_2.5rem] items-center gap-4"
-                  >
-                    <dt className="text-sm text-muted">{label}</dt>
-                    <dd className="h-px bg-line">
-                      <div
-                        className="h-px bg-gold"
-                        style={{ width: `${(Number(value) / 10) * 100}%` }}
-                      />
-                    </dd>
-                    <dd className="text-right font-sans text-xs text-paper tabular-nums">
-                      {Number(value).toFixed(1)}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-              <p className="mt-7 border-t border-line pt-5 text-xs leading-relaxed text-faint">
-                {AXES.length} axes, one number each, 0–10. Your profile then
-                shows which one you reward most — and that is your taste, stated
-                as data.
-              </p>
-            </div>
+            <RatingSplit />
           </div>
         </Container>
       </section>
 
-      {/* Editorial lists */}
+      {/* Editorial lists, as an index rather than three cards.
+          Ten shelves fit here as type; three of them fit as posters, and
+          the posters were the third row of artwork on this page. */}
       <section className="border-b border-line">
         <Container className="py-14">
           <SectionHeading
             label="Lists"
             title="Grouped by an argument"
             href="/lists"
+            hrefLabel="All collections"
           />
-          <div id="lists-grid" className="grid gap-10 md:grid-cols-3">
-            {lists.map((list) => (
-              <Link
-                key={list.id}
-                href={`/lists/${list.slug}`}
-                className="group"
-              >
-                <div className="flex gap-2">
-                  {list.entries.map((entry) => (
-                    <div key={entry.id} className="w-1/4">
-                      <Poster film={entry.film} sizes="120px" />
-                    </div>
-                  ))}
-                </div>
-                <p className="label mt-5">{list._count.entries} films</p>
-                <h3 className="mt-2 font-display text-2xl leading-tight transition-colors group-hover:text-gold">
-                  {list.title}
-                </h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted">
-                  {list.description}
-                </p>
-              </Link>
+          <ol
+            id="lists-index"
+            className="grid gap-x-12 border-t border-line md:grid-cols-2"
+          >
+            {shelves.map((shelf, i) => (
+              <li key={shelf.slug} className="border-b border-line">
+                <Link
+                  href={`/collections/${shelf.slug}`}
+                  className="group grid grid-cols-[2.5rem_1fr] items-baseline gap-x-4 py-5"
+                >
+                  <span className="font-sans text-[0.625rem] text-faint tabular-nums">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <span>
+                    <span className="flex flex-wrap items-baseline justify-between gap-x-4">
+                      <span className="font-display text-2xl leading-tight transition-colors group-hover:text-gold">
+                        {shelf.name}
+                      </span>
+                      <span className="label shrink-0">
+                        {shelf.lists} lists · {shelf.films} films
+                      </span>
+                    </span>
+                    <span className="mt-1.5 block max-w-md text-sm leading-relaxed text-muted">
+                      {shelf.blurb}
+                    </span>
+                  </span>
+                </Link>
+              </li>
             ))}
-          </div>
-          <RevealGroup selector="#lists-grid" stagger={90} />
+          </ol>
+          <RevealGroup selector="#lists-index" stagger={60} />
         </Container>
       </section>
 
