@@ -119,7 +119,14 @@ function filmWhere({ genre, country, decade, search, reviewed }: FilmFilters) {
  */
 const DB_SORTED: FilmSort[] = ["new", "az"];
 
-async function decorate(
+/**
+ * Film rows to the summary shape every card, row and carousel on the site
+ * takes — community averages and editorial counts zipped on in two queries
+ * rather than two per film. Exported because the trending row starts from a
+ * TMDB ranking rather than from one of the sorts below (see lib/trending.ts)
+ * and still has to end up with exactly the same objects.
+ */
+export async function summariseFilms(
   films: Awaited<ReturnType<typeof db.film.findMany>>,
 ): Promise<FilmSummary[]> {
   const [scores, editorial] = await Promise.all([
@@ -189,7 +196,7 @@ export async function listFilms({
     orderBy: dbOrder(sort),
     take,
   });
-  return rankInJs(await decorate(films), sort);
+  return rankInJs(await summariseFilms(films), sort);
 }
 
 /**
@@ -219,13 +226,13 @@ export async function browseFilms(
       skip,
       take: PAGE_SIZE,
     });
-    return { films: await decorate(films), total, page: current, pages };
+    return { films: await summariseFilms(films), total, page: current, pages };
   }
 
   // Ranked in JS, so the whole filtered set has to be ordered before it can
   // be sliced. ~1,300 rows: cheap enough, and correct, which the alternative
   // is not.
-  const all = rankInJs(await decorate(await db.film.findMany({ where })), sort);
+  const all = rankInJs(await summariseFilms(await db.film.findMany({ where })), sort);
   return {
     films: all.slice(skip, skip + PAGE_SIZE),
     total,
@@ -277,6 +284,45 @@ export function aggregateRatings(
     community: averageOverall(ratings),
     count: ratings.length,
     axes,
+  };
+}
+
+/**
+ * The catalogue stated as figures, for the homepage band.
+ *
+ * Four numbers rather than a dashboard: how much there is, how far it
+ * reaches, how far back it goes, and how much of it XINE has actually
+ * written about — that last one being the only honest way to say that
+ * breadth and editorial weight are different things here.
+ */
+export async function catalogueStats() {
+  const [titles, series, reviewed, span, countryRows] = await Promise.all([
+    db.film.count(),
+    db.film.count({ where: { kind: "series" } }),
+    db.film.count({ where: { reviewed: true } }),
+    db.film.aggregate({ _min: { year: true }, _max: { year: true } }),
+    db.film.findMany({
+      where: { originCountry: { not: null } },
+      select: { originCountry: true },
+    }),
+  ]);
+
+  // originCountry is a comma-separated list and the first code is home; a
+  // co-production is counted once, where it is from.
+  const countries = new Set(
+    countryRows
+      .map((row) => row.originCountry?.split(",")[0]?.trim())
+      .filter((code): code is string => Boolean(code)),
+  );
+
+  return {
+    titles,
+    films: titles - series,
+    series,
+    reviewed,
+    countries: countries.size,
+    earliest: span._min.year ?? null,
+    latest: span._max.year ?? null,
   };
 }
 

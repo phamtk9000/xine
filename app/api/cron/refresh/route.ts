@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { fetchCast, fetchFilmDetail, tmdbConfigured } from "@/lib/tmdb";
 import { importCandidates } from "@/lib/import-regions";
+import { syncTrending, syncUpcoming } from "@/lib/ingest";
+import { fetchNextSeason } from "@/lib/tmdb";
 import { personSlug } from "@/lib/slug";
 
 /**
@@ -14,9 +16,14 @@ import { personSlug } from "@/lib/slug";
  * keyed on TMDB ids, so stopping halfway is safe and the next run picks up
  * where this one left off.
  *
- * Two jobs, in priority order:
- *   1. Pull newly-released titles from TMDB in the regions XINE covers.
- *   2. Backfill cast for any title still missing it.
+ * Four jobs, in priority order:
+ *   1. Pull this week's trending titles, so the homepage row has pages to
+ *      link to. First because it is the one job with a visible deadline —
+ *      the row claims "this week" on every visit.
+ *   2. Pull newly-released titles from TMDB in the regions XINE covers.
+ *   3. Refresh the release calendar, whose dates move constantly, and ask
+ *      when running series come back.
+ *   4. Backfill cast for any title still missing it.
  *
  * IMPORTANT: this can only persist anything if DATABASE_URL points at a
  * networked database. On Vercel the filesystem is ephemeral and read-only,
@@ -76,6 +83,9 @@ export async function GET(request: Request) {
   const started = Date.now();
   const spent = () => Date.now() - started;
   const report = {
+    trending: 0,
+    upcoming: 0,
+    seasons: 0,
     added: 0,
     updated: 0,
     credited: 0,
@@ -83,7 +93,19 @@ export async function GET(request: Request) {
     ranOut: false,
   };
 
-  // ---- 1. New titles ------------------------------------------------------
+  // ---- 1. This week's trending -------------------------------------------
+  // A fifth of the budget: forty ids, most of which are already here after
+  // the first run, so in the steady state this costs a handful of calls.
+  try {
+    const trending = await syncTrending({ budgetMs: BUDGET_MS * 0.2 });
+    report.trending = trending.created + trending.updated;
+    report.failed += trending.failed;
+    if (trending.ranOut) report.ranOut = true;
+  } catch {
+    report.failed++;
+  }
+
+  // ---- 2. New titles ------------------------------------------------------
   // One page per region: enough to catch a day's releases without spending
   // the whole budget before any credits get backfilled. The write shape
   // deliberately mirrors scripts/import-tmdb.ts — same stub filter, same
@@ -160,7 +182,58 @@ export async function GET(request: Request) {
     report.failed++;
   }
 
-  // ---- 2. Cast for anything missing it ------------------------------------
+  // ---- 3. The release calendar -------------------------------------------
+  // Dates move, and a calendar showing last month's date for next month's
+  // film is worse than no calendar. Cheap in the steady state: the ids are
+  // already here, so this is mostly re-reads.
+  try {
+    const upcoming = await syncUpcoming({
+      pages: 2,
+      budgetMs: BUDGET_MS * 0.2,
+    });
+    report.upcoming = upcoming.created + upcoming.updated;
+    report.failed += upcoming.failed;
+    if (upcoming.ranOut) report.ranOut = true;
+  } catch {
+    report.failed++;
+  }
+
+  // ---- 3b. When running series come back ----------------------------------
+  // Only the series whose stored date has passed or was never set, oldest
+  // first, so a full catalogue is covered over several days rather than in
+  // one invocation that would blow the budget on its own.
+  try {
+    const stale = await db.film.findMany({
+      where: {
+        kind: "series",
+        tmdbId: { not: null },
+        OR: [{ nextSeasonAt: null }, { nextSeasonAt: { lt: new Date() } }],
+      },
+      orderBy: { tmdbVotes: "desc" },
+      select: { id: true, tmdbId: true },
+      take: 40,
+    });
+
+    for (const show of stale) {
+      if (spent() > BUDGET_MS * 0.85) {
+        report.ranOut = true;
+        break;
+      }
+      const next = await fetchNextSeason(show.tmdbId!);
+      await db.film.update({
+        where: { id: show.id },
+        data: {
+          nextSeason: next?.season ?? null,
+          nextSeasonAt: next?.airsAt ?? null,
+        },
+      });
+      if (next) report.seasons++;
+    }
+  } catch {
+    report.failed++;
+  }
+
+  // ---- 4. Cast for anything missing it ------------------------------------
   const missing = await db.film.findMany({
     where: { tmdbId: { not: null }, credits: { none: {} } },
     select: { id: true, tmdbId: true, kind: true },
