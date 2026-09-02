@@ -15,6 +15,9 @@ import { WatchedCorridor } from "@/components/watched-corridor";
 import { readingFor } from "@/lib/archetype-members";
 import { ArchetypeCard } from "@/components/archetype-card";
 import { RevealGroup } from "@/components/reveal-group";
+import { Avatar } from "@/components/avatar";
+import { FollowButton } from "@/components/follow-button";
+import { db } from "@/lib/db";
 import { CountUp } from "@/components/count-up";
 import { countriesWatched } from "@/lib/geography";
 import { tasteNeighbours } from "@/lib/neighbours";
@@ -53,6 +56,18 @@ export default async function ProfilePage({
 
   const { user, stats } = profile;
   const isMe = viewer?.id === user.id;
+
+  // Following is two facts: how many people follow them, and whether the
+  // reader is one of them. Both in one round trip.
+  const [followers, followingCount, mine] = await Promise.all([
+    db.follow.count({ where: { followingId: user.id } }),
+    db.follow.count({ where: { followerId: user.id } }),
+    viewer && !isMe
+      ? db.follow.count({
+          where: { followerId: viewer.id, followingId: user.id },
+        })
+      : Promise.resolve(0),
+  ]);
 
   const axisAverages = Object.fromEntries(
     AXES.map(({ key }) => [key, averageAxis(user.ratings, key)]),
@@ -97,17 +112,34 @@ export default async function ProfilePage({
     <>
       <header className="border-b border-line py-14 sm:py-20">
         <Container>
-          <p className="label">@{user.username}</p>
-          <div className="mt-4 flex flex-wrap items-end justify-between gap-6">
-            <h1 className="font-display text-5xl leading-none tracking-tight sm:text-7xl">
-              {user.displayName}&rsquo;s cinema
-            </h1>
-            {isMe && (
-              <form action={signOut}>
-                <button type="submit" className="label hover:text-accent">
-                  Sign out
-                </button>
-              </form>
+          <div className="flex flex-wrap items-end justify-between gap-6">
+            <div className="flex items-center gap-5">
+              <Avatar user={user} size={72} className="shrink-0" />
+              <div>
+                <p className="label">@{user.username}</p>
+                <h1 className="mt-2 font-display text-5xl leading-none tracking-tight sm:text-7xl">
+                  {user.displayName}&rsquo;s cinema
+                </h1>
+              </div>
+            </div>
+            {isMe ? (
+              <div className="flex items-center gap-5">
+                <Link href="/settings" className="label hover:text-paper">
+                  Edit profile
+                </Link>
+                <form action={signOut}>
+                  <button type="submit" className="label hover:text-accent">
+                    Sign out
+                  </button>
+                </form>
+              </div>
+            ) : (
+              <FollowButton
+                username={user.username}
+                initial={mine > 0}
+                signedIn={!!viewer}
+                followers={followers}
+              />
             )}
           </div>
 
@@ -126,6 +158,8 @@ export default async function ProfilePage({
             />
             <Stat label="Reviews" count={stats.reviews} />
             <Stat label="Lists" count={stats.lists} />
+            <Stat label="Followers" count={followers} />
+            <Stat label="Following" count={followingCount} />
             <Stat
               label="Favourite genre"
               value={stats.favouriteGenre ?? "—"}
@@ -162,7 +196,7 @@ export default async function ProfilePage({
                         <Link
                           key={project.id}
                           href={`/create/projects/${project.id}`}
-                          className="group block rounded-xl border border-line p-6 transition-colors hover:border-line-bright"
+                          className="group block rounded-[4px] border border-line p-6 transition-colors hover:border-line-bright"
                         >
                           <div className="flex items-center gap-3">
                             <span className="label !text-gold">
@@ -290,7 +324,7 @@ export default async function ProfilePage({
               />
             )}
 
-            <div className="rounded-xl border border-line p-6">
+            <div className="rounded-[4px] border border-line p-6">
               <p className="label">Taste DNA</p>
               {stats.watched === 0 ? (
                 <p className="mt-4 text-sm text-muted">
@@ -314,7 +348,7 @@ export default async function ProfilePage({
             </div>
 
             {user.lists.length > 0 && (
-              <div className="rounded-xl border border-line p-6">
+              <div className="rounded-[4px] border border-line p-6">
                 <p className="label">Lists</p>
                 <ul className="mt-4 space-y-3">
                   {user.lists.map((list) => (
@@ -335,7 +369,7 @@ export default async function ProfilePage({
             )}
 
             {user.ratings.length > 0 && (
-              <div className="rounded-xl border border-line p-6">
+              <div className="rounded-[4px] border border-line p-6">
                 <p className="label">Latest ratings</p>
                 <ul className="mt-4 space-y-3">
                   {user.ratings.slice(0, 8).map((rating) => (
@@ -412,7 +446,7 @@ export default async function ProfilePage({
                 <li key={n.username}>
                   <Link
                     href={`/community/${n.username}`}
-                    className="group block h-full rounded-xl border border-line p-6 transition-colors hover:border-faint"
+                    className="group block h-full rounded-[4px] border border-line p-6 transition-colors hover:border-faint"
                   >
                     <div className="flex items-baseline justify-between gap-3">
                       <p className="font-display text-2xl leading-tight transition-colors group-hover:text-gold">

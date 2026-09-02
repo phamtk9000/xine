@@ -18,6 +18,7 @@ export type SessionUser = {
   username: string;
   displayName: string;
   email: string;
+  avatar: string | null;
 };
 
 export async function hashPassword(password: string) {
@@ -63,7 +64,13 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
 
     const user = await db.user.findUnique({
       where: { id },
-      select: { id: true, username: true, displayName: true, email: true },
+      select: {
+        id: true,
+        username: true,
+        displayName: true,
+        email: true,
+        avatar: true,
+      },
     });
     return user;
   } catch {

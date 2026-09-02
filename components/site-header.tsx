@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { Avatar } from "@/components/avatar";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import type { SessionUser } from "@/lib/session";
 
 const NAV = [
   { href: "/films", label: "Films" },
+  { href: "/calendar", label: "Calendar" },
   { href: "/journal", label: "Journal" },
   { href: "/lists", label: "Lists" },
   { href: "/community", label: "Community" },
@@ -54,7 +56,7 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
         <div className="ml-auto flex items-center gap-3">
           <Link
             href="/create/pitch"
-            className="hidden rounded-full bg-accent px-5 py-2 text-[0.8125rem] font-medium text-paper transition-transform hover:-translate-y-px sm:block"
+            className="hidden rounded-[3px] bg-accent px-4 py-2.5 font-sans text-[0.625rem] font-medium tracking-[0.14em] text-paper uppercase transition-transform hover:-translate-y-px sm:block"
           >
             Pitch Your Film →
           </Link>
@@ -69,8 +71,9 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
               </Link>
               <Link
                 href={`/community/${user.username}`}
-                className="label hidden transition-colors hover:text-paper md:block"
+                className="label hidden items-center gap-2.5 transition-colors hover:text-paper md:flex"
               >
+                <Avatar user={user} size={22} />
                 {user.displayName}
               </Link>
             </>
@@ -112,7 +115,7 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
               <Link
                 href="/create/pitch"
                 onClick={close}
-                className="rounded-full bg-accent px-5 py-2 text-[0.8125rem] font-medium text-paper"
+                className="rounded-[3px] bg-accent px-4 py-2.5 font-sans text-[0.625rem] font-medium tracking-[0.14em] text-paper uppercase"
               >
                 Pitch Your Film →
               </Link>
@@ -124,10 +127,16 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
               <Link
                 href={user ? `/community/${user.username}` : "/sign-in"}
                 onClick={close}
-                className="label px-1"
+                className="label flex items-center gap-2.5 px-1"
               >
+                {user && <Avatar user={user} size={22} />}
                 {user ? user.displayName : "Sign in"}
               </Link>
+              {user && (
+                <Link href="/settings" onClick={close} className="label px-1">
+                  Edit profile
+                </Link>
+              )}
             </div>
           </nav>
         </div>

@@ -113,13 +113,37 @@ export async function getProfile(username: string) {
 
 export type Profile = NonNullable<Awaited<ReturnType<typeof getProfile>>>;
 
-/** The site-wide activity feed. */
-export async function recentActivity(take = 40) {
+/**
+ * The activity feed.
+ *
+ * `followedBy` narrows it to the people one member has chosen to follow,
+ * which is the whole reason following exists — a global feed is a firehose
+ * that gets less useful as the site grows, and this is the same query with
+ * one clause. Returns nothing when they follow nobody, and the caller shows
+ * the empty state rather than silently falling back to everyone: a feed that
+ * quietly ignores your choices teaches you not to make them.
+ */
+export async function recentActivity(
+  take = 40,
+  options: { followedBy?: string } = {},
+) {
+  const following = options.followedBy
+    ? (
+        await db.follow.findMany({
+          where: { followerId: options.followedBy },
+          select: { followingId: true },
+        })
+      ).map((row) => row.followingId)
+    : null;
+
   return db.activity.findMany({
+    where: following ? { userId: { in: following } } : {},
     orderBy: { createdAt: "desc" },
     take,
     include: {
-      user: { select: { username: true, displayName: true } },
+      user: {
+        select: { username: true, displayName: true, avatar: true },
+      },
       film: { select: { slug: true, title: true, year: true, director: true } },
     },
   });
@@ -137,6 +161,7 @@ export async function listMembers() {
   return users.map((user) => ({
     username: user.username,
     displayName: user.displayName,
+    avatar: user.avatar,
     bio: user.bio,
     location: user.location,
     watched: user.ratings.length,

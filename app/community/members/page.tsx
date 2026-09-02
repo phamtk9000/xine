@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { Container, PageHeader } from "@/components/ui";
 import { listMembers } from "@/lib/profile";
+import { Avatar } from "@/components/avatar";
 
 export const metadata: Metadata = { title: "Members" };
 
@@ -22,12 +23,17 @@ export default async function MembersPage() {
             <Link
               key={member.username}
               href={`/community/${member.username}`}
-              className="group rounded-xl border border-line p-6 transition-colors hover:border-line-bright"
+              className="group rounded-[4px] border border-line p-6 transition-colors hover:border-line-bright"
             >
-              <p className="font-display text-3xl leading-none transition-colors group-hover:text-gold">
-                {member.displayName}
-              </p>
-              <p className="label mt-2">@{member.username}</p>
+              <div className="flex items-center gap-4">
+                <Avatar user={member} size={52} className="shrink-0" />
+                <div className="min-w-0">
+                  <p className="truncate font-display text-2xl leading-tight transition-colors group-hover:text-gold sm:text-3xl">
+                    {member.displayName}
+                  </p>
+                  <p className="label mt-1">@{member.username}</p>
+                </div>
+              </div>
               {member.bio && (
                 <p className="mt-4 text-sm leading-relaxed text-muted">
                   {member.bio}

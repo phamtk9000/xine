@@ -3,6 +3,9 @@ import type { Metadata } from "next";
 import { ButtonLink, Container, PageHeader, relativeTime } from "@/components/ui";
 import { listMembers, recentActivity } from "@/lib/profile";
 import { parseJson } from "@/lib/serialize";
+import { getCurrentUser } from "@/lib/session";
+import { Avatar } from "@/components/avatar";
+import { db } from "@/lib/db";
 
 export const metadata: Metadata = {
   title: "Community",
@@ -20,9 +23,21 @@ const VERBS: Record<string, string> = {
   pitched: "started a film",
 };
 
-export default async function CommunityPage() {
+export default async function CommunityPage({
+  searchParams,
+}: PageProps<"/community">) {
+  const params = await searchParams;
+  const wantsFollowing =
+    (Array.isArray(params.feed) ? params.feed[0] : params.feed) === "following";
+
+  const viewer = await getCurrentUser();
+  const followingCount = viewer
+    ? await db.follow.count({ where: { followerId: viewer.id } })
+    : 0;
+  const following = wantsFollowing && !!viewer;
+
   const [activity, members] = await Promise.all([
-    recentActivity(50),
+    recentActivity(50, following ? { followedBy: viewer!.id } : {}),
     listMembers(),
   ]);
 
@@ -38,7 +53,55 @@ export default async function CommunityPage() {
       <Container className="py-14">
         <div className="grid gap-14 lg:grid-cols-[1fr_20rem]">
           <section>
-            <h2 className="label border-b border-line pb-3">Recent activity</h2>
+            <div className="flex flex-wrap items-baseline justify-between gap-4 border-b border-line pb-3">
+              <h2 className="label">
+                {following ? "From people you follow" : "Recent activity"}
+              </h2>
+              {viewer && (
+                <div className="flex items-center gap-4">
+                  <Link
+                    href="/community"
+                    className={`label transition-colors hover:text-paper ${
+                      following ? "" : "!text-paper"
+                    }`}
+                  >
+                    Everyone
+                  </Link>
+                  <Link
+                    href="/community?feed=following"
+                    className={`label transition-colors hover:text-paper ${
+                      following ? "!text-paper" : ""
+                    }`}
+                  >
+                    Following
+                    <span className="readout ml-2 text-faint">
+                      {followingCount}
+                    </span>
+                  </Link>
+                </div>
+              )}
+            </div>
+            {following && activity.length === 0 && (
+              <p className="py-10 text-sm leading-relaxed text-muted">
+                Nobody you follow has done anything yet. Find people whose
+                taste is close to yours on{" "}
+                <Link
+                  href="/community/members"
+                  className="text-gold underline underline-offset-4"
+                >
+                  the members page
+                </Link>
+                , or read{" "}
+                <Link
+                  href="/community"
+                  className="text-gold underline underline-offset-4"
+                >
+                  everyone
+                </Link>
+                .
+              </p>
+            )}
+
             <ul className="mt-2">
               {activity.map((item) => {
                 const payload = parseJson<{ overall?: number; title?: string }>(
@@ -52,8 +115,9 @@ export default async function CommunityPage() {
                   >
                     <Link
                       href={`/community/${item.user.username}`}
-                      className="font-medium transition-colors hover:text-gold"
+                      className="flex items-center gap-2 font-medium transition-colors hover:text-gold"
                     >
+                      <Avatar user={item.user} size={20} />
                       {item.user.displayName}
                     </Link>
                     <span className="text-muted">
