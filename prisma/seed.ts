@@ -12,6 +12,7 @@ import {
   SEED_USERS,
 } from "./seed-data/community";
 import { STAGES } from "../lib/stages";
+import { genreCsv } from "../lib/genres";
 
 /** Spread seeded activity across the last few weeks so the feed reads plausibly. */
 function daysAgo(n: number, hour = 20): Date {
@@ -28,8 +29,12 @@ async function main() {
   await db.trailerBrief.deleteMany();
   await db.projectStage.deleteMany();
   await db.project.deleteMany();
-  await db.listEntry.deleteMany();
-  await db.filmList.deleteMany();
+  // Lists on an editorial shelf survive a re-seed. They are built by
+  // `npm run lists:seed`, which resolves 344 titles against TMDB over several
+  // minutes; wiping them here would mean paying for that again every time
+  // somebody reset the demo data. Their entries go with them — the cascade
+  // on FilmList takes care of the rest.
+  await db.filmList.deleteMany({ where: { collection: null } });
   await db.watchlistItem.deleteMany();
   await db.review.deleteMany();
   await db.rating.deleteMany();
@@ -51,7 +56,10 @@ async function main() {
         country: film.country,
         language: film.language,
         synopsis: film.synopsis,
-        genres: film.genres.join(", "),
+        // The editorial films were written with their own labels (Noir,
+        // Epic, Courtroom Drama); they go through the same house vocabulary
+        // as everything else, or a re-seed would put the strays back.
+        genres: genreCsv(film.genres),
         cast: film.cast.join(", "),
         cinematographer: film.cinematographer ?? null,
         composer: film.composer ?? null,
