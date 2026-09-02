@@ -24,6 +24,17 @@ model User {
   displayName  String
   bio          String?
   location     String?
+  /// The member's picture, as a data URI.
+  ///
+  /// Stored inline rather than as a path or a bucket URL, because there is
+  /// no object store here and the filesystem is ephemeral in production —
+  /// an uploaded file written to disk would vanish with the invocation that
+  /// wrote it. The browser shrinks the image to 256px and re-encodes it
+  /// before it is ever sent (see components/avatar-field.tsx), so a row is
+  /// on the order of ten kilobytes, and the server refuses anything larger.
+  /// Null means the generated plate, which is a real design rather than a
+  /// placeholder.
+  avatar       String?
   createdAt    DateTime @default(now())
 
   ratings   Rating[]
@@ -34,6 +45,28 @@ model User {
   projects  Project[]
   briefs    TrailerBrief[]
   activity  Activity[]
+  /// Who this member follows, and who follows them.
+  following Follow[]       @relation("follower")
+  followers Follow[]       @relation("following")
+}
+
+/// One member following another.
+///
+/// Deliberately one row per direction rather than a symmetric "friendship":
+/// following here is a reading choice, not a relationship, and the whole
+/// point of taste neighbours is that the interesting follows are usually not
+/// reciprocated.
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followingId])
 }
 
 model Film {
@@ -43,7 +76,7 @@ model Film {
   /// one — so the pair is what identifies a title.
   tmdbId        Int?
   /// "film" or "series". Both live here rather than in separate tables: they
-  /// are rated on the same six axes, appear in the same lists, and the whole
+  /// are rated on the same five axes, appear in the same lists, and the whole
   /// editorial argument treats them as one medium.
   kind          String    @default("film")
   seasons       Int?
@@ -85,6 +118,17 @@ model Film {
   /// are never confused for each other.
   tmdbScore     Float?
   tmdbVotes     Int       @default(0)
+
+  /// The next season to air, for series that are already running.
+  ///
+  /// The calendar reads `releasedAt` for a first appearance, which catches a
+  /// brand new series and misses the thing people are actually waiting for —
+  /// season four of something they finished last year. TMDB reports this on
+  /// the series itself (`next_episode_to_air`), so it lives here rather than
+  /// in a table of its own: one series has exactly one *next* season, and the
+  /// ones behind it are history the calendar has no use for.
+  nextSeason    Int?
+  nextSeasonAt  DateTime?
 
   ratings        Rating[]
   reviews        Review[]
@@ -223,11 +267,23 @@ model FilmList {
   title       String
   description String
   editorial   Boolean  @default(false)
+  /// Which editorial shelf this list sits on — the slug of a collection in
+  /// prisma/seed-data/collections.ts ("crime", "love-emotion"). Null for
+  /// community lists and for one-off editorial lists that belong to no
+  /// shelf, which is why it is a column here rather than its own table: a
+  /// collection has a name and an order and nothing else, and seventy-two
+  /// lists do not justify a join.
+  collection  String?
+  /// Where the list sits within its collection. Lists are otherwise ordered
+  /// newest-first, which would shuffle a shelf every time one was re-seeded.
+  position    Int      @default(0)
   ownerId     String?
   createdAt   DateTime @default(now())
 
   owner   User?       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   entries ListEntry[]
+
+  @@index([collection, position])
 }
 
 model ListEntry {
