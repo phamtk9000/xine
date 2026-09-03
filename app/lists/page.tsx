@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { Poster, plateColors } from "@/components/poster";
+import { Poster } from "@/components/poster";
+import { Mosaic } from "@/components/list-mosaic";
 import {
   ButtonLink,
   Container,
@@ -223,21 +224,12 @@ export default async function ListsPage() {
  * holes.
  */
 function ListCard({ list }: { list: ListWithEntries }) {
-  const tiles = list.entries.slice(0, 4);
-
   return (
     <Link href={`/lists/${list.slug}`} className="group flex gap-5">
-      <div className="grid aspect-square w-32 shrink-0 grid-cols-2 grid-rows-2 gap-px overflow-hidden rounded-[4px] border border-line bg-line sm:w-40">
-        {Array.from({ length: 4 }, (_, i) => tiles[i]).map((entry, i) =>
-          entry ? (
-            <span key={entry.id} className="relative block overflow-hidden">
-              <PosterTile film={entry.film} />
-            </span>
-          ) : (
-            <span key={`empty-${i}`} className="block bg-ink-raised" />
-          ),
-        )}
-      </div>
+      <Mosaic
+        films={list.entries.map((entry) => entry.film)}
+        className="w-32 shrink-0 sm:w-40"
+      />
 
       <div className="min-w-0 flex-1 self-center">
         <h3 className="font-display text-2xl leading-tight transition-colors group-hover:text-gold sm:text-3xl">
@@ -260,33 +252,5 @@ function ListCard({ list }: { list: ListWithEntries }) {
         </p>
       </div>
     </Link>
-  );
-}
-
-/** One quarter of a mosaic: a poster cropped square, or its plate. */
-function PosterTile({
-  film,
-}: {
-  film: { slug: string; title: string; posterUrl: string | null };
-}) {
-  if (!film.posterUrl) {
-    const { from, to } = plateColors(film.slug);
-    return (
-      <span
-        className="block h-full w-full"
-        style={{ background: `linear-gradient(150deg, ${from}, ${to})` }}
-        aria-hidden
-      />
-    );
-  }
-
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={film.posterUrl}
-      alt=""
-      loading="lazy"
-      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
-    />
   );
 }

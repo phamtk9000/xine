@@ -7,6 +7,7 @@ import { RatingSplit } from "@/components/rating-split";
 import { MastheadBackdrop } from "@/components/masthead-backdrop";
 import { ImageShade } from "@/components/image-shade";
 import { RevealGroup } from "@/components/reveal-group";
+import { Mosaic } from "@/components/list-mosaic";
 import { TitleSequence } from "@/components/title-sequence";
 import { VerdictBand } from "@/components/verdict-band";
 import {
@@ -36,7 +37,8 @@ export default async function HomePage() {
       // catalogue and split by whether it is out yet — see lib/trending.
       weeklyTrending({ take: 10, comingTake: 5 }),
       listFilms({ sort: "new", take: 16 }),
-      // Every shelf, counted. No posters: the lists index below is type only.
+      // Every shelf, counted, with the first few films of each list so the
+      // covers below have something to be made of.
       db.filmList.findMany({
         where: { collection: { not: null } },
         orderBy: [{ collection: "asc" }, { position: "asc" }],
@@ -44,6 +46,13 @@ export default async function HomePage() {
           id: true,
           collection: true,
           _count: { select: { entries: true } },
+          entries: {
+            orderBy: { position: "asc" },
+            take: 4,
+            select: {
+              film: { select: { slug: true, title: true, posterUrl: true } },
+            },
+          },
         },
       }),
       catalogueStats(),
@@ -53,10 +62,26 @@ export default async function HomePage() {
   // The ten shelves with their weight, in house order.
   const shelves = SHELVES.map((shelf) => {
     const mine = shelfLists.filter((list) => list.collection === shelf.slug);
+
+    // One poster per list rather than four from the first, so a cover
+    // samples the whole shelf — and never the same film twice, because the
+    // lists overlap heavily on purpose (three of the eight crime lists open
+    // with The Godfather, and a cover of four Godfathers is a stutter).
+    const used = new Set<string>();
+    const cover = mine
+      .map((list) => {
+        const pick = list.entries.find((entry) => !used.has(entry.film.slug));
+        if (pick) used.add(pick.film.slug);
+        return pick?.film ?? null;
+      })
+      .filter((film): film is NonNullable<typeof film> => film !== null)
+      .slice(0, 4);
+
     return {
       ...shelf,
       lists: mine.length,
       films: mine.reduce((sum, list) => sum + list._count.entries, 0),
+      cover,
     };
   }).filter((shelf) => shelf.lists > 0);
 
@@ -283,9 +308,12 @@ export default async function HomePage() {
         </Container>
       </section>
 
-      {/* Editorial lists, as an index rather than three cards.
-          Ten shelves fit here as type; three of them fit as posters, and
-          the posters were the third row of artwork on this page. */}
+      {/* Editorial lists, as covers rather than an index.
+          The type-only version read as a table of contents — ten headings
+          and a count — which is a thing you scan for a name you already
+          know. Ten shelves are not names anybody arrives with, so they get
+          the shape a playlist has everywhere else: a square of artwork that
+          says what is on the shelf before the words do. */}
       <section className="border-b border-line">
         <Container className="py-14">
           <SectionHeading
@@ -296,30 +324,21 @@ export default async function HomePage() {
           />
           <ol
             id="lists-index"
-            className="grid gap-x-12 border-t border-line md:grid-cols-2"
+            className="grid grid-cols-2 gap-x-5 gap-y-9 sm:grid-cols-3 lg:grid-cols-5"
           >
-            {shelves.map((shelf, i) => (
-              <li key={shelf.slug} className="border-b border-line">
-                <Link
-                  href={`/collections/${shelf.slug}`}
-                  className="group grid grid-cols-[2.5rem_1fr] items-baseline gap-x-4 py-5"
-                >
-                  <span className="font-sans text-[0.625rem] text-faint tabular-nums">
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
-                  <span>
-                    <span className="flex flex-wrap items-baseline justify-between gap-x-4">
-                      <span className="font-display text-2xl leading-tight transition-colors group-hover:text-gold">
-                        {shelf.name}
-                      </span>
-                      <span className="label shrink-0">
-                        {shelf.lists} lists · {shelf.films} films
-                      </span>
-                    </span>
-                    <span className="mt-1.5 block max-w-md text-sm leading-relaxed text-muted">
-                      {shelf.blurb}
-                    </span>
-                  </span>
+            {shelves.map((shelf) => (
+              <li key={shelf.slug}>
+                <Link href={`/collections/${shelf.slug}`} className="group block">
+                  <Mosaic films={shelf.cover} className="w-full" />
+                  <h3 className="mt-3 font-display text-xl leading-tight transition-colors group-hover:text-gold">
+                    {shelf.name}
+                  </h3>
+                  <p className="label mt-1.5 !text-[0.5625rem]">
+                    {shelf.lists} lists · {shelf.films} films
+                  </p>
+                  <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-faint">
+                    {shelf.blurb}
+                  </p>
                 </Link>
               </li>
             ))}
