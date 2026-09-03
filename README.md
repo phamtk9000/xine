@@ -249,6 +249,13 @@ npm run series:seasons -- --limit 100
 Signed in, the calendar also opens with what is landing off your own
 watchlist this month, marks those rows, and offers them as a filter.
 
+The whole year stays filled by the daily cron, which runs two passes: the
+next two months, where dates actually move, and one further month chosen by
+the date, which walks the rest of the horizon roughly twice a month. The
+popularity floor relaxes with distance — February 2027 has 107 titles on
+TMDB and exactly one above the near-term bar, so holding that bar out there
+would filter everything rather than filter noise.
+
 Discover is queried by popularity inside a date window rather than by date:
 there are three thousand films dated in the next nine months, and sorted by
 date the first hundred are regional uploads nobody is waiting for. The
@@ -300,6 +307,19 @@ number colour"; only the value changed.
 
 Two utilities carry most of the register: `readout` (mono, tabular) for any
 number the interface reports, and `ticked` for corner marks on a panel.
+
+The ambient wash is not fixed. `components/image-shade.tsx` samples whatever
+artwork is on the page — a film's backdrop, the masthead's current plate, a
+shelf's opening poster — and sets `--shade`, which the body gradients and
+both band utilities read. Journal articles skip the sampling and hand over
+the `accent` their frontmatter already declares, because a colour a person
+chose beats one inferred from pixels. Pages with no artwork (the catalogue,
+the calendar, community, settings) keep the house hues through the fallback
+in each `var()`.
+
+Sampling weights by saturation and drops near-black and near-white pixels
+first: the straight average of a film still is mud, because every frame
+averages to brown.
 
 ## Moving off SQLite
 

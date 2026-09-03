@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { Poster } from "@/components/poster";
 import { Container, PageHeader } from "@/components/ui";
+import { ImageShade } from "@/components/image-shade";
 import { db } from "@/lib/db";
 import { SHELVES, findShelf } from "@/lib/collections";
 
@@ -80,6 +81,10 @@ export default async function CollectionPage({
         }
       />
 
+      {/* Each shelf is lit by the first thing on it, so Crime and Comfort
+          are not the same room. */}
+      <ImageShade selector="#shade-source img" />
+
       <Container className="py-6">
         {lists.map((list, index) => (
           <section
@@ -113,9 +118,10 @@ export default async function CollectionPage({
             {/* Scrolls sideways on a phone rather than shrinking eight
                 posters to thumbnails nobody can read. */}
             <ul className="-mx-5 flex gap-4 overflow-x-auto px-5 pb-2 lg:mx-0 lg:grid lg:grid-cols-8 lg:overflow-visible lg:px-0">
-              {list.entries.map((entry) => (
+              {list.entries.map((entry, i) => (
                 <li
                   key={entry.id}
+                  id={index === 0 && i === 0 ? "shade-source" : undefined}
                   className="w-28 shrink-0 lg:w-auto lg:shrink"
                 >
                   <Link href={`/films/${entry.film.slug}`} className="group block">

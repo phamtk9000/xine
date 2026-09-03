@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Shade } from "@/components/image-shade";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { Container, KickerLabel, formatDate } from "@/components/ui";
@@ -65,6 +66,11 @@ export default async function ArticlePage({
           : undefined
       }
     >
+      {/* The page's ambient wash comes from the accent this piece declared
+          in its frontmatter — a colour a person chose, which beats anything
+          sampling the artwork could infer. */}
+      {article.accent && <Shade color={article.accent} />}
+
       <header className="border-b border-line py-14 sm:py-20">
         <Container>
           <div className="art-lede max-w-4xl">

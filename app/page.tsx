@@ -5,6 +5,7 @@ import { FilmMarquee } from "@/components/film-marquee";
 import { TrendingCoverflow } from "@/components/trending-coverflow";
 import { RatingSplit } from "@/components/rating-split";
 import { MastheadBackdrop } from "@/components/masthead-backdrop";
+import { ImageShade } from "@/components/image-shade";
 import { RevealGroup } from "@/components/reveal-group";
 import { TitleSequence } from "@/components/title-sequence";
 import { VerdictBand } from "@/components/verdict-band";
@@ -113,6 +114,9 @@ export default async function HomePage() {
 
       {/* Masthead */}
       <section className="relative overflow-hidden border-b border-line">
+        {/* Whichever key art is up right now lights the whole page, and the
+            sample is re-taken when the plate crossfades. */}
+        <ImageShade selector=".masthead-plate.is-active" />
         <MastheadBackdrop
           images={[
             { src: "/hero.png", alt: "" },

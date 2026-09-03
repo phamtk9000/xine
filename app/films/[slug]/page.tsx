@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { Backdrop, Poster } from "@/components/poster";
+import { ImageShade } from "@/components/image-shade";
 import { AxisBreakdown, AxisSpark, ScoreDial } from "@/components/score";
 import { SealBadge } from "@/components/seal";
 import { CastAccordion } from "@/components/cast-accordion";
@@ -91,7 +92,11 @@ export default async function FilmPage({ params }: PageProps<"/films/[slug]">) {
   return (
     <article>
       <div className="relative">
-        <Backdrop film={film} className="absolute inset-0 h-full w-full" />
+        <span id="shade-source" className="contents">
+          <Backdrop film={film} className="absolute inset-0 h-full w-full" />
+        </span>
+        {/* The page takes its light from the film's own frame. */}
+        <ImageShade selector="#shade-source img" />
         <Container className="relative py-14 sm:py-20">
           <div className="grid gap-10 lg:grid-cols-[15rem_1fr]">
             <div className="w-40 sm:w-52 lg:w-full">

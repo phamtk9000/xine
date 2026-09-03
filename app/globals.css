@@ -115,20 +115,29 @@ html {
  * above or below it. */
 body {
   background-color: var(--color-ink);
+  /* `--shade` is set by components/image-shade.tsx from whatever artwork is
+     on the page, so a film page is lit by its own frame and In the Mood for
+     Love and The Lighthouse stop sharing the same weather. Pages with no
+     art fall back to the house hues named here. */
   background-image:
     radial-gradient(
       120rem 60rem at 6% -12%,
-      color-mix(in srgb, var(--color-signal) 18%, transparent) 0%,
+      color-mix(in srgb, var(--shade, var(--color-signal)) 20%, transparent) 0%,
       transparent 62%
     ),
     radial-gradient(
       95rem 55rem at 112% 6%,
-      color-mix(in srgb, var(--color-violet) 17%, transparent) 0%,
+      color-mix(
+          in srgb,
+          var(--shade-secondary, var(--color-violet)) 17%,
+          transparent
+        )
+        0%,
       transparent 58%
     ),
     radial-gradient(
       70rem 40rem at 50% 108%,
-      color-mix(in srgb, var(--color-accent) 11%, transparent) 0%,
+      color-mix(in srgb, var(--shade, var(--color-accent)) 12%, transparent) 0%,
       transparent 60%
     ),
     linear-gradient(
@@ -176,7 +185,7 @@ body {
   background-image: linear-gradient(
     to bottom,
     transparent 0%,
-    color-mix(in srgb, var(--color-signal) 9%, transparent) 55%,
+    color-mix(in srgb, var(--shade, var(--color-signal)) 10%, transparent) 55%,
     color-mix(in srgb, var(--color-ink-sunk) 70%, transparent) 100%
   );
 }
@@ -186,7 +195,7 @@ body {
 @utility lifted {
   background-image: linear-gradient(
     to bottom,
-    color-mix(in srgb, var(--color-violet) 11%, transparent) 0%,
+    color-mix(in srgb, var(--shade, var(--color-violet)) 12%, transparent) 0%,
     transparent 45%
   );
 }
