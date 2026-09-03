@@ -4,14 +4,21 @@ import Link from "next/link";
 import * as React from "react";
 import { DeckStack, type StackCard } from "@/components/deck-stack";
 import { WatchQuestions, type Answers } from "@/components/watch-questions";
-import { REASONS, type ReasonKey } from "@/lib/rec/feedback";
+import { FineTune } from "@/components/fine-tune";
+import {
+  ATTRACTIONS,
+  REASONS,
+  type AttractionKey,
+  type ReasonKey,
+} from "@/lib/rec/feedback";
 import {
   describeEvening,
   dropChip,
+  giveAttraction,
+  giveReason,
   pickForMe,
   refine,
   respond,
-  giveReason,
   chooseFinalist,
   type DeckPayload,
   type PublicCard,
@@ -47,6 +54,7 @@ export function WatchSession({
   const [busy, setBusy] = React.useState(false);
   const [thinking, setThinking] = React.useState(false);
   const [askingAbout, setAskingAbout] = React.useState<StackCard | null>(null);
+  const [askingWhy, setAskingWhy] = React.useState<StackCard | null>(null);
   const [chosen, setChosen] = React.useState<PublicCard | null>(null);
   /**
    * How many verdicts had been given when the finalists were last waved away.
@@ -98,6 +106,7 @@ export function WatchSession({
     if (!next) return;
     setDeck(next);
     if (verdict === "no" && next.askReason) setAskingAbout(card);
+    if (verdict === "yes" && next.askAttraction) setAskingWhy(card);
   }
 
   async function secondaryAction(
@@ -108,6 +117,14 @@ export function WatchSession({
       prev ? { ...prev, cards: prev.cards.filter((row) => row.id !== card.id) } : prev,
     );
     const next = await respond(card.id, verdict);
+    if (next) setDeck(next);
+  }
+
+  async function attraction(key: AttractionKey) {
+    const card = askingWhy;
+    setAskingWhy(null);
+    if (!card) return;
+    const next = await giveAttraction(card.id, key);
     if (next) setDeck(next);
   }
 
@@ -182,6 +199,15 @@ export function WatchSession({
 
         <div className="mt-10 border-t border-line pt-8">
           <WatchQuestions answers={answers} onChange={changeAnswers} disabled={busy} />
+
+          <FineTune
+            fine={answers.fine ?? {}}
+            ending={answers.ending}
+            disabled={busy}
+            onChange={(next) =>
+              changeAnswers({ ...answers, fine: next.fine, ending: next.ending })
+            }
+          />
         </div>
 
         <p className="mt-10 border-t border-line pt-5 text-xs leading-relaxed text-faint">
@@ -225,6 +251,17 @@ export function WatchSession({
                     <>
                       {deck.pool.toLocaleString()} films match
                       {deck.verdicts > 0 && ` · ${deck.verdicts} answered`}
+                      {signedIn && (
+                        <>
+                          {" · "}
+                          <Link
+                            href="/watch/taste"
+                            className="underline underline-offset-2 hover:text-paper"
+                          >
+                            your taste
+                          </Link>
+                        </>
+                      )}
                       {!signedIn && (
                         <>
                           {" · "}
@@ -254,6 +291,33 @@ export function WatchSession({
                 </div>
               }
             />
+
+            {askingWhy && (
+              <div className="mt-8 rounded-[4px] border border-gold/40 bg-gold/5 px-5 py-5">
+                <p className="label !text-gold">
+                  What caught your attention about {askingWhy.title}?
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {ATTRACTIONS.map((option) => (
+                    <button
+                      key={option.key}
+                      type="button"
+                      onClick={() => attraction(option.key)}
+                      className="label rounded-full border border-line px-3 py-1.5 !text-[0.5625rem] transition-colors hover:border-gold hover:!text-gold"
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setAskingWhy(null)}
+                    className="label px-2 py-1.5 !text-[0.5625rem] underline underline-offset-2"
+                  >
+                    Skip
+                  </button>
+                </div>
+              </div>
+            )}
 
             {askingAbout && (
               <div className="mt-8 rounded-[4px] border border-line bg-ink-raised px-5 py-5">

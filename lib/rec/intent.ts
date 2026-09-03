@@ -144,6 +144,23 @@ export type Answers = {
   place?: string;
   /** Direct positions on the dimensions, from the fine-tune sliders. */
   fine?: Vector;
+  /** How they want it to end — read as a mood; see components/fine-tune. */
+  ending?: string;
+};
+
+/**
+ * What an ending means, in dimensions.
+ *
+ * Duplicated from the slider panel rather than imported, because that file is
+ * a client component and this one runs on both sides. The two are small,
+ * fixed, and tested together — which is a better trade than a shared module
+ * that exists only to avoid five lines.
+ */
+const ENDING_INTENT: Record<string, Vector> = {
+  uplifting: { darkness: 0.22, weight: 0.35 },
+  bittersweet: { weight: 0.75, darkness: 0.55 },
+  dark: { darkness: 0.85, weight: 0.75 },
+  ambiguous: { accessibility: 0.75, weirdness: 0.68 },
 };
 
 /** Chips and sliders to an Intent. Pure, so it runs on either side. */
@@ -194,7 +211,13 @@ export function intentFromAnswers(answers: Answers): Intent {
     }
   }
 
-  // The sliders are explicit and beat anything inferred from a chip.
+  if (answers.ending && ENDING_INTENT[answers.ending]) {
+    blend(ENDING_INTENT[answers.ending], 0.7);
+  }
+
+  // The sliders are explicit and beat anything inferred from a chip. Somebody
+  // who has moved a slider has said something more specific than any mood,
+  // and it would be perverse to average their answer with a guess.
   for (const [key, value] of Object.entries(answers.fine ?? {})) {
     if (typeof value === "number") soft[key] = value;
   }
@@ -217,6 +240,7 @@ export function answered(answers: Answers) {
     (answers.length ? 1 : 0) +
     (answers.era ? 1 : 0) +
     (answers.place && answers.place !== "anywhere" ? 1 : 0) +
+    (answers.ending && answers.ending !== "any" ? 1 : 0) +
     (Object.keys(answers.fine ?? {}).length > 0 ? 1 : 0)
   );
 }

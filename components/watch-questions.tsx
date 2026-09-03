@@ -22,6 +22,10 @@ export type Answers = {
   length?: string;
   era?: string;
   place?: string;
+  /** Direct positions from the fine-tune sliders. */
+  fine?: Record<string, number>;
+  /** How they want it to end, read as a mood. */
+  ending?: string;
 };
 
 export function WatchQuestions({
