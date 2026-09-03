@@ -32,11 +32,22 @@ function createClient() {
   // Only remote libsql:// and https:// URLs take a token; a local file:// URL
   // must not be handed one or the client rejects it.
   const remote = url.startsWith("libsql://") || url.startsWith("https://");
-  const authToken = process.env.TURSO_AUTH_TOKEN;
+
+  // The token's name depends on who created it. Set by hand it is
+  // TURSO_AUTH_TOKEN; created by Turso's Vercel integration it inherits
+  // whatever prefix was chosen there, so a project connected with the
+  // prefix TURSO_DATABASE gets TURSO_DATABASE_AUTH_TOKEN instead. Both are
+  // the same secret and there is nothing to be gained from being strict
+  // about which spelling arrived.
+  const authToken =
+    process.env.TURSO_AUTH_TOKEN ??
+    process.env.TURSO_DATABASE_AUTH_TOKEN ??
+    process.env.DATABASE_AUTH_TOKEN;
 
   if (remote && !authToken) {
     throw new Error(
-      "TURSO_DATABASE_URL is set but TURSO_AUTH_TOKEN is missing",
+      "A remote database URL is set but no auth token is — expected " +
+        "TURSO_AUTH_TOKEN, TURSO_DATABASE_AUTH_TOKEN or DATABASE_AUTH_TOKEN",
     );
   }
 
