@@ -93,19 +93,27 @@ const PATH: Required<CorridorPath> = {
 /**
  * The stretch of the journey where a card is a sane thing to point at.
  *
- * Outside it a card is either a 30px chip nobody can hit, or — far worse —
- * so enlarged by the perspective that its box blankets the whole band. Those
+ * Outside it a card is either a chip nobody can hit, or — far worse — so
+ * enlarged by the perspective that its box blankets the whole band. Those
  * near-exit giants are frontmost in the 3D stack, so they swallow every
  * pointer event meant for the cards behind them, and exactly one card in the
  * corridor ends up clickable.
+ *
+ * The window used to close at 0.85, which was too cautious by half: it made
+ * the largest, nearest, most obviously aimed-at cards the only ones that did
+ * not respond. Somebody pointing at the biggest poster on screen and getting
+ * nothing does not conclude that the hit box is conservative — they conclude
+ * the corridor is decoration. At 0.95 the frontmost hittable card is about a
+ * fifth of the band rather than all of it, which leaves the cards behind it
+ * reachable and the obvious target live.
  *
  * `pointer-events` is discretely animatable and inherited, so the keyframes
  * can switch it per card along the path and the anchor inside picks it up.
  * That is the only way to gate on size here: the size is produced by the
  * projection at run time, so no static selector knows about it.
  */
-const HIT_FROM = 0.3;
-const HIT_TO = 0.85;
+const HIT_FROM = 0.22;
+const HIT_TO = 0.95;
 
 /** Sample the path once so the CSS keyframes trace the real curve. */
 function keyframes(dir: 1 | -1, name: string, p: Required<CorridorPath>, interactive = false) {
