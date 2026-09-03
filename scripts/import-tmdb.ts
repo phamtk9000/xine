@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { db } from "../lib/db";
+import { countryName } from "../lib/atlas";
 import { importCandidates, type ImportRegion } from "../lib/import-regions";
 import {
   fetchFilmDetail,
@@ -127,6 +128,8 @@ async function main() {
         existing?.slug ??
         (await uniqueSlug(slugify(detail.title, detail.year), candidate.id));
 
+      const home = detail.originCountry?.split(",")[0] ?? null;
+
       const data = {
         slug,
         kind,
@@ -139,9 +142,15 @@ async function main() {
         year: detail.year,
         runtime: detail.runtime,
         director: detail.director,
-        country: region.label,
+        // The real production country, not the region bucket this film was
+        // paged out of. The bucket is an importer implementation detail —
+        // "Chinese-language", "Middle East & North Africa" — and `country`
+        // is the column the catalogue's country filter reads, so writing
+        // labels there puts a filter option in front of readers that no
+        // film claims to be from.
+        country: home ? countryName(home) : region.label,
         language: detail.language,
-      productionCountries: detail.productionCountries,
+        productionCountries: detail.productionCountries,
         synopsis: detail.synopsis || "No synopsis available yet.",
         genres: detail.genres,
         cast: detail.cast,

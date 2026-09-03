@@ -26,7 +26,7 @@ export const IMPORT_REGIONS: ImportRegion[] = [
     // The deepest catalogue on TMDB by far, so the bar is highest.
     minScore: 7.0,
     minVotes: 900,
-    pages: 12,
+    pages: 20,
     yearFrom: 1950,
   },
   {
@@ -37,7 +37,7 @@ export const IMPORT_REGIONS: ImportRegion[] = [
     // almost nothing, so this takes essentially everything with a pulse.
     minScore: 0,
     minVotes: 10,
-    pages: 8,
+    pages: 10,
     yearFrom: 1950,
   },
   {
@@ -46,7 +46,7 @@ export const IMPORT_REGIONS: ImportRegion[] = [
     countries: ["KR"],
     minScore: 6.5,
     minVotes: 300,
-    pages: 8,
+    pages: 14,
     yearFrom: 1955,
   },
   {
@@ -60,8 +60,94 @@ export const IMPORT_REGIONS: ImportRegion[] = [
     ],
     minScore: 6.7,
     minVotes: 200,
+    pages: 24,
+    yearFrom: 1930,
+  },
+  {
+    key: "jp",
+    label: "Japan",
+    countries: ["JP"],
+    minScore: 6.8,
+    minVotes: 120,
+    pages: 16,
+    yearFrom: 1930,
+  },
+  {
+    key: "cn",
+    label: "Chinese-language",
+    countries: ["CN", "HK", "TW"],
+    minScore: 6.6,
+    minVotes: 80,
     pages: 14,
     yearFrom: 1930,
+  },
+  {
+    key: "in",
+    label: "India",
+    countries: ["IN"],
+    minScore: 6.8,
+    minVotes: 120,
+    pages: 12,
+    yearFrom: 1950,
+  },
+  {
+    key: "latam",
+    label: "Latin America",
+    countries: ["MX", "BR", "AR", "CL", "CO", "PE", "UY", "CU", "VE", "BO"],
+    minScore: 6.7,
+    minVotes: 80,
+    pages: 12,
+    yearFrom: 1950,
+  },
+  {
+    key: "mena",
+    label: "Middle East & North Africa",
+    countries: ["IR", "TR", "IL", "LB", "EG", "MA", "DZ", "TN", "PS", "SY"],
+    // Thinly voted on TMDB even for canonical work — Kiarostami rarely
+    // clears three figures — so the bar is set where the films are, not
+    // where an American release would be.
+    minScore: 6.6,
+    minVotes: 40,
+    pages: 10,
+    yearFrom: 1950,
+  },
+  {
+    key: "sea",
+    label: "Southeast Asia",
+    countries: ["TH", "ID", "PH", "MY", "SG"],
+    minScore: 6.5,
+    minVotes: 40,
+    pages: 10,
+    yearFrom: 1960,
+  },
+  {
+    key: "anz",
+    label: "Australia & New Zealand",
+    countries: ["AU", "NZ"],
+    minScore: 6.7,
+    minVotes: 120,
+    pages: 10,
+    yearFrom: 1950,
+  },
+  {
+    key: "ca",
+    label: "Canada",
+    countries: ["CA"],
+    minScore: 6.7,
+    minVotes: 120,
+    pages: 10,
+    yearFrom: 1950,
+  },
+  {
+    key: "africa",
+    label: "Africa",
+    countries: ["NG", "ZA", "SN", "BF", "ML", "KE", "GH", "ET", "TZ", "CI"],
+    // The thinnest corner of TMDB there is. Ousmane Sembène's entire
+    // filmography sits under fifty votes a title.
+    minScore: 6.0,
+    minVotes: 15,
+    pages: 8,
+    yearFrom: 1960,
   },
 ];
 
