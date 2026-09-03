@@ -1,56 +1,71 @@
 "use client";
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { QUESTIONS } from "@/lib/watch-shape";
 
 /**
- * Four questions, none of them required.
+ * The chips.
  *
- * The answers live in the URL rather than in state, which is doing three
- * jobs at once: the deck below is a server component and reads them without
- * a round trip, the back button walks the reader's own narrowing, and an
- * evening someone liked the shape of is a link they can send to somebody.
+ * Every answer is optional, and leaving one out is not the same as answering
+ * "anything" — it simply does not narrow. Moods combine, because "dark and
+ * beautiful" is a real request and forcing a choice between them would be the
+ * interface arguing with the evening.
  *
- * Pressing a chip that is already on turns it off. There is no Clear button
- * for a single answer and no submit for the set — every press re-draws the
- * deck, because the whole promise is that narrowing is instant and costless.
+ * State lives with the page rather than the URL now. It has to: the deck is
+ * ranked from a server-side session that also holds a typed sentence and a
+ * running drift, and a URL that carried only half of that would be a link
+ * promising an evening it cannot reproduce.
  */
+
+export type Answers = {
+  mood?: string[];
+  party?: string;
+  length?: string;
+  era?: string;
+  place?: string;
+};
 
 export function WatchQuestions({
   answers,
+  onChange,
+  disabled = false,
 }: {
-  answers: Record<string, string | undefined>;
+  answers: Answers;
+  onChange: (next: Answers) => void;
+  disabled?: boolean;
 }) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const params = useSearchParams();
+  function toggle(key: keyof Answers, value: string, multiple?: boolean) {
+    if (multiple) {
+      const current = (answers.mood ?? []) as string[];
+      const next = current.includes(value)
+        ? current.filter((entry) => entry !== value)
+        : [...current, value];
+      onChange({ ...answers, mood: next.length > 0 ? next : undefined });
+      return;
+    }
 
-  function choose(key: string, value: string) {
-    const next = new URLSearchParams(params.toString());
-    if (next.get(key) === value) next.delete(key);
-    else next.set(key, value);
-
-    const query = next.toString();
-    // No scroll, or every press throws the reader back to the top of a page
-    // whose interesting half is below them.
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    // Pressing the answer that is already on takes it back.
+    const current = answers[key];
+    onChange({ ...answers, [key]: current === value ? undefined : value });
   }
 
   return (
     <div className="space-y-8">
       {QUESTIONS.map((question) => (
-        <fieldset key={question.key}>
+        <fieldset key={question.key} disabled={disabled}>
           <legend className="label">{question.prompt}</legend>
           <div className="mt-3 flex flex-wrap gap-2">
             {question.options.map((option) => {
-              const on = answers[question.key] === option.value;
+              const on = question.multiple
+                ? (answers.mood ?? []).includes(option.value)
+                : answers[question.key] === option.value;
+
               return (
                 <button
                   key={option.value}
                   type="button"
                   aria-pressed={on}
-                  onClick={() => choose(question.key, option.value)}
-                  className={`rounded-full border px-4 py-2 text-left transition-colors ${
+                  onClick={() => toggle(question.key, option.value, question.multiple)}
+                  className={`rounded-full border px-4 py-2 text-left transition-colors disabled:opacity-50 ${
                     on
                       ? "border-gold bg-gold/10 text-gold"
                       : "border-line text-muted hover:border-line-bright hover:text-paper"

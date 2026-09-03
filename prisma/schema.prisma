@@ -40,19 +40,22 @@ model User {
   avatar        String?
   createdAt     DateTime  @default(now())
 
-  ratings   Rating[]
-  reviews   Review[]
-  watchlist WatchlistItem[]
-  logs      FilmLog[]
-  lists     FilmList[]
-  projects  Project[]
-  briefs    TrailerBrief[]
-  activity  Activity[]
+  ratings     Rating[]
+  reviews     Review[]
+  watchlist   WatchlistItem[]
+  logs        FilmLog[]
+  lists       FilmList[]
+  projects    Project[]
+  briefs      TrailerBrief[]
+  activity    Activity[]
   /// Who this member follows, and who follows them.
-  following Follow[]        @relation("follower")
-  followers Follow[]        @relation("following")
-  tokens    EmailToken[]
-  feedback  FilmFeedback[]
+  following   Follow[]        @relation("follower")
+  followers   Follow[]        @relation("following")
+  tokens      EmailToken[]
+  feedback    FilmFeedback[]
+  recSessions RecSession[]
+  recEvents   RecEvent[]
+  taste       TasteVector?
 }
 
 /// One member following another.
@@ -140,6 +143,8 @@ model Film {
   listEntries    ListEntry[]
   watchlistItems WatchlistItem[]
   feedback       FilmFeedback[]
+  profile        FilmProfile?
+  recEvents      RecEvent[]
   logs           FilmLog[]
   activity       Activity[]
   credits        Credit[]
@@ -421,8 +426,16 @@ model FilmFeedback {
   id        String   @id @default(cuid())
   userId    String
   filmId    String
-  /// "yes" or "no".
+  /// "yes", "no", or "never" — see app/actions/recommendations.
+  ///
+  /// "no" is a mood on a Tuesday: it hides the film from this session and
+  /// pushes gently against what it resembles. "never" is a standing
+  /// instruction, and is the only one of the three that outlives an evening.
   verdict   String
+  /// Optionally why, from a fixed list — "too slow", "too dark". The words
+  /// are worth more than the thumb: a rejection with a reason names the
+  /// dimension to move, where a bare no can only move all of them a little.
+  reason    String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -431,4 +444,136 @@ model FilmFeedback {
 
   @@unique([userId, filmId])
   @@index([filmId])
+}
+
+/// One evening's search for something to watch.
+///
+/// A session is where tonight lives. It holds the answers to the chips, the
+/// sentence somebody typed, the intent parsed out of both, and the running
+/// adjustments made by every press since — none of which belong in a user's
+/// permanent taste, because "funny, under two hours, with friends" is a
+/// Friday rather than a personality.
+///
+/// Kept even when nobody is signed in, addressed by a cookie, because the
+/// event log is the raw material for every future improvement to ranking and
+/// a signed-out evening is still an evening.
+model RecSession {
+  id        String   @id @default(cuid())
+  userId    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// The chips, as JSON: {mood, length, era, place, party, …}.
+  answers String  @default("{}")
+  /// What they typed, verbatim, if anything.
+  query   String?
+  /// The parsed RecommendationIntent, as JSON — see lib/rec/intent.
+  intent  String  @default("{}")
+  /// Session-only preference deltas accumulated from feedback, as JSON.
+  drift   String  @default("{}")
+
+  /// How sure the ranker is, 0–1. Drives whether a follow-up is worth asking.
+  confidence    Float   @default(0)
+  /// Which ranking configuration produced this session's ordering.
+  modelVersion  String  @default("v1")
+  /// Which prompt version parsed the intent, when one did.
+  promptVersion String?
+
+  user   User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  events RecEvent[]
+
+  @@index([userId, createdAt])
+}
+
+/// Every interaction with a recommendation, as it happened.
+///
+/// Written for a reader that does not exist yet: the evaluation and training
+/// pipelines. That means the row has to carry enough context to be
+/// interpretable months later without the session's code — the rank the film
+/// was shown at, the score it was shown with, and which configuration
+/// produced both. A log that only says "user pressed no" cannot teach
+/// anything, because it does not say what they were saying no to.
+model RecEvent {
+  id        String   @id @default(cuid())
+  sessionId String
+  userId    String?
+  filmId    String?
+  /// impression | open | interested | not_tonight | never | seen | save |
+  /// more_like_this | less_like_this | rating | filter_changed |
+  /// natural_query | finalist_selected | pick_for_me | reason_selected
+  type      String
+  createdAt DateTime @default(now())
+
+  /// Where in the deck it was shown, and what it scored there.
+  rank    Int?
+  score   Float?
+  /// A fixed-vocabulary reason, when the event carries one.
+  reason  String?
+  /// Snapshot of anything else worth keeping, as JSON.
+  payload String?
+
+  modelVersion  String?
+  promptVersion String?
+
+  session RecSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user    User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  film    Film?      @relation(fields: [filmId], references: [id], onDelete: SetNull)
+
+  @@index([sessionId, createdAt])
+  @@index([userId, type])
+  @@index([filmId, type])
+}
+
+/// What a film is like, on the dimensions people actually choose by.
+///
+/// Genre says a film is a Thriller. It does not say whether it is patient or
+/// relentless, warm or bleak, easy or demanding — which is what somebody is
+/// asking for when they say "something tense but not exhausting". So every
+/// film gets a vector of 0–1 values on those dimensions, and the ranker
+/// compares vectors rather than matching labels.
+///
+/// Derived from metadata first, because 12,000 films cannot each cost an AI
+/// call, and the derivation is honest about what it is: `source` and
+/// `confidence` say where each profile came from, so an editorial or AI
+/// profile can overwrite a guess and never the other way round.
+model FilmProfile {
+  id     String @id @default(cuid())
+  filmId String @unique
+
+  /// The dimensions, as JSON: {"pace": 0.3, "darkness": 0.8, …}.
+  dims       String
+  /// derived | ai | editorial — in ascending order of authority.
+  source     String @default("derived")
+  confidence Float  @default(0.4)
+  /// Bumped when the derivation changes, so stale profiles can be found.
+  version    Int    @default(1)
+
+  updatedAt DateTime @updatedAt
+
+  film Film @relation(fields: [filmId], references: [id], onDelete: Cascade)
+
+  @@index([source])
+}
+
+/// The stable half of a reader's taste, on the same dimensions as a film.
+///
+/// Deliberately not the truth. Each dimension carries how sure we are and how
+/// many signals it rests on, because a preference inferred from three ratings
+/// and one inferred from three hundred should not argue with equal force —
+/// and because a reader looking at their own profile deserves to see which
+/// parts of it are guesses.
+///
+/// Updated by bounded exponential moves, so no single evening rewrites it.
+model TasteVector {
+  id     String @id @default(cuid())
+  userId String @unique
+
+  /// {"pace": {"value": 0.42, "confidence": 0.76, "samples": 38}, …}
+  dims       String @default("{}")
+  /// Affinities that are names rather than numbers: directors, countries.
+  affinities String @default("{}")
+
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
