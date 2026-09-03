@@ -2,11 +2,17 @@
 
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
+import { similarTo } from "@/lib/similar";
+import type { Recommendation } from "@/lib/recommend";
 
 export type InterestResult = {
   ok: boolean;
   verdict?: "yes" | "no" | null;
   message?: string;
+  /** Films to deal in behind a yes. */
+  more?: Recommendation[];
+  /** Ids on screen that a no should take with it. */
+  drop?: string[];
 };
 
 /**
@@ -38,6 +44,16 @@ export type InterestResult = {
 export async function setInterest(
   filmId: string,
   verdict: "yes" | "no",
+  /**
+   * What is currently on screen, so an answer can act on it.
+   *
+   * A yes brings back the film's nearest neighbours to deal in beneath it,
+   * minus anything already visible; a no reports which of the visible films
+   * were suggested for the same reason, so they can go with it. Both are
+   * optional — the page works without either, they just make the press
+   * legible rather than silent.
+   */
+  visible?: string[],
 ): Promise<InterestResult> {
   const user = await getCurrentUser();
   if (!user) return { ok: false, message: "Sign in to tune this" };
@@ -60,5 +76,22 @@ export async function setInterest(
     update: { verdict },
   });
 
-  return { ok: true, verdict };
+  if (verdict === "yes") {
+    // The neighbours, minus the film itself and anything already on screen.
+    const more = await similarTo(filmId, {
+      userId: user.id,
+      exclude: visible ?? [],
+      take: 2,
+    });
+    return { ok: true, verdict, more };
+  }
+
+  // A no is worth more than one film's absence. Whatever else on screen was
+  // suggested for the same reason goes with it — that is what "fewer like
+  // this" has to mean to be worth pressing.
+  const neighbours = await similarTo(filmId, { take: 40 });
+  const near = new Set(neighbours.map((film) => film.id));
+  const drop = (visible ?? []).filter((id) => near.has(id));
+
+  return { ok: true, verdict, drop };
 }
