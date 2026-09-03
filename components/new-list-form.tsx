@@ -7,6 +7,7 @@ import {
   type FilmPick,
   type ListState,
 } from "@/app/actions/lists";
+import { adoptTitle } from "@/app/actions/adopt";
 import { PosterThumb } from "@/components/poster";
 import { Button, Field, Input, Notice, Textarea } from "@/components/ui";
 
@@ -22,6 +23,13 @@ import { Button, Field, Input, Notice, Textarea } from "@/components/ui";
  * Picked films are held as whole objects rather than ids. The list underneath
  * is a moving window onto fifteen hundred titles, so a picked id would have
  * nothing to render itself from the moment somebody typed a second search.
+ *
+ * Some of those objects are not in the catalogue at all: when the local
+ * search runs thin it continues into TMDB, and picking one of those rows
+ * imports it first. That happens on the pick rather than on the submit,
+ * because a list of eight unimported titles would otherwise spend eight
+ * detail fetches at the exact moment somebody is waiting for a page — and
+ * anything that failed would fail silently, after the fact.
  */
 
 const DEBOUNCE_MS = 200;
@@ -36,6 +44,9 @@ export function NewListForm({ initial }: { initial: FilmPick[] }) {
   const [results, setResults] = useState<FilmPick[]>(initial);
   const [searching, setSearching] = useState(false);
   const [picked, setPicked] = useState<FilmPick[]>([]);
+  /** The TMDB row currently being imported, and the last one that would not. */
+  const [adopting, setAdopting] = useState<string | null>(null);
+  const [failed, setFailed] = useState<string | null>(null);
 
   // Monotonic: a reply renders only while no newer search has been sent.
   const ticket = useRef(0);
@@ -61,12 +72,37 @@ export function NewListForm({ initial }: { initial: FilmPick[] }) {
 
   const pickedIds = new Set(picked.map((film) => film.id));
 
-  function toggle(film: FilmPick) {
-    setPicked((prev) =>
-      prev.some((p) => p.id === film.id)
-        ? prev.filter((p) => p.id !== film.id)
-        : [...prev, film],
-    );
+  async function toggle(film: FilmPick) {
+    if (picked.some((p) => p.id === film.id)) {
+      setPicked((prev) => prev.filter((p) => p.id !== film.id));
+      return;
+    }
+
+    if (!film.external) {
+      setPicked((prev) => [...prev, film]);
+      return;
+    }
+
+    // A TMDB row has no id to submit yet. Import it, then pick the real row
+    // that comes back — the form only ever carries catalogue ids.
+    setAdopting(film.id);
+    try {
+      const real = await adoptTitle(film.id);
+      if (real) {
+        setPicked((prev) =>
+          prev.some((p) => p.id === real.id) ? prev : [...prev, real],
+        );
+        // Swap the placeholder for the imported row, so the list underneath
+        // stops offering to import something that is now here.
+        setResults((prev) =>
+          prev.map((row) => (row.id === film.id ? real : row)),
+        );
+      } else {
+        setFailed(film.id);
+      }
+    } finally {
+      setAdopting(null);
+    }
   }
 
   function move(index: number, by: -1 | 1) {
@@ -183,14 +219,20 @@ export function NewListForm({ initial }: { initial: FilmPick[] }) {
                       )}
                     </span>
                     <span className="block truncate text-xs text-faint">
-                      {film.director} · {film.year}
+                      {film.external
+                        ? adopting === film.id
+                          ? "Importing from TMDB…"
+                          : failed === film.id
+                            ? "TMDB has too little on this one to import"
+                            : `Not in the catalogue · ${film.year}`
+                        : `${film.director} · ${film.year}`}
                     </span>
                   </span>
                   <span
                     className="font-sans text-sm text-faint"
                     aria-hidden="true"
                   >
-                    {on ? "✓" : "+"}
+                    {on ? "✓" : adopting === film.id ? "…" : "+"}
                   </span>
                 </button>
               </li>
@@ -201,7 +243,7 @@ export function NewListForm({ initial }: { initial: FilmPick[] }) {
             <li className="px-4 py-4 text-sm text-faint">
               {searching
                 ? "Searching…"
-                : "Nothing in the catalogue matches that."}
+                : "Nothing here or on TMDB matches that."}
             </li>
           )}
         </ul>

@@ -301,6 +301,8 @@ export type TitleMatch = {
   voteAverage: number | null;
   voteCount: number;
   popularity: number;
+  /** Ready to render — the catalogue never sees the bare path. */
+  posterUrl: string | null;
 };
 
 export async function searchTitles(
@@ -323,6 +325,7 @@ export async function searchTitles(
     vote_average?: number;
     vote_count?: number;
     popularity?: number;
+    poster_path?: string | null;
   };
 
   const pages = await Promise.all(
@@ -353,6 +356,7 @@ export async function searchTitles(
         voteAverage: row.vote_average ?? null,
         voteCount: row.vote_count ?? 0,
         popularity: row.popularity ?? 0,
+        posterUrl: posterUrl(row.poster_path ?? null),
       });
     }
   }
@@ -524,6 +528,7 @@ export async function discoverUpcoming(options: {
         voteAverage: row.vote_average ?? null,
         voteCount: row.vote_count ?? 0,
         popularity: row.popularity ?? 0,
+        posterUrl: posterUrl(row.poster_path ?? null),
       };
     });
 

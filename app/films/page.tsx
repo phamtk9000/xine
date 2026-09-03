@@ -6,6 +6,7 @@ import { getCurrentUser } from "@/lib/session";
 import { db } from "@/lib/db";
 import { Container, EmptyState, PageHeader } from "@/components/ui";
 import { browseFilms, filmFacets, PAGE_SIZE, type FilmSort } from "@/lib/films";
+import { externalMatches } from "@/lib/catalogue-pick";
 
 export const metadata: Metadata = {
   title: "Films",
@@ -208,10 +209,16 @@ export default async function FilmsPage({ searchParams }: PageProps<"/films">) {
             )}
 
             {films.length === 0 ? (
-              <EmptyState
-                title="Nothing matches that"
-                body="No films in the catalogue fit these filters. Clear one and try again."
-              />
+              <>
+                <EmptyState
+                  title="Nothing matches that"
+                  body="No films in the catalogue fit these filters. Clear one and try again."
+                />
+                {/* A search for a real film that this site has not imported
+                    should not end in "no". TMDB is asked the same question,
+                    and each answer opens an import. */}
+                {search && <NotHereYet query={search} />}
+              </>
             ) : (
               <>
                 <FilmGrid
@@ -329,6 +336,61 @@ function Facet({
                 }`}
               >
                 {value}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+/**
+ * What TMDB has that this catalogue does not.
+ *
+ * Only shown on a search that found nothing locally, which is the one moment
+ * the reader has demonstrably asked for a title by name. It is not a second
+ * catalogue: everything here is one click and one detail fetch away from
+ * being a real page, and clicking is what makes it one.
+ */
+async function NotHereYet({ query }: { query: string }) {
+  const matches = await externalMatches(query, 12);
+  if (matches.length === 0) return null;
+
+  return (
+    <div className="mt-12 border-t border-line pt-10">
+      <p className="label">Not in the catalogue yet</p>
+      <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted">
+        TMDB has these under “{query}”. Open one and it is imported — art,
+        credits, runtime and all — and from then on it is a page here like any
+        other, rateable and listable.
+      </p>
+
+      <ul className="mt-6 grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-3 lg:grid-cols-6">
+        {matches.map((film) => {
+          const [, kind, tmdbId] = film.id.split(":");
+          return (
+            <li key={film.id}>
+              <Link
+                href={`/films/import/${kind}/${tmdbId}`}
+                className="group block"
+              >
+                <span className="block overflow-hidden rounded-[3px] border border-line">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={film.posterUrl ?? ""}
+                    alt=""
+                    loading="lazy"
+                    className="aspect-2/3 w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                  />
+                </span>
+                <span className="mt-2 block truncate text-sm transition-colors group-hover:text-gold">
+                  {film.title}
+                </span>
+                <span className="block text-xs text-faint tabular-nums">
+                  {film.year}
+                  {film.kind === "series" ? " · Series" : ""}
+                </span>
               </Link>
             </li>
           );

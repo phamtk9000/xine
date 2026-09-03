@@ -5,19 +5,11 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
+import { externalMatches, type FilmPick } from "@/lib/catalogue-pick";
 
 export type ListState = { error?: string } | null;
 
-/** One catalogue row, in the shape the list builder's picker renders. */
-export type FilmPick = {
-  id: string;
-  slug: string;
-  title: string;
-  year: number;
-  director: string;
-  posterUrl: string | null;
-  kind: string;
-};
+export type { FilmPick };
 
 const PICK_FIELDS = {
   id: true,
@@ -32,6 +24,19 @@ const PICK_FIELDS = {
 /** How many hits the picker shows, and how deep it looks to rank them. */
 const PICKER_LIMIT = 24;
 const PICKER_SCAN = 80;
+
+/**
+ * How thin a local result has to be before the search leaves the building.
+ *
+ * Not zero. A search for "solaris" that finds one Tarkovsky is not a search
+ * that failed, but it is one where the reader may well have meant the
+ * Soderbergh — and the whole complaint being answered here is that films
+ * this site has not imported look, from the outside, like films that do not
+ * exist. Asking TMDB whenever the local answer is thin costs one request on
+ * a debounced keystroke and nothing at all once the catalogue is deep in
+ * that corner.
+ */
+const LOCAL_ENOUGH = 6;
 
 /**
  * Catalogue search for the list builder.
@@ -87,7 +92,7 @@ export async function searchCatalogue(query: string): Promise<FilmPick[]> {
     return 1;
   };
 
-  return rows
+  const local = rows
     .sort(
       (a, b) =>
         rank(b) - rank(a) ||
@@ -104,6 +109,15 @@ export async function searchCatalogue(query: string): Promise<FilmPick[]> {
       posterUrl: row.posterUrl,
       kind: row.kind,
     }));
+
+  if (local.length >= LOCAL_ENOUGH) return local;
+
+  // Always after the local rows, never mixed in: what this site holds — and
+  // has ratings, lists and sometimes a review for — is a better answer than
+  // a title it would have to go and fetch, even when the fetched one matches
+  // the letters more exactly.
+  const external = await externalMatches(q, PICKER_LIMIT - local.length);
+  return [...local, ...external];
 }
 
 const schema = z.object({

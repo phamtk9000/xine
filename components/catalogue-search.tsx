@@ -19,6 +19,10 @@ import { PosterThumb } from "@/components/poster";
  * an exact title beats a title that starts with the query, which beats one
  * that contains it, which beats a director.
  *
+ * When the catalogue runs thin the action keeps going into TMDB, and those
+ * rows are marked out below rather than blended in — they open an import
+ * rather than a film, and a reader is owed the difference before they click.
+ *
  * Keyboard is the whole point of a combobox, so arrows move through the
  * suggestions, Enter opens the highlighted one, and Escape closes without
  * submitting. Nothing here is reachable only by mouse.
@@ -88,7 +92,7 @@ export function CatalogueSearch({ initial = "" }: { initial?: string }) {
       // Only when something is highlighted; otherwise the form submits and
       // the reader gets the full result set, which is what they asked for.
       event.preventDefault();
-      router.push(`/films/${results[cursor].slug}`);
+      router.push(hrefFor(results[cursor]));
       setOpen(false);
     } else if (event.key === "Escape") {
       setOpen(false);
@@ -122,8 +126,13 @@ export function CatalogueSearch({ initial = "" }: { initial?: string }) {
         >
           {results.map((film, index) => (
             <li key={film.id} role="option" aria-selected={index === cursor}>
+              {film.external && !results[index - 1]?.external && (
+                <p className="label border-b border-line bg-ink px-4 py-2 !text-[0.5rem] !text-faint">
+                  Not in the catalogue yet — from TMDB
+                </p>
+              )}
               <Link
-                href={`/films/${film.slug}`}
+                href={hrefFor(film)}
                 onClick={() => setOpen(false)}
                 onMouseEnter={() => setCursor(index)}
                 className={`flex items-center gap-3 border-b border-line p-2 pr-4 transition-colors last:border-0 ${
@@ -134,7 +143,9 @@ export function CatalogueSearch({ initial = "" }: { initial?: string }) {
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm">{film.title}</span>
                   <span className="block truncate text-xs text-faint">
-                    {film.director} · {film.year}
+                    {film.external
+                      ? `${film.year} · opens an import`
+                      : `${film.director} · ${film.year}`}
                   </span>
                 </span>
                 {film.kind === "series" && (
@@ -160,4 +171,18 @@ export function CatalogueSearch({ initial = "" }: { initial?: string }) {
       )}
     </div>
   );
+}
+
+/**
+ * Where a row goes.
+ *
+ * A catalogue row goes to its film. A TMDB row goes through the import
+ * route, which fetches it, writes it and forwards to the same place — so
+ * both look like "click the poster, get the film", and the difference is a
+ * second of latency rather than a different kind of link.
+ */
+function hrefFor(film: FilmPick) {
+  if (!film.external) return `/films/${film.slug}`;
+  const [, kind, tmdbId] = film.id.split(":");
+  return `/films/import/${kind}/${tmdbId}`;
 }
