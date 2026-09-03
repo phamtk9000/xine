@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { listArticles } from "@/lib/journal";
 import { AXES, averageAxis, averageOverall, round1 } from "@/lib/scores";
 import { fromCsv } from "@/lib/serialize";
+import { CATALOGUE_TTL, memo } from "@/lib/memo";
 import { inChunks } from "@/lib/batch";
 
 export type FilmSort = "trending" | "new" | "rated" | "az";
@@ -120,6 +121,30 @@ function filmWhere({ genre, country, decade, search, reviewed }: FilmFilters) {
 const DB_SORTED: FilmSort[] = ["new", "az"];
 
 /**
+ * How deep the JS-ranked sorts re-order before falling back to the database.
+ *
+ * Three thousand rows is fifty pages at sixty a page, which is further than
+ * anybody scrolls a sort they did not choose.
+ */
+const RANK_SCAN = 3000;
+
+/**
+ * The closest thing the database can order by for a sort that is really
+ * decided in JS. Votes for trending, because rating volume here is tens and
+ * TMDB's is thousands; score for rated, with TMDB's average behind the
+ * critic score for the imported tail.
+ */
+function rankProxy(sort: FilmSort) {
+  return sort === "trending"
+    ? [{ tmdbVotes: "desc" as const }, { year: "desc" as const }]
+    : [
+        { criticScore: "desc" as const },
+        { tmdbScore: "desc" as const },
+        { tmdbVotes: "desc" as const },
+      ];
+}
+
+/**
  * Film rows to the summary shape every card, row and carousel on the site
  * takes — community averages and editorial counts zipped on in two queries
  * rather than two per film. Exported because the trending row starts from a
@@ -229,16 +254,40 @@ export async function browseFilms(
     return { films: await summariseFilms(films), total, page: current, pages };
   }
 
-  // Ranked in JS, so the whole filtered set has to be ordered before it can
-  // be sliced. ~1,300 rows: cheap enough, and correct, which the alternative
-  // is not.
-  const all = rankInJs(await summariseFilms(await db.film.findMany({ where })), sort);
-  return {
-    films: all.slice(skip, skip + PAGE_SIZE),
-    total,
-    page: current,
-    pages,
-  };
+  // Ranked in JS, so an ordered slice needs more than the page in hand. That
+  // used to mean the whole filtered set — fine at thirteen hundred rows,
+  // ruinous at a hundred thousand, which is where the catalogue is going.
+  //
+  // So the window is bounded. The database orders by the closest proxy it
+  // can express, the first RANK_SCAN rows of that are re-ranked properly,
+  // and the page is cut from those. Every ordering this changes is one
+  // nobody can reach: a film outside the top three thousand by votes cannot
+  // climb into the top sixty on rating volume, because rating volume here is
+  // measured in tens.
+  if (skip + PAGE_SIZE <= RANK_SCAN) {
+    const window = await db.film.findMany({
+      where,
+      orderBy: rankProxy(sort),
+      take: RANK_SCAN,
+    });
+    const all = rankInJs(await summariseFilms(window), sort);
+    return {
+      films: all.slice(skip, skip + PAGE_SIZE),
+      total,
+      page: current,
+      pages,
+    };
+  }
+
+  // Past the window, the proxy ordering is the answer. Page fifty-one of a
+  // rating-ranked catalogue is not a place where the difference is legible.
+  const deep = await db.film.findMany({
+    where,
+    orderBy: rankProxy(sort),
+    skip,
+    take: PAGE_SIZE,
+  });
+  return { films: await summariseFilms(deep), total, page: current, pages };
 }
 
 export async function getFilmBySlug(slug: string) {
@@ -296,14 +345,19 @@ export function aggregateRatings(
  * breadth and editorial weight are different things here.
  */
 export async function catalogueStats() {
+  return memo("catalogue-stats", CATALOGUE_TTL, loadCatalogueStats);
+}
+
+async function loadCatalogueStats() {
   const [titles, series, reviewed, span, countryRows] = await Promise.all([
     db.film.count(),
     db.film.count({ where: { kind: "series" } }),
     db.film.count({ where: { reviewed: true } }),
     db.film.aggregate({ _min: { year: true }, _max: { year: true } }),
-    db.film.findMany({
+    // Distinct country strings, not every row that has one.
+    db.film.groupBy({
+      by: ["originCountry"],
       where: { originCountry: { not: null } },
-      select: { originCountry: true },
     }),
   ]);
 
@@ -328,23 +382,33 @@ export async function catalogueStats() {
 
 /** Distinct facet values, for the filter rail on /films. */
 export async function filmFacets() {
-  const films = await db.film.findMany({
-    select: { genres: true, country: true, year: true },
+  return memo("film-facets", CATALOGUE_TTL, async () => {
+    // Grouped rather than scanned. The rail needs the distinct values, not
+    // the rows that carry them, and there are two hundred countries and a
+    // hundred and thirty years however many films there are.
+    const [genreGroups, countryGroups, yearGroups] = await Promise.all([
+      db.film.groupBy({ by: ["genres"] }),
+      db.film.groupBy({ by: ["country"] }),
+      db.film.groupBy({ by: ["year"] }),
+    ]);
+
+    const genres = new Set<string>();
+    for (const row of genreGroups) {
+      for (const genre of fromCsv(row.genres)) genres.add(genre);
+    }
+
+    const countries = countryGroups
+      .map((row) => row.country)
+      .filter((country): country is string => Boolean(country));
+
+    const decades = new Set(
+      yearGroups.map((row) => Math.floor(row.year / 10) * 10),
+    );
+
+    return {
+      genres: [...genres].sort(),
+      countries: [...countries].sort(),
+      decades: [...decades].sort((a, b) => b - a),
+    };
   });
-
-  const genres = new Set<string>();
-  const countries = new Set<string>();
-  const decades = new Set<number>();
-
-  for (const film of films) {
-    for (const genre of fromCsv(film.genres)) genres.add(genre);
-    if (film.country) countries.add(film.country);
-    decades.add(Math.floor(film.year / 10) * 10);
-  }
-
-  return {
-    genres: [...genres].sort(),
-    countries: [...countries].sort(),
-    decades: [...decades].sort((a, b) => b - a),
-  };
 }

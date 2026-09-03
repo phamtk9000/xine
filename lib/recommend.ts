@@ -2,6 +2,7 @@ import "server-only";
 import { db } from "@/lib/db";
 import { fromCsv } from "@/lib/serialize";
 import { round1 } from "@/lib/scores";
+import { CATALOGUE_TTL, memo } from "@/lib/memo";
 
 /**
  * Recommendations, from facts rather than a fitted model.
@@ -623,24 +624,39 @@ export async function recommendFor(
   return out.slice(0, take);
 }
 
-/** How common each attribute is, which is what makes rarity meaningful. */
+/**
+ * How common each attribute is, which is what makes rarity meaningful.
+ *
+ * Grouped and cached rather than scanned. This is a count of the whole
+ * catalogue on every visit to /for-you, and the answer moves only when an
+ * import runs — "Western appears on 22 titles" is not a per-request fact.
+ * Grouping collapses a hundred thousand rows to the few thousand distinct
+ * genre strings that appear in them.
+ */
 async function catalogueTotals() {
-  const rows = await db.film.findMany({
-    select: { genres: true, originCountry: true },
-  });
+  return memo("catalogue-totals", CATALOGUE_TTL, async () => {
+    const [films, genreGroups, countryGroups] = await Promise.all([
+      db.film.count(),
+      db.film.groupBy({ by: ["genres"], _count: { _all: true } }),
+      db.film.groupBy({ by: ["originCountry"], _count: { _all: true } }),
+    ]);
 
-  const genre = new Map<string, number>();
-  const country = new Map<string, number>();
+    const genre = new Map<string, number>();
+    const country = new Map<string, number>();
 
-  for (const row of rows) {
-    for (const value of fromCsv(row.genres)) {
-      genre.set(value, (genre.get(value) ?? 0) + 1);
+    for (const row of genreGroups) {
+      for (const value of fromCsv(row.genres)) {
+        genre.set(value, (genre.get(value) ?? 0) + row._count._all);
+      }
     }
-    const home = row.originCountry?.split(",")[0]?.trim();
-    if (home) country.set(home, (country.get(home) ?? 0) + 1);
-  }
 
-  return { films: rows.length, genre, country };
+    for (const row of countryGroups) {
+      const home = row.originCountry?.split(",")[0]?.trim();
+      if (home) country.set(home, (country.get(home) ?? 0) + row._count._all);
+    }
+
+    return { films, genre, country };
+  });
 }
 
 /** The editorial graph: films sharing a list with something they love. */
