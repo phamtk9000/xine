@@ -26,7 +26,8 @@
     "countries:backfill": "tsx scripts/backfill-countries.ts",
     "genres:normalise": "tsx scripts/normalise-genres.ts",
     "accounts:grandfather": "tsx scripts/grandfather-verified.ts",
-    "films:all": "tsx scripts/import-all.ts"
+    "films:all": "tsx scripts/import-all.ts",
+    "films:push": "tsx scripts/sync-films.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.117.1",

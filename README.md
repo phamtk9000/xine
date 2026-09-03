@@ -173,6 +173,20 @@ than globally, because a bar that filters out an unpopular American film
 filters out a canonical Senegalese one. Imported titles are marked
 `reviewed: false`: findable, rateable and listable, but not editorial.
 
+**By the year sweep** — `npm run films:all` walks TMDB a release year at a
+time, newest first, down to whatever vote floor it is given. A year at a time
+because TMDB stops any single discover query at 500 pages, so region paging
+cannot reach past the first ten thousand results however long it runs. The
+floor is the whole decision: 100+ votes is 23,000 films, 10+ is 94,000, 1+ is
+318,000 and mostly untitled shorts. It asks the database what it already
+holds before spending a detail fetch, so it is resumable and re-runnable at
+no cost.
+
+Local imports reach production with `npm run films:push`, which inserts what
+Turso does not have and never updates what it does — production is where the
+synopses, critic scores and reviews live. Rehearse it against a copy first
+with `--target file:./copy.db`.
+
 **On demand** — a search that runs thin continues into TMDB
 (`lib/catalogue-pick.ts`), and opening one of those results imports it
 through `/films/import/[kind]/[tmdbId]` before forwarding to the film. The
@@ -437,4 +451,6 @@ a migration history Prisma knows about; nothing reads them back.
 | `npm run lists:seed` | Build the ten editorial collections and their 72 lists |
 | `npm run genres:normalise` | Rewrite stored genres through the house vocabulary |
 | `npm run media:sync` | Copy artwork into `public/media` |
+| `npm run films:all` | Sweep TMDB by year down to a vote floor (`-- --min-votes 10`) |
+| `npm run films:push` | Copy imported films from the local catalogue to Turso |
 | `npm run accounts:grandfather` | Mark existing members as email-confirmed |
