@@ -81,7 +81,7 @@ async function discover(
     ...(series ? {} : { "with_runtime.gte": "60" }),
   });
 
-  const response = await fetch(
+  const response = await fetchRetrying(
     `https://api.themoviedb.org/3/discover/${series ? "tv" : "movie"}?${params}`,
   );
   if (!response.ok) return { rows: [], pages: 0, total: 0 };
@@ -96,6 +96,29 @@ async function discover(
     pages: Math.min(data.total_pages ?? 0, PAGE_LIMIT),
     total: data.total_results ?? 0,
   };
+}
+
+/**
+ * A fetch that survives a DNS hiccup or a dropped connection.
+ *
+ * A nine-hour run crosses a home network's flaky minutes more or less
+ * guaranteed, and the bare `fetch` this used to be treated any of that as
+ * fatal — one `ENOTFOUND` killed the whole sweep with no output pointing at
+ * where to resume, even though resuming was already free by construction.
+ */
+async function fetchRetrying(url: string, attempts = 5): Promise<Response> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await fetch(url);
+    } catch (error) {
+      if (attempt >= attempts) throw error;
+      const wait = 500 * 2 ** (attempt - 1);
+      process.stdout.write(
+        `  … network error (${(error as Error).message}), retrying in ${wait}ms\n`,
+      );
+      await new Promise((r) => setTimeout(r, wait));
+    }
+  }
 }
 
 /** One write, retried through a busy database or a dropped connection. */
