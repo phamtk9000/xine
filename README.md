@@ -181,6 +181,31 @@ page that lists members. Nobody has to upload anything — a member with no
 picture gets a plate generated from their username in the same cold hue band
 as the film type plates.
 
+## Recommendations
+
+`/for-you` reads what a member rates highest and follows the editorial lists
+outward from it. Nothing is trained: forty-one ratings across four accounts
+is not a matrix anybody can factorise, and a model fitted to it would produce
+noise with a confident face.
+
+The lists are the signal instead — seventy-two arguments in which a person
+placed eight films next to each other and said why, which is a similarity
+graph with its edges labelled. A recommendation therefore explains itself
+with a fact rather than generated prose: *With In the Mood for Love in
+"Almost Lovers"*. Directors and genres fill in behind it, and a quality prior
+breaks ties.
+
+Two caps keep it honest. A film in many lists is a hub rather than a match,
+so its weight is damped — gently, at `listCount ^ 0.35`, because a square
+root rewarded obscurity so hard that Playtime outranked Her. And no more than
+two films per director or per source list reach the page, or it reads as one
+shelf recited rather than a reading of taste.
+
+Members with nothing rated get the films xine has written about, and a line
+saying the page rebuilds itself once they rate. `/films/find` remains the
+other half: that one is the LLM programmer answering a described mood, this
+one runs for free on every visit.
+
 ## Community
 
 Members can follow each other (`Follow`, one row per direction — following is

@@ -64,6 +64,12 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
           {user ? (
             <>
               <Link
+                href="/for-you"
+                className="label hidden transition-colors hover:text-paper md:block"
+              >
+                For you
+              </Link>
+              <Link
                 href="/taste"
                 className="label hidden transition-colors hover:text-paper md:block"
               >
@@ -120,9 +126,14 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
                 Pitch Your Film →
               </Link>
               {user && (
-                <Link href="/taste" onClick={close} className="label px-1">
-                  Your month
-                </Link>
+                <>
+                  <Link href="/for-you" onClick={close} className="label px-1">
+                    For you
+                  </Link>
+                  <Link href="/taste" onClick={close} className="label px-1">
+                    Your month
+                  </Link>
+                </>
               )}
               <Link
                 href={user ? `/community/${user.username}` : "/sign-in"}
