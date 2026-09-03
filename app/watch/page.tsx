@@ -58,6 +58,7 @@ export default async function WatchPage() {
     pool: preview.pool,
     verdicts: 0,
     askReason: false,
+    askAttraction: false,
     finalists: null,
   };
 

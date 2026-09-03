@@ -106,3 +106,61 @@ export function applyDrift(soft: Vector, drift: Vector): Vector {
   }
   return out;
 }
+
+/**
+ * What made them say yes.
+ *
+ * Binary feedback is cheap to give and thin to learn from: "interested" says
+ * a film was right without saying which part of it was. One tap on a reason
+ * turns that into a direction — and unlike the refusal reasons, these mostly
+ * name a *thing* rather than a dimension, because what catches somebody's eye
+ * is usually a person or a place rather than a quality.
+ *
+ * Asked rarely, and only after a keep. A page that interrogates every press
+ * stops being a deck and starts being a form.
+ */
+export const ATTRACTIONS = [
+  { key: "mood", label: "The mood" },
+  { key: "story", label: "The premise" },
+  { key: "director", label: "The director" },
+  { key: "cast", label: "The cast" },
+  { key: "visuals", label: "How it looks" },
+  { key: "country", label: "Where it is from" },
+  { key: "wanted", label: "I have wanted to see it" },
+] as const;
+
+export type AttractionKey = (typeof ATTRACTIONS)[number]["key"];
+
+/**
+ * A reason for a yes, as a pull toward the film's own strengths.
+ *
+ * "How it looks" pulls the deck toward whatever that film scored on beauty,
+ * rather than toward some fixed idea of beautiful — the reader was reacting
+ * to this film, and the profile is what this film is.
+ */
+export function driftFromAttraction(
+  profile: Vector,
+  attraction: AttractionKey,
+): Vector {
+  const axes: Partial<Record<AttractionKey, (keyof Vector)[]>> = {
+    mood: ["darkness", "weight", "tension"],
+    story: ["story", "accessibility"],
+    visuals: ["beauty", "dialogue"],
+    country: [],
+    director: [],
+    cast: [],
+    wanted: [],
+  };
+
+  const keys = axes[attraction] ?? [];
+  const out: Vector = {};
+  for (const key of keys) {
+    const value = profile[key];
+    if (value === undefined) continue;
+    const distance = value - NEUTRAL;
+    if (Math.abs(distance) < 0.1) continue;
+    // Twice the pull of an unexplained keep: they have said which part.
+    out[key] = distance * 0.24;
+  }
+  return out;
+}

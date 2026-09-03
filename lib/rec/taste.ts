@@ -162,6 +162,32 @@ function normalise(tally: Record<string, number>) {
   return out;
 }
 
+/**
+ * How long a preference stays fully believed.
+ *
+ * Taste changes, and a profile that treats a judgement from two years ago as
+ * current is describing somebody who no longer exists. Rather than deleting
+ * old evidence — which would throw away the only long-run signal there is —
+ * confidence decays with age, so an old preference keeps its direction and
+ * loses its authority. Six months to half-life is deliberately slow: this is
+ * meant to track a person changing, not a person having a strange fortnight.
+ */
+const HALF_LIFE_DAYS = 180;
+
+function decayed(taste: StoredTaste, updatedAt: Date | null): StoredTaste {
+  if (!updatedAt) return taste;
+
+  const days = (Date.now() - updatedAt.getTime()) / 86400000;
+  if (days < 1) return taste;
+
+  const factor = Math.pow(0.5, days / HALF_LIFE_DAYS);
+  const dims: StoredTaste["dims"] = {};
+  for (const [key, entry] of Object.entries(taste.dims ?? {})) {
+    dims[key] = { ...entry, confidence: entry.confidence * factor };
+  }
+  return { ...taste, dims };
+}
+
 /** The stored profile, rebuilt if it has never been built. */
 export async function tasteFor(userId: string): Promise<TasteInput> {
   const stored = await db.tasteVector.findUnique({ where: { userId } });
@@ -172,7 +198,95 @@ export async function tasteFor(userId: string): Promise<TasteInput> {
       }
     : await rebuildTaste(userId);
 
-  return toInput(taste);
+  return toInput(decayed(taste, stored?.updatedAt ?? null));
+}
+
+/**
+ * The stored profile as it is written down, for the page that shows it.
+ *
+ * Rebuilds on a miss rather than returning null, on the same reasoning as
+ * tasteFor: a reader with sixteen ratings and no cache row yet has a real
+ * profile, and "nothing inferred yet" would be a lie told to save one query.
+ */
+export async function storedTaste(userId: string): Promise<StoredTaste | null> {
+  const stored = await db.tasteVector.findUnique({ where: { userId } });
+  if (!stored) {
+    const rebuilt = await rebuildTaste(userId);
+    return Object.keys(rebuilt.dims).length === 0 ? null : rebuilt;
+  }
+  return decayed(
+    { dims: JSON.parse(stored.dims), affinities: JSON.parse(stored.affinities) },
+    stored.updatedAt,
+  );
+}
+
+/**
+ * Move one dimension a little, in response to one signal.
+ *
+ * Bounded exponential: the new value is the old one moved a few percent of
+ * the way toward what was observed, never replaced by it. That is the whole
+ * defence against a recommender that reinvents somebody every evening — a
+ * single press changes a preference by three percent of the distance, and it
+ * takes a consistent pattern to move it anywhere.
+ *
+ * Confidence rises with each signal but never reaches certainty, because it
+ * should not: this is an inference about a person from their clicks.
+ */
+export async function applySignal(
+  userId: string,
+  profile: Vector,
+  kind: keyof typeof LEARNING_RATE,
+  direction: 1 | -1 = 1,
+) {
+  const rate = LEARNING_RATE[kind];
+  const stored = await db.tasteVector.findUnique({ where: { userId } });
+  const taste: StoredTaste = stored
+    ? { dims: JSON.parse(stored.dims), affinities: JSON.parse(stored.affinities) }
+    : { dims: {}, affinities: { directors: {}, countries: {}, genres: {} } };
+
+  for (const [key, value] of Object.entries(profile)) {
+    if (value === undefined) continue;
+    // A negative signal is evidence for the other end of the dimension.
+    const observed = direction > 0 ? value : 1 - value;
+    const entry = taste.dims[key] ?? { value: NEUTRAL, confidence: 0, samples: 0 };
+
+    taste.dims[key] = {
+      value: clamp01(entry.value * (1 - rate) + observed * rate),
+      confidence: Math.min(0.95, entry.confidence + rate * 0.6),
+      samples: entry.samples + 1,
+    };
+  }
+
+  await db.tasteVector.upsert({
+    where: { userId },
+    create: {
+      userId,
+      dims: JSON.stringify(taste.dims),
+      affinities: JSON.stringify(taste.affinities),
+    },
+    update: { dims: JSON.stringify(taste.dims) },
+  });
+}
+
+/**
+ * Forget one dimension, because the reader says it is wrong.
+ *
+ * The profile is an inference, and an inference somebody has looked at and
+ * disagreed with is simply wrong — there is no case for keeping it and
+ * weighting it lower. Removed rather than zeroed, so it can be learned again
+ * from scratch if the behaviour genuinely says so.
+ */
+export async function forgetDimension(userId: string, key: string) {
+  const stored = await db.tasteVector.findUnique({ where: { userId } });
+  if (!stored) return;
+
+  const dims = JSON.parse(stored.dims) as StoredTaste["dims"];
+  delete dims[key];
+
+  await db.tasteVector.update({
+    where: { userId },
+    data: { dims: JSON.stringify(dims) },
+  });
 }
 
 export function toInput(taste: StoredTaste): TasteInput {

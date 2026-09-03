@@ -11,8 +11,10 @@ import {
 import { interpret, resolveReferences } from "@/lib/rec/interpret";
 import {
   accumulate,
+  driftFromAttraction,
   driftFromInterest,
   driftFromRejection,
+  type AttractionKey,
   type ReasonKey,
 } from "@/lib/rec/feedback";
 import {
@@ -24,7 +26,7 @@ import {
   type Session,
 } from "@/lib/rec/session";
 import { dealDeck, finalistsFrom, type DeckCard } from "@/lib/rec/deck";
-import { rebuildTaste } from "@/lib/rec/taste";
+import { applySignal, rebuildTaste } from "@/lib/rec/taste";
 
 /**
  * Everything the recommendation page can ask the server to do.
@@ -48,6 +50,8 @@ export type DeckPayload = {
   pool: number;
   verdicts: number;
   askReason: boolean;
+  /** Worth asking what caught their eye, after this keep. */
+  askAttraction: boolean;
   finalists: { safe: PublicCard; xine: PublicCard; wildcard: PublicCard } | null;
 };
 
@@ -89,6 +93,8 @@ function toPublic(card: DeckCard): PublicCard {
 
 /** Ask for a reason after a run of refusals, not after every one. */
 const ASK_AFTER = 3;
+/** And ask what a yes was about even less often than that. */
+const ASK_ATTRACTION = 5;
 
 async function payload(session: Session, cards: DeckCard[], extras: {
   confidence: number;
@@ -105,6 +111,10 @@ async function payload(session: Session, cards: DeckCard[], extras: {
     pool: extras.pool,
     verdicts,
     askReason: verdicts > 0 && verdicts % ASK_AFTER === 0,
+    // Rarer than the refusal question. A yes is already the outcome the page
+    // wants; interrupting it to ask why is a tax on the good case, and worth
+    // paying only occasionally.
+    askAttraction: verdicts >= 2 && verdicts % ASK_ATTRACTION === 0,
     // Three finalists are worth offering once somebody has said enough for
     // them to mean anything. Before that they are three guesses in a row.
     finalists:
@@ -318,9 +328,52 @@ export async function respond(
 
   await updateSession(session.id, { drift });
 
+  // The permanent profile moves only for signals that outlive the evening.
+  // "Not tonight" deliberately does not appear here: it is a mood, it is
+  // already in the session drift, and writing it into a person's taste is
+  // how a recommender concludes that somebody hates slow films because they
+  // were tired on a Tuesday.
+  if (user) {
+    if (verdict === "interested") await applySignal(user.id, profile, "interested");
+    if (verdict === "save") await applySignal(user.id, profile, "save");
+    if (verdict === "never") await applySignal(user.id, profile, "never", -1);
+  }
+
   const next: Session = { ...session, drift };
   const deck = await dealDeck(next);
   await updateSession(session.id, { confidence: deck.confidence });
+  await impressions(next, deck.cards);
+  return payload(next, deck.cards, deck);
+}
+
+/**
+ * What caught their attention, when they say.
+ *
+ * Recorded as its own event rather than folded into the keep, because the two
+ * are different claims and a training set that cannot tell them apart cannot
+ * learn from either. The drift it produces is twice that of an unexplained
+ * keep: they have named the part that worked.
+ */
+export async function giveAttraction(
+  filmId: string,
+  attraction: AttractionKey,
+): Promise<DeckPayload | null> {
+  const session = await currentSession();
+  if (!session) return null;
+
+  const { profileFor } = await import("@/lib/rec/profile");
+  const profile = (await profileFor(filmId)) ?? {};
+  const drift = accumulate(session.drift, driftFromAttraction(profile, attraction));
+
+  await logEvent(session.id, "more_like_this", {
+    filmId,
+    userId: session.userId,
+    reason: attraction,
+  });
+  await updateSession(session.id, { drift });
+
+  const next: Session = { ...session, drift };
+  const deck = await dealDeck(next);
   await impressions(next, deck.cards);
   return payload(next, deck.cards, deck);
 }
