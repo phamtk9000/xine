@@ -66,6 +66,36 @@ const globalForPrisma = globalThis as unknown as {
   prisma?: ReturnType<typeof createClient>;
 };
 
-export const db = globalForPrisma.prisma ?? createClient();
+function client() {
+  const existing = globalForPrisma.prisma;
+  if (existing) return existing;
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = db;
+  const created = createClient();
+  if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = created;
+  return created;
+}
+
+/**
+ * The client, created on first query rather than on import.
+ *
+ * This used to be `createClient()` at module scope, which coupled the build
+ * to credentials the build does not use: `next build` imports every module
+ * to collect page data, so a missing database URL took the whole deployment
+ * down — on /_not-found, of all routes, which touches no data at all.
+ *
+ * A proxy keeps the call sites unchanged (`db.film.findMany(...)` still
+ * reads as a client) while moving the connection to the first property
+ * access. Functions are bound to the real client, so `db.$transaction` and
+ * `db.$disconnect` keep their `this` when they are pulled off the proxy.
+ *
+ * The failure mode is better too: a missing URL now throws where a query is
+ * made, in a request that can report it, rather than at import time in a
+ * build step that has no idea what it was doing.
+ */
+export const db = new Proxy({} as ReturnType<typeof createClient>, {
+  get(_target, property) {
+    const real = client();
+    const value = Reflect.get(real, property, real);
+    return typeof value === "function" ? value.bind(real) : value;
+  },
+});
