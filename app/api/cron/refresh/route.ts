@@ -186,14 +186,30 @@ export async function GET(request: Request) {
   // Dates move, and a calendar showing last month's date for next month's
   // film is worse than no calendar. Cheap in the steady state: the ids are
   // already here, so this is mostly re-reads.
+  // Two passes, because a year of schedule cannot be re-read every morning
+  // inside a sixty-second function and does not need to be. The near window
+  // is where dates actually move, so it is refreshed daily; the rest of the
+  // year is covered one month at a time, chosen by the date, which walks the
+  // whole horizon roughly twice a month.
   try {
-    const upcoming = await syncUpcoming({
-      pages: 2,
-      budgetMs: BUDGET_MS * 0.2,
+    const near = await syncUpcoming({
+      months: 2,
+      pages: 3,
+      budgetMs: BUDGET_MS * 0.15,
     });
-    report.upcoming = upcoming.created + upcoming.updated;
-    report.failed += upcoming.failed;
-    if (upcoming.ranOut) report.ranOut = true;
+
+    const offset = 2 + (new Date().getUTCDate() % 10);
+    const far = await syncUpcoming({
+      from: offset,
+      months: 1,
+      pages: 2,
+      budgetMs: BUDGET_MS * 0.15,
+    });
+
+    report.upcoming =
+      near.created + near.updated + far.created + far.updated;
+    report.failed += near.failed + far.failed;
+    if (near.ranOut || far.ranOut) report.ranOut = true;
   } catch {
     report.failed++;
   }
@@ -211,7 +227,7 @@ export async function GET(request: Request) {
       },
       orderBy: { tmdbVotes: "desc" },
       select: { id: true, tmdbId: true },
-      take: 40,
+      take: 60,
     });
 
     for (const show of stale) {

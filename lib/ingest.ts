@@ -243,10 +243,22 @@ export type UpcomingSyncReport = {
  */
 export async function syncUpcoming(
   options: {
-    /** How far ahead to look. TMDB thins out badly past a year. */
+    /** How many months the window covers. A year, to match the calendar. */
     months?: number;
+    /**
+     * Where the window starts, in months from today.
+     *
+     * The daily job cannot afford to re-read a whole year every morning, and
+     * it does not need to: the next few weeks are where dates actually move,
+     * and the far end of the year only needs revisiting occasionally. So the
+     * cron runs this twice — once over the near window, once over a single
+     * month chosen by the date — and the offset is how it picks that month.
+     */
+    from?: number;
     /** Pages of results per kind. Twenty rows a page, filtered by popularity. */
     pages?: number;
+    /** Override the distance-scaled popularity floor below. */
+    minPopularity?: number;
     budgetMs?: number;
     onProgress?: (title: string, status: string) => void;
   } = {},
@@ -262,9 +274,24 @@ export async function syncUpcoming(
   };
 
   const from = new Date();
+  if (options.from) from.setMonth(from.getMonth() + options.from);
   const to = new Date(from);
-  to.setMonth(to.getMonth() + (options.months ?? 9));
+  to.setMonth(to.getMonth() + (options.months ?? 12));
   const pages = Math.max(1, Math.min(options.pages ?? 3, 10));
+
+  /**
+   * The popularity floor has to relax with distance.
+   *
+   * Near months are noisy — hundreds of regional uploads carrying a date —
+   * so a floor of 4 is what keeps the calendar readable. Nine months out the
+   * noise is gone and so is most of the signal: February 2027 has 107 titles
+   * on TMDB and exactly one above 4, while Narnia: The Magician's Nephew
+   * sits at 3.4 and is plainly a film people are waiting for. Holding the
+   * near-term bar out there does not filter noise, it filters everything.
+   */
+  const offset = options.from ?? 0;
+  const floor =
+    options.minPopularity ?? (offset <= 2 ? 4 : offset <= 5 ? 2.2 : 1.2);
 
   for (const kind of ["film", "series"] as const) {
     for (let page = 1; page <= pages; page++) {
@@ -275,7 +302,13 @@ export async function syncUpcoming(
 
       let batch;
       try {
-        batch = await discoverUpcoming({ kind, from, to, page });
+        batch = await discoverUpcoming({
+          kind,
+          from,
+          to,
+          page,
+          minPopularity: floor,
+        });
       } catch {
         report.failed++;
         break;
