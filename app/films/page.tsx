@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { FilmGrid } from "@/components/film-card";
+import { CatalogueSearch } from "@/components/catalogue-search";
 import { getCurrentUser } from "@/lib/session";
 import { db } from "@/lib/db";
 import { Container, EmptyState, PageHeader } from "@/components/ui";
@@ -101,15 +102,7 @@ export default async function FilmsPage({ searchParams }: PageProps<"/films">) {
         lede={`${total} film${total === 1 ? "" : "s"}, each open to a rating on five axes plus an overall — Story, Direction, Visual, Performance, Sound — rather than one number out of five.`}
         action={
           <div className="flex w-full max-w-md flex-col gap-3">
-            <form action="/films" className="flex gap-2">
-              <input
-                name="q"
-                defaultValue={search}
-                placeholder="Search title or director"
-                aria-label="Search films"
-                className="w-full rounded-[3px] border border-line bg-ink-raised px-4 py-2 text-sm placeholder:text-faint focus:border-line-bright focus:outline-none"
-              />
-            </form>
+            <CatalogueSearch initial={search ?? ""} />
             <Link
               href="/films/find"
               className="text-sm text-gold underline underline-offset-4"
@@ -134,10 +127,47 @@ export default async function FilmsPage({ searchParams }: PageProps<"/films">) {
             </Link>
           ))}
 
+          {/* Country sits with the sorts rather than down in the rail: it is
+              the filter people reach for first on a catalogue that spans
+              twelve cinemas, and a `details` element makes it a dropdown
+              without shipping a line of JavaScript. */}
+          <details className="group relative ml-auto">
+            <summary className="label cursor-pointer list-none transition-colors hover:text-paper marker:content-['']">
+              <span className={country ? "!text-gold" : ""}>
+                {country ?? "Country"}
+              </span>
+              <span className="ml-2 text-faint transition-transform group-open:inline-block group-open:rotate-180">
+                ▾
+              </span>
+            </summary>
+
+            <div className="absolute right-0 z-20 mt-3 max-h-80 w-56 overflow-y-auto rounded-[3px] border border-line-bright bg-ink-raised p-2 shadow-xl">
+              {country && (
+                <Link
+                  href={href({ country: undefined })}
+                  className="block px-3 py-2 text-sm text-gold hover:bg-ink"
+                >
+                  ✕ Clear
+                </Link>
+              )}
+              {facets.countries.map((value) => (
+                <Link
+                  key={value}
+                  href={href({ country: value === country ? undefined : value })}
+                  className={`block px-3 py-2 text-sm transition-colors hover:bg-ink ${
+                    value === country ? "text-gold" : "text-muted hover:text-paper"
+                  }`}
+                >
+                  {value}
+                </Link>
+              ))}
+            </div>
+          </details>
+
           {/* The editorial tier, separated from the imported catalogue. */}
           <Link
             href={href({ reviewed: reviewed ? undefined : "1" })}
-            className={`label ml-auto transition-colors hover:text-paper ${
+            className={`label transition-colors hover:text-paper ${
               reviewed ? "!text-gold" : ""
             }`}
           >
@@ -152,12 +182,6 @@ export default async function FilmsPage({ searchParams }: PageProps<"/films">) {
               values={facets.genres}
               current={genre}
               hrefFor={(v) => href({ genre: v })}
-            />
-            <Facet
-              title="Country"
-              values={facets.countries}
-              current={country}
-              hrefFor={(v) => href({ country: v })}
             />
             <Facet
               title="Decade"

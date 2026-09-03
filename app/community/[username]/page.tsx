@@ -39,10 +39,33 @@ export async function generateMetadata({
   };
 }
 
+/**
+ * How somebody's own record can be ordered.
+ *
+ * Their latest verdict first by default, because a profile is a record of
+ * what someone is watching now rather than a ranking — but a reader who
+ * wants "what did they love" should not have to scan forty cards for it.
+ */
+const SEEN_SORTS = [
+  { key: "recent", label: "Latest" },
+  { key: "best", label: "Highest rated" },
+  { key: "worst", label: "Lowest rated" },
+  { key: "year", label: "Newest film" },
+  { key: "az", label: "A–Z" },
+] as const;
+
+type SeenSort = (typeof SEEN_SORTS)[number]["key"];
+
 export default async function ProfilePage({
   params,
+  searchParams,
 }: PageProps<"/community/[username]">) {
   const { username } = await params;
+  const query = await searchParams;
+  const requested = Array.isArray(query.seen) ? query.seen[0] : query.seen;
+  const seenSort: SeenSort = SEEN_SORTS.some((s) => s.key === requested)
+    ? (requested as SeenSort)
+    : "recent";
   const [profile, viewer, reviewCounts, reading, neighbours, atlas] =
     await Promise.all([
       getProfile(username),
@@ -252,13 +275,35 @@ export default async function ProfilePage({
                         }))}
                     />
                   </div>
-                  <h2 className="label mt-14 border-b border-line pb-3">
-                    {user.displayName}&rsquo;s Seen · {user.ratings.length}
-                  </h2>
+                  <div className="mt-14 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 border-b border-line pb-3">
+                    <h2 className="label">
+                      {user.displayName}&rsquo;s Seen · {user.ratings.length}
+                    </h2>
+                    <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
+                      {SEEN_SORTS.map((option) => (
+                        <Link
+                          key={option.key}
+                          href={
+                            option.key === "recent"
+                              ? `/community/${user.username}`
+                              : `/community/${user.username}?seen=${option.key}`
+                          }
+                          scroll={false}
+                          className={`label transition-colors hover:text-paper ${
+                            seenSort === option.key ? "!text-paper" : ""
+                          }`}
+                        >
+                          {option.label}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
                   <div className="mt-7">
                     {/* Their own score, not the crowd's — this is their record. */}
                     <FilmGrid
-                      films={user.ratings.map((r) => toSummary(r.film))}
+                      films={sortSeen(user.ratings, seenSort).map((r) =>
+                        toSummary(r.film),
+                      )}
                       scores={
                         new Map(user.ratings.map((r) => [r.film.id, r.overall]))
                       }
@@ -484,6 +529,33 @@ export default async function ProfilePage({
  * `count` animates; `value` is printed as given. Numbers earn the count-up,
  * a director's name would just look broken mid-flight.
  */
+/**
+ * The Seen grid in whichever order was asked for.
+ *
+ * Sorted here rather than in the query because the profile already loads
+ * every rating for the stats, the atlas and the era reading — re-fetching the
+ * same rows in a different order would be a round trip to save nothing.
+ */
+function sortSeen<T extends { overall: number; film: { title: string; year: number } }>(
+  ratings: T[],
+  sort: SeenSort,
+): T[] {
+  const copy = [...ratings];
+  switch (sort) {
+    case "best":
+      return copy.sort((a, b) => b.overall - a.overall);
+    case "worst":
+      return copy.sort((a, b) => a.overall - b.overall);
+    case "year":
+      return copy.sort((a, b) => b.film.year - a.film.year);
+    case "az":
+      return copy.sort((a, b) => a.film.title.localeCompare(b.film.title));
+    default:
+      // Already newest-first from getProfile's orderBy.
+      return copy;
+  }
+}
+
 function Stat({
   label,
   value,

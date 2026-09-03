@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { Poster } from "@/components/poster";
+import { Poster, plateColors } from "@/components/poster";
 import {
   ButtonLink,
   Container,
@@ -207,35 +207,86 @@ export default async function ListsPage() {
   );
 }
 
+/**
+ * A list as a cover.
+ *
+ * The row of five spines said "here are some films"; a square mosaic of four
+ * says "this is a thing somebody made", which is what a list is. It borrows
+ * the shape every music service uses for a playlist for the same reason they
+ * use it: at a glance you read one object with an author, not a shelf of
+ * unrelated items.
+ *
+ * Four posters cropped square rather than five kept whole — a 2:3 poster
+ * squeezed into a quarter tile loses its top and bottom, and that is fine
+ * here because the tile is a texture, not a poster. A list with fewer than
+ * four entries fills the gaps with the plate colour rather than leaving
+ * holes.
+ */
 function ListCard({ list }: { list: ListWithEntries }) {
+  const tiles = list.entries.slice(0, 4);
+
   return (
-    <Link
-      href={`/lists/${list.slug}`}
-      className="group block rounded-[4px] border border-line p-6 transition-colors hover:border-line-bright"
-    >
-      <div className="flex items-center gap-3">
-        {list.editorial ? (
-          <span className="label !text-gold">Editorial</span>
-        ) : (
-          list.owner && <span className="label">{list.owner.displayName}</span>
+    <Link href={`/lists/${list.slug}`} className="group flex gap-5">
+      <div className="grid aspect-square w-32 shrink-0 grid-cols-2 grid-rows-2 gap-px overflow-hidden rounded-[4px] border border-line bg-line sm:w-40">
+        {Array.from({ length: 4 }, (_, i) => tiles[i]).map((entry, i) =>
+          entry ? (
+            <span key={entry.id} className="relative block overflow-hidden">
+              <PosterTile film={entry.film} />
+            </span>
+          ) : (
+            <span key={`empty-${i}`} className="block bg-ink-raised" />
+          ),
         )}
-        <span className="text-xs text-faint">{list._count.entries} films</span>
       </div>
 
-      <h3 className="mt-3 font-display text-3xl leading-tight transition-colors group-hover:text-gold">
-        {list.title}
-      </h3>
-      <p className="mt-3 text-sm leading-relaxed text-muted">
-        {list.description}
-      </p>
+      <div className="min-w-0 flex-1 self-center">
+        <h3 className="font-display text-2xl leading-tight transition-colors group-hover:text-gold sm:text-3xl">
+          {list.title}
+        </h3>
 
-      <div className="mt-6 flex gap-2">
-        {list.entries.map((entry) => (
-          <div key={entry.id} className="w-1/5">
-            <Poster film={entry.film} sizes="120px" />
-          </div>
-        ))}
+        <p className="label mt-2">
+          {list.editorial ? (
+            <span className="!text-gold">Editorial</span>
+          ) : (
+            list.owner && <span>By {list.owner.displayName}</span>
+          )}
+          <span className="readout ml-3 text-faint">
+            {list._count.entries} films
+          </span>
+        </p>
+
+        <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-muted">
+          {list.description}
+        </p>
       </div>
     </Link>
+  );
+}
+
+/** One quarter of a mosaic: a poster cropped square, or its plate. */
+function PosterTile({
+  film,
+}: {
+  film: { slug: string; title: string; posterUrl: string | null };
+}) {
+  if (!film.posterUrl) {
+    const { from, to } = plateColors(film.slug);
+    return (
+      <span
+        className="block h-full w-full"
+        style={{ background: `linear-gradient(150deg, ${from}, ${to})` }}
+        aria-hidden
+      />
+    );
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={film.posterUrl}
+      alt=""
+      loading="lazy"
+      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+    />
   );
 }

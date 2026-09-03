@@ -321,16 +321,30 @@ export function CoverflowCarousel({
                   draggable={false}
                   className="h-full w-full select-none object-cover"
                 />
-                {/* Only the centred card is clickable — the raked ones are
-                    turned too far to be a reliable target, and a drag that
-                    ends on one shouldn't navigate. */}
-                {slide.href && index === selected && (
-                  <a
-                    href={slide.href}
-                    className="absolute inset-0"
-                    aria-label={slide.title ?? slide.alt}
-                    onClick={(event) => {
-                      if (dragRef.current?.moved) event.preventDefault();
+                {/* Every card responds to a click, but not with the same
+                    thing. The centred one opens the film; a raked one is
+                    turned too far to be a reliable navigation target, so it
+                    brings itself to the centre instead — one click to look,
+                    a second to go. A drag that ends on a card does neither. */}
+                {index === selected ? (
+                  slide.href && (
+                    <a
+                      href={slide.href}
+                      className="absolute inset-0"
+                      aria-label={slide.title ?? slide.alt}
+                      onClick={(event) => {
+                        if (dragRef.current?.moved) event.preventDefault();
+                      }}
+                    />
+                  )
+                ) : (
+                  <button
+                    type="button"
+                    className="absolute inset-0 cursor-pointer"
+                    aria-label={`Show ${slide.title ?? slide.alt}`}
+                    onClick={() => {
+                      if (dragRef.current?.moved) return;
+                      goTo(index);
                     }}
                   />
                 )}
