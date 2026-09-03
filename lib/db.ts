@@ -62,16 +62,23 @@ function createClient() {
 
 // Next reloads modules on every edit in dev; without the global cache each
 // reload opens another connection and SQLite eventually refuses.
+// Keyed on a name of its own rather than the conventional `prisma`, because
+// an older build of this module cached the *proxy* under that key — and a
+// proxy that resolves to itself recurses until the stack runs out. A
+// distinct key means a stale value from a previous module version is simply
+// ignored rather than inherited.
 const globalForPrisma = globalThis as unknown as {
-  prisma?: ReturnType<typeof createClient>;
+  xinePrismaClient?: ReturnType<typeof createClient>;
 };
 
 function client() {
-  const existing = globalForPrisma.prisma;
+  const existing = globalForPrisma.xinePrismaClient;
   if (existing) return existing;
 
   const created = createClient();
-  if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = created;
+  if (process.env.NODE_ENV !== "production") {
+    globalForPrisma.xinePrismaClient = created;
+  }
   return created;
 }
 
