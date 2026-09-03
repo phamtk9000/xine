@@ -373,6 +373,35 @@ swap the adapter in `lib/db.ts` for `@prisma/adapter-pg`, and point
 comma-packed columns are read through `lib/serialize.ts` and can stay as they
 are or become real arrays.
 
+## Schema changes in production
+
+`prisma db push` cannot reach Turso. The Prisma CLI's schema engine speaks
+native database protocols and its config has no driver-adapter hook, so a
+`libsql://` URL comes back as *P1013: the scheme is not recognized*. The
+running app has no such problem — `lib/db.ts` connects through
+`@prisma/adapter-libsql` — so the gap is CLI-only, and it is crossed with a
+file of SQL.
+
+1. Change `prisma/schema.prisma`, then `npx prisma db push` against the local
+   `dev.db` as usual.
+2. Generate the delta against the schema production is still on:
+
+   ```
+   npx prisma migrate diff --from-schema <previous> --to-schema \
+     prisma/schema.prisma --script > prisma/migrations-turso/<date>-<what>.sql
+   ```
+
+3. Apply it **before** deploying the code that needs it — a deployment that
+   queries a table Turso does not have yet is a broken site, while a table no
+   deployed code reads yet is harmless:
+
+   ```
+   turso db shell <database> < prisma/migrations-turso/<file>.sql
+   ```
+
+Files in `prisma/migrations-turso/` are a record of what has been applied, not
+a migration history Prisma knows about; nothing reads them back.
+
 ## Scripts
 
 | Command | Does |
@@ -388,3 +417,4 @@ are or become real arrays.
 | `npm run lists:seed` | Build the ten editorial collections and their 72 lists |
 | `npm run genres:normalise` | Rewrite stored genres through the house vocabulary |
 | `npm run media:sync` | Copy artwork into `public/media` |
+| `npm run accounts:grandfather` | Mark existing members as email-confirmed |
