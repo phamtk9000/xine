@@ -20,6 +20,8 @@ export type RankingWeights = {
   novelty: number;
   editorial: number;
   serendipity: number;
+  /** Named a film to be like — the most specific thing anybody can say. */
+  reference: number;
   /** Subtracted, not added: repeats of what was just shown. */
   repetition: number;
 };
@@ -46,6 +48,13 @@ export const WEIGHTS: RankingWeights = {
   editorial: 0.1,
   /** Deliberate distance, spent on purpose rather than by accident. */
   serendipity: 0.1,
+  /**
+   * "Like Burning, but faster" is the most information anybody hands this
+   * system in one sentence, and it outranks everything except the evening's
+   * own constraints. When no film is named it contributes nothing at all,
+   * which is why it can afford to be this loud when one is.
+   */
+  reference: 0.3,
   repetition: 0.22,
 };
 
@@ -66,3 +75,59 @@ export const REPEAT_PENALTY = {
   genre: 0.14,
   decade: 0.1,
 };
+
+/**
+ * Variants, and how a session is assigned one.
+ *
+ * A ranking change that is not measured is a matter of opinion, and opinions
+ * about ranking are unfalsifiable — everybody has an anecdote about a bad
+ * recommendation and nobody has a baseline. So a weight change ships as a
+ * variant, sessions are split between it and the current configuration, and
+ * the event log answers the question afterwards.
+ *
+ * Bucketing is a hash of the session id: no random calls, no stored
+ * assignment, and the same session lands in the same variant on every request
+ * — including after a restart, which a coin flip in memory would not manage.
+ */
+export const VARIANTS: Record<string, RankingWeights> = {
+  v1: WEIGHTS,
+  /**
+   * The evening, louder. Halves the weight of a person's history on the
+   * theory that "what you asked for tonight" should almost entirely decide
+   * tonight — the open question being whether readers actually want that or
+   * only say they do.
+   */
+  "v1-session-heavy": {
+    ...WEIGHTS,
+    version: "v1-session-heavy",
+    session: 0.44,
+    taste: 0.1,
+  },
+};
+
+/** Which variants are live, and in what proportion. Empty means v1 only. */
+const SPLIT: { version: keyof typeof VARIANTS; share: number }[] = [
+  { version: "v1", share: 1 },
+];
+
+function hash(value: string) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < value.length; i++) {
+    h ^= value.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0) / 0xffffffff;
+}
+
+/** The weights this session ranks with. Stable for the life of the session. */
+export function weightsFor(sessionId: string): RankingWeights {
+  if (!sessionId || SPLIT.length <= 1) return WEIGHTS;
+
+  const roll = hash(sessionId);
+  let seen = 0;
+  for (const bucket of SPLIT) {
+    seen += bucket.share;
+    if (roll <= seen) return VARIANTS[bucket.version] ?? WEIGHTS;
+  }
+  return WEIGHTS;
+}

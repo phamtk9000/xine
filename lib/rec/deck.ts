@@ -2,9 +2,11 @@ import "server-only";
 import { applyDrift } from "@/lib/rec/feedback";
 import { intentSchema, type Intent } from "@/lib/rec/intent";
 import { confidenceOf, judgedBy, poolFor, rank, EMPTY_TASTE, type Ranked } from "@/lib/rec/rank";
+import { weightsFor } from "@/lib/rec/weights";
 import { tasteFor } from "@/lib/rec/taste";
 import { shownIn, type Session } from "@/lib/rec/session";
 import { db } from "@/lib/db";
+import type { Vector } from "@/lib/rec/dimensions";
 
 /**
  * The deck for a session, dealt from the current state of tonight.
@@ -18,6 +20,78 @@ import { db } from "@/lib/db";
  */
 
 export type DeckCard = Ranked & { why: string };
+
+/**
+ * Films near the ones the reader named, from the precomputed table.
+ *
+ * "Like Burning but faster" is two instructions: the second is a nudge on a
+ * dimension, and the first is a set of films. Reading that set from a table
+ * rather than computing it here is what makes a named film affordable inside
+ * a ranking that runs on every press.
+ *
+ * `avoid` inverts: a film the reader ruled out pushes its neighbours down
+ * rather than pulling them up, because "not like that" is as specific a
+ * statement as its opposite.
+ */
+async function nearReferences(intent: Intent): Promise<Map<string, number>> {
+  const near = new Map<string, number>();
+  const named = intent.references.filter((reference) => reference.filmId);
+  if (named.length === 0) return near;
+
+  const rows = await db.filmNeighbour.findMany({
+    where: { filmId: { in: named.map((reference) => reference.filmId!) } },
+    select: { filmId: true, neighbourId: true, score: true },
+  });
+
+  for (const row of rows) {
+    const reference = named.find((entry) => entry.filmId === row.filmId);
+    if (!reference) continue;
+    const sign = reference.relation === "avoid" ? -1 : 1;
+    const value = row.score * reference.weight * sign;
+    near.set(row.neighbourId, (near.get(row.neighbourId) ?? 0) + value);
+  }
+
+  // Scaled against the best neighbour rather than used raw. The blended
+  // similarity rarely exceeds a third even for an obvious match — Parasite's
+  // closest film scores 0.34 — so used as-is it contributed a rounding error
+  // to a score dominated by everything else, and "like Parasite" changed
+  // almost nothing. What matters is the ordering within the named film's own
+  // neighbours, and that survives the scaling intact.
+  const peak = Math.max(...[...near.values()].map(Math.abs), 0.001);
+  for (const [id, value] of near) near.set(id, value / peak);
+
+  return near;
+}
+
+/**
+ * What "but faster" means, on top of what "like Burning" means.
+ *
+ * The relation carries a nudge of its own: a reader asking for a lighter
+ * version of a film they named is describing a direction, and the ranking has
+ * a dimension for exactly that. Small on purpose — the named film is doing
+ * most of the work.
+ */
+const RELATION_NUDGE: Record<string, Vector> = {
+  similar_but_faster: { pace: 0.78 },
+  similar_but_lighter: { weight: 0.3, darkness: 0.3 },
+  similar_but_darker: { darkness: 0.82 },
+  similar_but_less_violent: { violence: 0.15 },
+  similar_but_more_emotional: { weight: 0.8 },
+};
+
+function withRelations(intent: Intent): Intent {
+  const soft = { ...intent.soft };
+  for (const reference of intent.references) {
+    const nudge = RELATION_NUDGE[reference.relation];
+    if (!nudge) continue;
+    for (const [key, value] of Object.entries(nudge)) {
+      soft[key as keyof Vector] = value;
+    }
+  }
+  return { ...intent, soft };
+}
+
+
 
 /**
  * A deck for a reader who has not started a session yet.
@@ -39,8 +113,16 @@ export async function previewDeck(
     userId ? judgedBy(userId) : Promise.resolve([]),
   ]);
 
-  const { pool, profiles } = await poolFor(intent, judged);
-  const ranked = rank(pool, profiles, intent, taste, { take });
+  const withNudges = withRelations(intent);
+  const [{ pool, profiles }, near] = await Promise.all([
+    poolFor(withNudges, judged),
+    nearReferences(withNudges),
+  ]);
+  // No session yet, so no variant: the first paint always uses the default
+  // configuration. Which is correct rather than convenient — a reader who is
+  // bucketed into a variant should see it from their first press, not from a
+  // page that was ranked before they had an identity.
+  const ranked = rank(pool, profiles, withNudges, taste, { take, near });
 
   return {
     cards: ranked.map((film) => ({ ...film, why: explain(film, intent, taste) })),
@@ -68,9 +150,17 @@ export async function dealDeck(
   ]);
 
   const exclude = [...new Set([...judged, ...shown, ...(intent.hard.excludeFilmIds ?? [])])];
-  const { pool, profiles } = await poolFor(intent, exclude);
+  const withNudges = withRelations(intent);
+  const [{ pool, profiles }, near] = await Promise.all([
+    poolFor(withNudges, exclude),
+    nearReferences(withNudges),
+  ]);
 
-  const ranked = rank(pool, profiles, intent, taste, { take });
+  const ranked = rank(pool, profiles, withNudges, taste, {
+    take,
+    near,
+    weights: weightsFor(session.id),
+  });
 
   return {
     cards: ranked.map((film) => ({ ...film, why: explain(film, intent, taste) })),
@@ -108,6 +198,19 @@ export function explain(
 
   const director = taste.directors.get(film.director) ?? 0;
   if (director > 0.5) return `From ${film.director}, who you rate highly.`;
+
+  // A named film beats a dimension even when it contributes less arithmetic.
+  // "Close to The Grand Budapest Hotel" is a reason somebody can check;
+  // "matches what you asked for: something beautiful" is true of nine
+  // thousand films, and the reader named one.
+  if (film.contributions.reference > 0.05 || lead === "reference") {
+    const named = intent.references[0];
+    if (named) {
+      return named.relation === "similar"
+        ? `Close to ${named.title}.`
+        : `${named.title}, in the direction you asked for.`;
+    }
+  }
 
   if (lead === "session") {
     const asked = strongestAsk(intent);

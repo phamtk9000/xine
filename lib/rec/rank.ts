@@ -3,7 +3,12 @@ import { db } from "@/lib/db";
 import { fromCsv } from "@/lib/serialize";
 import { profilesFor, PROFILE_SELECT } from "@/lib/rec/profile";
 import { similarity, NEUTRAL, type Vector } from "@/lib/rec/dimensions";
-import { QUALITY_PRIOR, REPEAT_PENALTY, WEIGHTS } from "@/lib/rec/weights";
+import {
+  QUALITY_PRIOR,
+  REPEAT_PENALTY,
+  WEIGHTS,
+  type RankingWeights,
+} from "@/lib/rec/weights";
 import type { Intent } from "@/lib/rec/intent";
 
 /**
@@ -47,6 +52,7 @@ export type Contributions = {
   novelty: number;
   editorial: number;
   serendipity: number;
+  reference: number;
   repetition: number;
 };
 
@@ -211,9 +217,16 @@ export function rank(
   profiles: Map<string, Vector>,
   intent: Intent,
   taste: TasteInput,
-  options: { shown?: string[]; take?: number } = {},
+  options: {
+    shown?: string[];
+    take?: number;
+    near?: Map<string, number>;
+    /** The variant this session ranks with — see weightsFor. */
+    weights?: RankingWeights;
+  } = {},
 ): Ranked[] {
   const take = options.take ?? 30;
+  const W = options.weights ?? WEIGHTS;
   const shownDirectors = new Map<string, number>();
   const shownCountries = new Map<string, number>();
   const shownGenres = new Map<string, number>();
@@ -238,14 +251,16 @@ export function rank(
     const named = Math.min(1, director * 0.6 + country * 0.2 + genreFit * 0.4);
 
     const contributions: Contributions = {
-      session: session * WEIGHTS.session,
-      taste: (tasteFit * 0.5 + named * 0.5) * WEIGHTS.taste,
-      quality: quality(film) * WEIGHTS.quality,
+      session: session * W.session,
+      taste: (tasteFit * 0.5 + named * 0.5) * W.taste,
+      quality: quality(film) * W.quality,
       // Unfamiliar is good; already-shown is not. The profile's familiarity
       // dimension is the film's obscurity, which is exactly novelty.
-      novelty: (profile.familiarity ?? NEUTRAL) * WEIGHTS.novelty,
-      editorial: (film.reviewed ? 1 : 0) * WEIGHTS.editorial,
-      serendipity: serendipity(intent, taste, profile) * WEIGHTS.serendipity,
+      novelty: (profile.familiarity ?? NEUTRAL) * W.novelty,
+      editorial: (film.reviewed ? 1 : 0) * W.editorial,
+      serendipity: serendipity(intent, taste, profile) * W.serendipity,
+      // Precomputed similarity to whatever film the reader named, if any.
+      reference: (options.near?.get(film.id) ?? 0) * W.reference,
       repetition: 0,
     };
 
@@ -255,7 +270,8 @@ export function rank(
       contributions.quality +
       contributions.novelty +
       contributions.editorial +
-      contributions.serendipity;
+      contributions.serendipity +
+      contributions.reference;
 
     return { ...film, score, contributions, profile } as Ranked;
   });
@@ -281,7 +297,7 @@ export function rank(
         Math.max(1, film.genres.length) +
       (shownGenres.get(`decade:${decade}`) ?? 0) * REPEAT_PENALTY.decade;
 
-    film.contributions.repetition = -penalty * WEIGHTS.repetition;
+    film.contributions.repetition = -penalty * W.repetition;
     film.score = Math.max(0, film.score + film.contributions.repetition);
 
     out.push(film);

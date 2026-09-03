@@ -91,6 +91,30 @@ export async function similarTo(
     found.set(id, { id, reason, rank });
   };
 
+  // 0. The precomputed blend, when this film has one. It agrees with the
+  //    signals below often enough that they mostly serve as its fallback —
+  //    but it knows things they cannot: that The Grand Budapest Hotel belongs
+  //    next to Rushmore, which shares no genre and no cast with it.
+  const precomputed = await db.filmNeighbour.findMany({
+    where: { filmId, neighbourId: { notIn: [...skip] } },
+    orderBy: { score: "desc" },
+    take: take * 3,
+    select: { neighbourId: true, parts: true },
+  });
+  for (const row of precomputed) {
+    const parts = JSON.parse(row.parts) as Record<string, number>;
+    const lead = Object.entries(parts).sort((a, b) => b[1] - a[1])[0]?.[0];
+    note(
+      row.neighbourId,
+      lead === "person"
+        ? `Shares its crew with ${film.title}`
+        : lead === "cluster"
+          ? `Feels like ${film.title}`
+          : `Close to ${film.title}`,
+      0,
+    );
+  }
+
   // 1. Shared editorial list — somebody wrote down why these belong together.
   const lists = await db.listEntry.findMany({
     where: { filmId },

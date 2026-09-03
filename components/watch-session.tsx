@@ -48,6 +48,14 @@ export function WatchSession({
   const [thinking, setThinking] = React.useState(false);
   const [askingAbout, setAskingAbout] = React.useState<StackCard | null>(null);
   const [chosen, setChosen] = React.useState<PublicCard | null>(null);
+  /**
+   * How many verdicts had been given when the finalists were last waved away.
+   *
+   * Without it "keep looking" lasts exactly one card: the next payload still
+   * satisfies the condition and the three come straight back, which reads as
+   * the page refusing to take no for an answer.
+   */
+  const [dismissedAt, setDismissedAt] = React.useState<number | null>(null);
 
   async function changeAnswers(next: Answers) {
     setAnswers(next);
@@ -186,7 +194,8 @@ export function WatchSession({
       <div>
         {chosen ? (
           <Chosen card={chosen} onBack={() => setChosen(null)} />
-        ) : deck?.finalists ? (
+        ) : deck?.finalists &&
+          (dismissedAt === null || deck.verdicts >= dismissedAt + 4) ? (
           <Finalists
             finalists={deck.finalists}
             onChoose={(card) => {
@@ -194,9 +203,7 @@ export function WatchSession({
               setChosen(card);
             }}
             onPick={pick}
-            onKeepGoing={() =>
-              setDeck((prev) => (prev ? { ...prev, finalists: null } : prev))
-            }
+            onKeepGoing={() => setDismissedAt(deck.verdicts)}
           />
         ) : (
           <>

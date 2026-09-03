@@ -144,6 +144,10 @@ model Film {
   watchlistItems WatchlistItem[]
   feedback       FilmFeedback[]
   profile        FilmProfile?
+  embedding      FilmEmbedding?
+  clusters       FilmCluster[]
+  neighbours     FilmNeighbour[] @relation("neighbourOf")
+  neighbourOf    FilmNeighbour[] @relation("neighbourTo")
   recEvents      RecEvent[]
   logs           FilmLog[]
   activity       Activity[]
@@ -576,4 +580,87 @@ model TasteVector {
   updatedAt DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// A film as a direction in meaning-space.
+///
+/// Built from its own words — title, synopsis, genres, director, country,
+/// keywords — rather than fetched from an embedding API, because an API key
+/// this project does not have is not a dependency worth taking for a feature
+/// that has to cover the whole catalogue. The hashing trick with inverse
+/// document frequency gets most of the way there for text this short, runs in
+/// microseconds, and costs nothing to recompute when the recipe changes.
+///
+/// Stored as base64 of 256 signed bytes: 344 characters a film, against two
+/// kilobytes for the same vector written as JSON. At ninety thousand films
+/// that is the difference between thirty megabytes and two hundred.
+///
+/// `model` records how it was made, so the day there is a real embedding
+/// service the two can live side by side and be compared rather than
+/// swapped on faith.
+model FilmEmbedding {
+  id     String @id @default(cuid())
+  filmId String @unique
+
+  /// base64(Int8Array) — see lib/rec/embed.
+  vector String
+  /// "hash-tfidf-v1", or the name of whatever service produced it.
+  model  String @default("hash-tfidf-v1")
+  dims   Int    @default(256)
+
+  updatedAt DateTime @updatedAt
+
+  film Film @relation(fields: [filmId], references: [id], onDelete: Cascade)
+
+  @@index([model])
+}
+
+/// A film's membership of an editorial cluster, with how strongly it belongs.
+///
+/// Clusters are xine's own vocabulary — Quiet Dread, Neon Loneliness, Eat the
+/// Rich — and they are not genres. A genre says what happens in a film; a
+/// cluster says what it is like to sit through one, which is much closer to
+/// how anybody actually chooses. Membership is computed from the semantic
+/// profile against the cluster's signature, so a new film joins the right
+/// clusters the moment it is imported.
+model FilmCluster {
+  id      String @id @default(cuid())
+  filmId  String
+  /// The cluster key from lib/rec/clusters.
+  cluster String
+  /// 0–1: how well the film fits the signature.
+  weight  Float
+
+  film Film @relation(fields: [filmId], references: [id], onDelete: Cascade)
+
+  @@unique([filmId, cluster])
+  @@index([cluster, weight])
+}
+
+/// Precomputed "films like this one".
+///
+/// Similarity is expensive and slow to compute and almost never changes, so
+/// it is worked out offline and stored as rows: twelve neighbours a film,
+/// indexed, fetched by a query that costs nothing. The alternative — loading
+/// thousands of vectors into a request and comparing them there — is the
+/// version of this that works on a laptop and falls over on a network.
+///
+/// The score is a blend rather than a cosine. The text vectors alone are
+/// weak on sixty-word synopses; the editorial clusters alone are coarse;
+/// shared people are precise but narrow. Together they agree often enough to
+/// be worth trusting, and `parts` keeps the breakdown so a bad neighbour can
+/// be diagnosed rather than guessed at.
+model FilmNeighbour {
+  id          String @id @default(cuid())
+  filmId      String
+  neighbourId String
+  score       Float
+  /// JSON: which signals contributed, and how much.
+  parts       String @default("{}")
+
+  film      Film @relation("neighbourOf", fields: [filmId], references: [id], onDelete: Cascade)
+  neighbour Film @relation("neighbourTo", fields: [neighbourId], references: [id], onDelete: Cascade)
+
+  @@unique([filmId, neighbourId])
+  @@index([filmId, score])
 }
