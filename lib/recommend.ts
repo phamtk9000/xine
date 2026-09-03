@@ -52,6 +52,17 @@ const LOVED = 7.5;
 /** Below this, a rating is evidence *against* the things it resembles. */
 const DISLIKED = 5.5;
 
+/**
+ * What a thumb is worth next to a rating.
+ *
+ * "Interested" is a guess about a film nobody has seen yet, so it pulls a
+ * little softer than a 7.5 does; "not for me" pulls back about as hard as a
+ * poor rating, because the reader is telling us something specific — this
+ * suggestion was wrong — and the point of asking is to act on it.
+ */
+const INTERESTED = 0.75;
+const NOT_FOR_ME = -0.55;
+
 /** Nobody wants a page of one director, or one list recited. */
 const MAX_PER_DIRECTOR = 2;
 const MAX_PER_LIST = 2;
@@ -164,7 +175,7 @@ export async function recommendFor(
 ): Promise<Recommendation[]> {
   const take = options.take ?? 12;
 
-  const [ratings, logs, watchlist] = await Promise.all([
+  const [ratings, logs, watchlist, feedback] = await Promise.all([
     db.rating.findMany({
       where: { userId },
       select: {
@@ -185,18 +196,67 @@ export async function recommendFor(
     }),
     db.filmLog.findMany({ where: { userId }, select: { filmId: true } }),
     db.watchlistItem.findMany({ where: { userId }, select: { filmId: true } }),
+    // What they have said about the suggestions themselves.
+    db.filmFeedback.findMany({
+      where: { userId },
+      select: {
+        verdict: true,
+        film: {
+          select: {
+            id: true,
+            title: true,
+            director: true,
+            cinematographer: true,
+            composer: true,
+            genres: true,
+            originCountry: true,
+            year: true,
+          },
+        },
+      },
+    }),
   ]);
 
+  // A film that has been judged is off the page either way. "Not for me"
+  // has to disappear or the button means nothing; "interested" is already
+  // kept, and re-recommending something the reader has already accepted
+  // spends a slot on a decision they have made.
   const seen = new Set<string>([
     ...ratings.map((r) => r.film.id),
     ...logs.map((l) => l.filmId),
     ...watchlist.map((w) => w.filmId),
+    ...feedback.map((f) => f.film.id),
   ]);
 
-  // Dislikes are not filtered out here — they pull the taste vector negative
-  // in the loop below, which is what stops "more of the same, but worse".
-  const loved = ratings.filter((r) => r.overall >= LOVED);
-  if (loved.length === 0) return [];
+  /**
+   * Everything the reader has told us, on one scale.
+   *
+   * A rating and a thumb are different claims — one is a judgement of a film
+   * somebody watched, the other a judgement of a suggestion they have not —
+   * so they arrive from different tables and are weighted differently. But
+   * from here down they are the same kind of evidence, and keeping two
+   * parallel paths through the scoring would guarantee they drift apart.
+   *
+   * Interest counts for a little less than love. "That looks like my sort of
+   * thing" is a guess about a film; a 9.4 is a verdict on one.
+   */
+  const signals: { film: (typeof ratings)[number]["film"]; pull: number }[] = [
+    ...ratings.map((r) => ({
+      film: r.film,
+      pull: r.overall >= LOVED ? r.overall / 10 : r.overall <= DISLIKED ? -0.6 : 0,
+    })),
+    ...feedback.map((f) => ({
+      film: f.film,
+      pull: f.verdict === "yes" ? INTERESTED : NOT_FOR_ME,
+    })),
+  ].filter((signal) => signal.pull !== 0);
+
+  // What the recommendations are read outward *from*: everything with a
+  // positive pull. Dislikes are not filtered out — they pull the taste
+  // vector negative below, which is what stops "more of the same, but
+  // worse" — but nothing is ever recommended for resembling them.
+  const anchors = signals.filter((signal) => signal.pull > 0);
+  if (anchors.length === 0) return [];
 
   // ---- The taste vector ---------------------------------------------------
   // Weighted by how much they liked the film it came from, so a 9.4 pulls
@@ -216,10 +276,7 @@ export async function recommendFor(
     if (!source.has(key)) source.set(key, title);
   };
 
-  for (const { overall, film } of ratings) {
-    const pull = overall >= LOVED ? overall / 10 : overall <= DISLIKED ? -0.6 : 0;
-    if (pull === 0) continue;
-
+  for (const { film, pull } of signals) {
     for (const genre of fromCsv(film.genres)) {
       affinity.genre.set(genre, (affinity.genre.get(genre) ?? 0) + pull);
       if (pull > 0) note(`genre:${genre}`, film.title);
@@ -257,8 +314,9 @@ export async function recommendFor(
   // Billed cast of loved films, then everything else those people are in.
   // This is the credits table earning its keep: 14,498 rows over 1,260
   // titles, which reaches films no list or genre filter would surface.
-  const lovedIds = loved.map((r) => r.film.id);
-  const lovedTitle = new Map(loved.map((r) => [r.film.id, r.film.title]));
+  const lovedIds = anchors.map((a) => a.film.id);
+  const lovedTitle = new Map(anchors.map((a) => [a.film.id, a.film.title]));
+  const pullById = new Map(anchors.map((a) => [a.film.id, a.pull]));
 
   const lovedCredits = await db.credit.findMany({
     where: { filmId: { in: lovedIds }, order: { lt: 6 } },
@@ -275,13 +333,13 @@ export async function recommendFor(
     { weight: number; name: string; from: string; films: number; lead: boolean }
   >();
   for (const credit of lovedCredits) {
-    const rating = loved.find((r) => r.film.id === credit.filmId);
-    if (!rating) continue;
+    const pull = pullById.get(credit.filmId);
+    if (!pull) continue;
     const existing = tally.get(credit.personId);
     tally.set(credit.personId, {
-      weight: (existing?.weight ?? 0) + rating.overall / 10,
+      weight: (existing?.weight ?? 0) + pull,
       name: credit.person.name,
-      from: existing?.from ?? lovedTitle.get(credit.filmId) ?? rating.film.title,
+      from: existing?.from ?? lovedTitle.get(credit.filmId) ?? "",
       films: (existing?.films ?? 0) + 1,
       lead: (existing?.lead ?? false) || credit.order <= 1,
     });
@@ -679,4 +737,39 @@ export async function editorialPicks(take = 12) {
     score: film.criticScore ?? 0,
     reason: "Written about by xine",
   }));
+}
+
+/**
+ * What the reader kept.
+ *
+ * Marking something interesting takes it out of the suggestions — a slot
+ * spent re-proposing a film somebody has already accepted is a slot wasted —
+ * so it has to reappear somewhere, or the button reads as a way to make
+ * films vanish. This is that somewhere.
+ */
+export async function keptFilms(userId: string, take = 12) {
+  const rows = await db.filmFeedback.findMany({
+    where: { userId, verdict: "yes" },
+    orderBy: { updatedAt: "desc" },
+    take,
+    select: {
+      film: {
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          year: true,
+          director: true,
+          posterUrl: true,
+        },
+      },
+    },
+  });
+
+  return rows.map((row) => row.film);
+}
+
+/** How many suggestions this reader has judged, either way. */
+export async function tuningCount(userId: string) {
+  return db.filmFeedback.count({ where: { userId } });
 }

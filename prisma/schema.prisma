@@ -52,6 +52,7 @@ model User {
   following Follow[]        @relation("follower")
   followers Follow[]        @relation("following")
   tokens    EmailToken[]
+  feedback  FilmFeedback[]
 }
 
 /// One member following another.
@@ -138,6 +139,7 @@ model Film {
   reviews        Review[]
   listEntries    ListEntry[]
   watchlistItems WatchlistItem[]
+  feedback       FilmFeedback[]
   logs           FilmLog[]
   activity       Activity[]
   credits        Credit[]
@@ -407,4 +409,26 @@ model EmailToken {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, purpose])
+}
+
+/// A reader's verdict on a recommendation, before they have seen the film.
+///
+/// Deliberately not a rating. A rating is a judgement of a film somebody
+/// watched; this is a judgement of a *suggestion* — "yes, that's the kind of
+/// thing I want" or "stop showing me this" — and conflating the two would
+/// poison the ratings that the rest of the site reads as opinion.
+model FilmFeedback {
+  id        String   @id @default(cuid())
+  userId    String
+  filmId    String
+  /// "yes" or "no".
+  verdict   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  film Film @relation(fields: [filmId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, filmId])
+  @@index([filmId])
 }

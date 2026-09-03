@@ -3,7 +3,9 @@ import type { Metadata } from "next";
 import { Poster } from "@/components/poster";
 import { QuickRate } from "@/components/quick-rate";
 import { ButtonLink, Container, EmptyState, PageHeader } from "@/components/ui";
-import { editorialPicks, recommendFor } from "@/lib/recommend";
+import { InterestButtons } from "@/components/interest-buttons";
+import { Poster as PosterArt } from "@/components/poster";
+import { editorialPicks, keptFilms, recommendFor, tuningCount } from "@/lib/recommend";
 import { readingFor } from "@/lib/archetype-members";
 import { getCurrentUser } from "@/lib/session";
 import { db } from "@/lib/db";
@@ -46,10 +48,12 @@ export default async function ForYouPage() {
     );
   }
 
-  const [recommendations, reading, rated] = await Promise.all([
+  const [recommendations, reading, rated, kept, tuned] = await Promise.all([
     recommendFor(user.id, { take: 18 }),
     readingFor(user.username),
     db.rating.count({ where: { userId: user.id } }),
+    keptFilms(user.id),
+    tuningCount(user.id),
   ]);
 
   const cold = recommendations.length === 0;
@@ -78,12 +82,38 @@ export default async function ForYouPage() {
         }
         action={
           <p className="readout shrink-0 text-xs text-faint">
-            {rated} ratings{reading ? ` · ${reading.archetype.name}` : ""}
+            {rated} ratings
+            {tuned > 0 ? ` · ${tuned} tuned` : ""}
+            {reading ? ` · ${reading.archetype.name}` : ""}
           </p>
         }
       />
 
       <Container className="py-14">
+        {kept.length > 0 && (
+          <div className="mb-14 border-b border-line pb-12">
+            <p className="label">Kept</p>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
+              Suggestions you said yes to. They are out of the rotation below,
+              and everything they have in common is pulling on what appears
+              there.
+            </p>
+            <ul className="mt-6 flex gap-4 overflow-x-auto pb-2">
+              {kept.map((film) => (
+                <li key={film.id} className="w-24 shrink-0 sm:w-28">
+                  <Link href={`/films/${film.slug}`} className="group block">
+                    <PosterArt film={film} sizes="120px" />
+                    <p className="mt-2 truncate text-xs text-muted transition-colors group-hover:text-gold">
+                      {film.title}
+                    </p>
+                  </Link>
+                  <InterestButtons filmId={film.id} mine="yes" className="mt-2" />
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <ul className="grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
           {films.map((film) => (
             <li key={film.id} className="flex gap-5">
@@ -109,6 +139,9 @@ export default async function ForYouPage() {
                   {film.reason}
                 </p>
 
+                {/* Two controls, two different questions. The scale is for
+                    a film they have seen; the thumbs are for one they have
+                    not, which is every film on this page until it isn't. */}
                 <div className="mt-3">
                   <QuickRate
                     filmId={film.id}
@@ -117,6 +150,8 @@ export default async function ForYouPage() {
                     signedIn
                   />
                 </div>
+
+                <InterestButtons filmId={film.id} mine={null} className="mt-3" />
               </div>
             </li>
           ))}
@@ -125,8 +160,9 @@ export default async function ForYouPage() {
         <p className="mt-16 max-w-2xl border-t border-line pt-6 text-xs leading-relaxed text-faint">
           No model is involved. These come from the editorial lists — seventy-two
           arguments about what belongs next to what — read outward from the films
-          you rate highest, with directors and genres filling in behind. Rate
-          something else and the page changes.{" "}
+          you rate highest and the suggestions you keep, with directors and
+          genres filling in behind. Rate something, keep something, or say no
+          to something, and the page changes.{" "}
           <Link
             href="/films/find"
             className="text-gold underline underline-offset-4"
