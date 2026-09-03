@@ -94,11 +94,15 @@ export default async function ForYouPage() {
             : "Films connected to the ones you rate highest, through the lists that argue they belong together. Every row says which film it followed and which argument connected them."
         }
         action={
-          <p className="readout shrink-0 text-xs text-faint">
-            {rated} ratings
-            {tuned > 0 ? ` · ${tuned} tuned` : ""}
-            {reading ? ` · ${reading.archetype.name}` : ""}
-          </p>
+          cold ? (
+            <ButtonLink href="/watch/start">Pick five films you love</ButtonLink>
+          ) : (
+            <p className="readout shrink-0 text-xs text-faint">
+              {rated} ratings
+              {tuned > 0 ? ` · ${tuned} tuned` : ""}
+              {reading ? ` · ${reading.archetype.name}` : ""}
+            </p>
+          )
         }
       />
 

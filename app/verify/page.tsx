@@ -54,8 +54,13 @@ export default async function VerifyPage({
           .
         </p>
         <div className="mt-8">
-          <ButtonLink href="/sign-in">Sign in</ButtonLink>
+          <ButtonLink href="/sign-in?next=/watch/start">Sign in</ButtonLink>
         </div>
+        <p className="mt-4 text-xs text-faint">
+          Sign in leads to a quick taste primer — five films you love, three
+          you didn&rsquo;t connect with — so recommendations start from
+          something other than the editorial average.
+        </p>
       </Shell>
     );
   }
