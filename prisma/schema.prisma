@@ -17,13 +17,16 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  username     String   @unique
-  email        String   @unique
-  passwordHash String
-  displayName  String
-  bio          String?
-  location     String?
+  id            String    @id @default(cuid())
+  username      String    @unique
+  email         String    @unique
+  /// When they proved they can read that inbox. Null means the account
+  /// exists but nobody has answered the letter yet, and sign-in refuses it.
+  emailVerified DateTime?
+  passwordHash  String
+  displayName   String
+  bio           String?
+  location      String?
   /// The member's picture, as a data URI.
   ///
   /// Stored inline rather than as a path or a bucket URL, because there is
@@ -34,8 +37,8 @@ model User {
   /// on the order of ten kilobytes, and the server refuses anything larger.
   /// Null means the generated plate, which is a real design rather than a
   /// placeholder.
-  avatar       String?
-  createdAt    DateTime @default(now())
+  avatar        String?
+  createdAt     DateTime  @default(now())
 
   ratings   Rating[]
   reviews   Review[]
@@ -46,8 +49,9 @@ model User {
   briefs    TrailerBrief[]
   activity  Activity[]
   /// Who this member follows, and who follows them.
-  following Follow[]       @relation("follower")
-  followers Follow[]       @relation("following")
+  following Follow[]        @relation("follower")
+  followers Follow[]        @relation("following")
+  tokens    EmailToken[]
 }
 
 /// One member following another.
@@ -70,23 +74,23 @@ model Follow {
 }
 
 model Film {
-  id            String    @id @default(cuid())
-  slug          String    @unique
+  id                  String    @id @default(cuid())
+  slug                String    @unique
   /// TMDB ids are only unique within a type — a film and a series can share
   /// one — so the pair is what identifies a title.
-  tmdbId        Int?
+  tmdbId              Int?
   /// "film" or "series". Both live here rather than in separate tables: they
   /// are rated on the same five axes, appear in the same lists, and the whole
   /// editorial argument treats them as one medium.
-  kind          String    @default("film")
-  seasons       Int?
-  episodes      Int?
-  title         String
-  originalTitle String?
-  year          Int
-  runtime       Int?
-  director      String
-  country       String?
+  kind                String    @default("film")
+  seasons             Int?
+  episodes            Int?
+  title               String
+  originalTitle       String?
+  year                Int
+  runtime             Int?
+  director            String
+  country             String?
   /// ISO 3166-1 alpha-2 codes from TMDB's production_countries, comma
   /// separated. Distinct from `country`, which holds the import REGION label
   /// ("Europe") and is therefore useless as geography. Co-productions are the
@@ -97,27 +101,27 @@ model Film {
   /// of the two that answers "whose cinema is this": Inside the Yellow
   /// Cocoon Shell is produced with French, Singaporean, Spanish and Dutch
   /// money, and is a Vietnamese film. The first code is treated as home.
-  originCountry String?
-  language      String?
-  synopsis      String
-  genres        String // comma-separated
-  cast          String? // comma-separated
-  cinematographer String?
-  composer      String?
-  criticScore   Float? // 0–10, editorial/aggregated
-  posterUrl     String? // null renders the generated type plate
-  backdropUrl   String?
-  releasedAt    DateTime?
-  createdAt     DateTime  @default(now())
+  originCountry       String?
+  language            String?
+  synopsis            String
+  genres              String // comma-separated
+  cast                String? // comma-separated
+  cinematographer     String?
+  composer            String?
+  criticScore         Float? // 0–10, editorial/aggregated
+  posterUrl           String? // null renders the generated type plate
+  backdropUrl         String?
+  releasedAt          DateTime?
+  createdAt           DateTime  @default(now())
 
   /// True when a human wrote the synopsis and set the critic score. Imported
   /// films start false and carry TMDB's overview until someone reviews them —
   /// this is what separates the catalogue's breadth from its editorial weight.
-  reviewed      Boolean   @default(false)
+  reviewed  Boolean @default(false)
   /// TMDB's own average, kept separate from XINE's critic score so the two
   /// are never confused for each other.
-  tmdbScore     Float?
-  tmdbVotes     Int       @default(0)
+  tmdbScore Float?
+  tmdbVotes Int     @default(0)
 
   /// The next season to air, for series that are already running.
   ///
@@ -127,8 +131,8 @@ model Film {
   /// the series itself (`next_episode_to_air`), so it lives here rather than
   /// in a table of its own: one series has exactly one *next* season, and the
   /// ones behind it are history the calendar has no use for.
-  nextSeason    Int?
-  nextSeasonAt  DateTime?
+  nextSeason   Int?
+  nextSeasonAt DateTime?
 
   ratings        Rating[]
   reviews        Review[]
@@ -303,20 +307,20 @@ model ListEntry {
 /// lib/stages.ts; each stage's content lives in its own ProjectStage row so
 /// stages can be drafted out of order and revised independently.
 model Project {
-  id        String   @id @default(cuid())
-  ownerId   String
-  title     String
-  genre     String
-  premise   String
-  logline   String?
-  stage     String   @default("idea")
-  visibility String  @default("private") // private | community
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(cuid())
+  ownerId    String
+  title      String
+  genre      String
+  premise    String
+  logline    String?
+  stage      String   @default("idea")
+  visibility String   @default("private") // private | community
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  owner    User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  stages   ProjectStage[]
-  briefs   TrailerBrief[]
+  owner     User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  stages    ProjectStage[]
+  briefs    TrailerBrief[]
   enquiries ServiceEnquiry[]
 }
 
@@ -380,4 +384,27 @@ model Activity {
   film Film? @relation(fields: [filmId], references: [id], onDelete: Cascade)
 
   @@index([createdAt])
+}
+
+/// A one-time link mailed to an address, to prove somebody can read it.
+///
+/// The token itself is never stored — only its SHA-256 — so a leaked copy of
+/// this table cannot be used to take over an account, which is the same
+/// reasoning as the password column two models up. Rows are kept after use
+/// rather than deleted, because "this link was already used" and "this link
+/// never existed" want different answers on screen.
+model EmailToken {
+  id        String    @id @default(cuid())
+  userId    String
+  /// SHA-256 of the token that went out in the URL.
+  tokenHash String    @unique
+  /// "verify" today; "reset" when there is a password reset flow.
+  purpose   String    @default("verify")
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose])
 }

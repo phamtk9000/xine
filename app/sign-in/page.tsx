@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useActionState } from "react";
 import { signIn, type AuthState } from "@/app/actions/auth";
+import { ResendVerification } from "@/components/resend-verification";
 import { Button, Container, Field, Input, Notice } from "@/components/ui";
 
 export default function SignInPage() {
@@ -61,6 +62,19 @@ function SignInForm() {
             {pending ? "Signing in…" : "Sign in"}
           </Button>
         </form>
+
+        {/* An unconfirmed account is the one sign-in failure with something
+            to do about it, so the way out is offered on the spot rather than
+            somewhere the reader has to go and find. */}
+        {state?.unverified && (
+          <div className="mt-6 border-t border-line pt-6">
+            <p className="text-sm leading-relaxed text-faint">
+              The link expires after a day. Ask for a fresh one and it will be
+              in your inbox in a moment.
+            </p>
+            <ResendVerification />
+          </div>
+        )}
 
         <p className="mt-8 text-sm text-muted">
           No account?{" "}

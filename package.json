@@ -24,7 +24,8 @@
     "credits:import": "tsx scripts/import-credits.ts",
     "db:dump": "sqlite3 dev.db .dump > xine-dump.sql && echo 'wrote xine-dump.sql — import with: turso db shell <name> < xine-dump.sql'",
     "countries:backfill": "tsx scripts/backfill-countries.ts",
-    "genres:normalise": "tsx scripts/normalise-genres.ts"
+    "genres:normalise": "tsx scripts/normalise-genres.ts",
+    "accounts:grandfather": "tsx scripts/grandfather-verified.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.117.1",
