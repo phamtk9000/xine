@@ -222,9 +222,13 @@ npm run genres:normalise            # --dry-run to see what would change
 
 ## The release calendar
 
-`/calendar` reads forward from today: everything with a date, grouped by
-month, films and series together, filterable by kind. The page only reads —
-titles get into the catalogue through:
+`/calendar` is a month grid: seven columns, one cell per day, poster chips in
+the days that have something, today marked, arrows stepping month to month
+with the count of what is behind each one. A schedule of every month stacked
+was honest and hard to follow — "what is out this weekend" meant parsing a
+hundred and thirty rows — where a grid answers it by shape. The list survives
+as the phone layout (seven columns at 375px is unusable) and as a view
+toggle. The page only reads — titles get into the catalogue through:
 
 ```bash
 npm run films:upcoming                  # nine months ahead

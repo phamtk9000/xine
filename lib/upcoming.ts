@@ -1,6 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { fromCsv } from "@/lib/serialize";
+import { monthKey, monthRange, type MonthKey } from "@/lib/month";
 
 /**
  * The release calendar — what is announced, in the order it arrives.
@@ -250,4 +251,113 @@ export async function watchlistLanding(viewerId: string) {
       };
     })
     .sort((a, b) => a.date.getTime() - b.date.getTime());
+}
+
+/**
+ * One month of the calendar, for the grid.
+ *
+ * The schedule reads a year ahead and the grid reads a month, which is not
+ * the same query with a smaller window: a grid has to know about the days
+ * with nothing on them too, and it has to end where the month ends rather
+ * than wherever the take ran out. So this returns the month's entries and
+ * lets the page lay out the weeks around them.
+ */
+export async function monthEntries(
+  key: MonthKey,
+  options: {
+    kind?: CalendarKind;
+    viewerId?: string | null;
+    savedOnly?: boolean;
+  } = {},
+): Promise<CalendarEntry[]> {
+  const { start, end } = monthRange(key);
+  const now = new Date();
+  // Never show a date that has already passed, even inside the current
+  // month — a calendar of what is coming should not be half history.
+  const from = start > now ? start : now;
+  const kind = options.kind ?? "all";
+  const kindWhere = kind === "all" ? {} : { kind };
+
+  const [releases, returning, saved] = await Promise.all([
+    db.film.findMany({
+      where: { releasedAt: { gte: from, lt: end }, ...kindWhere },
+      select: SELECT,
+    }),
+    kind === "film"
+      ? Promise.resolve([])
+      : db.film.findMany({
+          where: { nextSeasonAt: { gte: from, lt: end } },
+          select: SELECT,
+        }),
+    options.viewerId
+      ? db.watchlistItem
+          .findMany({
+            where: { userId: options.viewerId },
+            select: { filmId: true },
+          })
+          .then((rows) => new Set(rows.map((row) => row.filmId)))
+      : Promise.resolve(new Set<string>()),
+  ]);
+
+  const shape = (
+    row: (typeof releases)[number],
+    date: Date,
+    season: number | null,
+  ): CalendarEntry => ({
+    id: season ? `${row.id}-s${season}` : row.id,
+    slug: row.slug,
+    title: row.title,
+    kind: row.kind,
+    year: row.year,
+    director: row.director,
+    genres: fromCsv(row.genres),
+    posterUrl: row.posterUrl,
+    date,
+    season,
+    runtime: row.runtime,
+    seasons: row.seasons,
+    saved: saved.has(row.id),
+  });
+
+  return [
+    ...releases.map((row) => shape(row, row.releasedAt!, null)),
+    ...returning.map((row) => shape(row, row.nextSeasonAt!, row.nextSeason)),
+  ]
+    .filter((entry) => (options.savedOnly ? entry.saved : true))
+    .sort(
+      (a, b) =>
+        a.date.getTime() - b.date.getTime() || a.title.localeCompare(b.title),
+    );
+}
+
+/**
+ * How many titles each month in the horizon holds, so the month navigation
+ * can say what is behind an arrow instead of stepping into an empty grid.
+ */
+export async function monthTotals(): Promise<Map<MonthKey, number>> {
+  const { now, horizon } = window();
+
+  const rows = await db.film.findMany({
+    where: {
+      OR: [
+        { releasedAt: { gt: now, lte: horizon } },
+        { nextSeasonAt: { gt: now, lte: horizon } },
+      ],
+    },
+    select: { releasedAt: true, nextSeasonAt: true },
+  });
+
+  const totals = new Map<MonthKey, number>();
+  const bump = (date: Date | null) => {
+    if (!date || date <= now || date > horizon) return;
+    const key = monthKey(date);
+    totals.set(key, (totals.get(key) ?? 0) + 1);
+  };
+
+  for (const row of rows) {
+    bump(row.releasedAt);
+    bump(row.nextSeasonAt);
+  }
+
+  return totals;
 }
