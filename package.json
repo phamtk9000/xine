@@ -31,7 +31,8 @@
     "films:embed": "tsx scripts/build-embeddings.ts",
     "films:cluster": "tsx scripts/build-clusters.ts",
     "films:neighbours": "tsx scripts/build-neighbours.ts",
-    "films:tag": "tsx scripts/tag-films.ts"
+    "films:tag": "tsx scripts/tag-films.ts",
+    "films:push:derived": "tsx scripts/sync-derived.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.117.1",
