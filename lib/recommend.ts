@@ -4,25 +4,31 @@ import { fromCsv } from "@/lib/serialize";
 import { round1 } from "@/lib/scores";
 
 /**
- * Recommendations, from the one signal this site has that others do not.
+ * Recommendations, from facts rather than a fitted model.
  *
  * There is nothing here to train. Forty-one ratings across four accounts is
  * not a matrix anybody can factorise, and per-film axis data exists for about
- * thirty titles — a model fitted to that would produce noise wearing a
- * confident face. Sparsity is not a problem to be modelled around; it is a
- * fact to design for.
+ * thirty titles. Sparsity is not a problem to model around; it is a fact to
+ * design for.
  *
- * What xine has instead is seventy-eight lists in which a person placed eight
- * films next to each other and said why. That is a hand-built similarity
- * graph with the edges labelled: In the Mood for Love and Her are adjacent
- * because somebody argued they are both about people who never say it. So
- * the strongest recommender available reads that graph outward from what
- * somebody already loves, and the explanation is not generated — it is the
- * name of the argument that connects the two films.
+ * Two layers, and the order matters.
  *
- * Three weaker signals fill in behind it: directors they rate highly, genres
- * they return to, and a quality prior for the tail. Every one of them is a
- * fact from a row, which is why every recommendation can say what it is for.
+ * The editorial graph comes first, because it is the signal no other film
+ * site has: seventy-two lists in which a person placed eight films next to
+ * each other and said why, which is a similarity graph with its edges
+ * labelled. But only 351 of 1,797 titles are in a list, so on its own it can
+ * only ever recommend from a fifth of the catalogue.
+ *
+ * The rest of the catalogue is reached by what every row carries: genre,
+ * country, decade, and the people — director, cinematographer,
+ * composer, and the billed cast through the credits table. Shared attributes
+ * are weighted by how rare they are, which is the whole trick. Two films
+ * sharing "Drama" (1,145 of them) means nothing; two sharing "Western" (22)
+ * or Cantonese or a cinematographer means a great deal.
+ *
+ * Every score decomposes into named contributions, so every recommendation
+ * can say what it is for — and a reader can disagree with the reasoning
+ * rather than with a number.
  */
 
 export type Recommendation = {
@@ -41,30 +47,116 @@ export type Recommendation = {
   reason: string;
 };
 
-/**
- * A film in many lists is a hub, not a match — damp it or The Godfather
- * wins every recommendation on the site.
- *
- * The exponent is deliberately gentler than a square root. At 0.5, being in
- * one list beat being in four so heavily that Playtime outranked Her for a
- * reader whose favourite film is In the Mood for Love — obscurity was being
- * rewarded as if it were relevance. At 0.35 hubs are still held back, but a
- * film that genuinely belongs in several of these arguments is allowed to
- * say so.
- */
-function damp(listCount: number) {
-  return 1 / Math.pow(Math.max(1, listCount), 0.35);
-}
-
 /** Ratings this high are treated as a preference rather than a record. */
 const LOVED = 7.5;
 /** Below this, a rating is evidence *against* the things it resembles. */
 const DISLIKED = 5.5;
 
-/** Nobody wants a page of one director, however well it scores. */
+/** Nobody wants a page of one director, or one list recited. */
 const MAX_PER_DIRECTOR = 2;
-/** Or a page that is one editorial list read out loud. */
 const MAX_PER_LIST = 2;
+/** And the same for a crew member: three Deakins films is a filmography. */
+const MAX_PER_PERSON = 2;
+
+/**
+ * What share of the page the editorial graph may take.
+ *
+ * Left alone it takes all of it. The lists are the strongest signal here, so
+ * for a reader whose favourites are all in them every slot fills with list
+ * matches and the other 1,446 titles never appear — reachable in principle,
+ * invisible in practice. Holding back a portion forces the rest of the page
+ * to be earned by a person or a rare attribute, which is the only way the
+ * catalogue outside the lists ever gets seen.
+ */
+const LIST_SHARE = 0.55;
+
+/** How wide the content scan goes before scoring. */
+const SCAN = 900;
+
+/**
+ * The weakest contribution worth counting.
+ *
+ * Without it, "Drama" plus "English" plus "the 2010s" adds up to a
+ * recommendation, and the first version of this duly suggested The Godfather
+ * and Fight Club to somebody whose favourite film is In the Mood for Love —
+ * three true statements that together say nothing. A contribution has to
+ * clear this bar on its own to be counted at all.
+ */
+const FLOOR = 0.3;
+
+/**
+ * How strong a film's *best* reason has to be before it can be recommended.
+ *
+ * A page can be filled with true statements that say nothing — "a drama",
+ * "in English", "from the 2010s" — and the first version of this did exactly
+ * that, opening with The Godfather for somebody whose favourite film is In
+ * the Mood for Love. Weak signals may still contribute to the ordering, but
+ * a film has to clear this on one single reason to appear at all, which in
+ * practice means a person, an editorial list, or an attribute rare enough to
+ * be a real claim.
+ */
+const MIN_TOP = 1.2;
+
+/**
+ * How much a shared attribute is worth, before rarity is applied.
+ *
+ * People outrank attributes on purpose. Sharing a cinematographer with a
+ * film somebody loves is a real claim about how the next one will look;
+ * sharing a genre is barely a claim at all.
+ */
+const WEIGHT = {
+  list: 3,
+  director: 2.4,
+  cinematographer: 1.8,
+  composer: 1.4,
+  cast: 1.1,
+  genre: 1.2,
+  country: 1.0,
+  decade: 0.6,
+  quality: 0.35,
+} as const;
+
+/** A film in many lists is a hub, not a match — damped, but gently. */
+function damp(listCount: number) {
+  return 1 / Math.pow(Math.max(1, listCount), 0.35);
+}
+
+/**
+ * Inverse document frequency: how much it means that two films share this.
+ *
+ * Drama appears on 1,145 of 1,797 titles and says almost nothing; Western
+ * appears on 22 and says a great deal. Without this the recommender simply
+ * ranks the catalogue by how much drama it contains.
+ */
+function idf(total: number, count: number) {
+  return Math.log((total + 1) / (Math.max(1, count) + 1)) + 0.2;
+}
+
+type Contribution = {
+  weight: number;
+  reason: string;
+  listId?: string;
+  /** The person this reason rests on, for the diversity cap. */
+  personKey?: string;
+};
+
+/** The internal listId is a diversity control, not part of the answer. */
+function strip(
+  film: Recommendation & { listId?: string; personKey?: string },
+): Recommendation {
+  const copy = { ...film };
+  delete copy.listId;
+  delete copy.personKey;
+  return copy;
+}
+
+/** Scale a dimension to [-1, 1] so it cannot outgrow the others. */
+function normalise(map: Map<string, number> | Map<number, number>) {
+  const peak = Math.max(...[...map.values()].map(Math.abs), 1);
+  for (const [key, value] of map.entries()) {
+    (map as Map<unknown, number>).set(key, value / peak);
+  }
+}
 
 export async function recommendFor(
   userId: string,
@@ -78,208 +170,479 @@ export async function recommendFor(
       select: {
         overall: true,
         film: {
-          select: { id: true, title: true, director: true, genres: true },
+          select: {
+            id: true,
+            title: true,
+            director: true,
+            cinematographer: true,
+            composer: true,
+            genres: true,
+            originCountry: true,
+            year: true,
+          },
         },
       },
     }),
-    db.filmLog.findMany({
-      where: { userId },
-      select: { filmId: true, likedAt: true },
-    }),
+    db.filmLog.findMany({ where: { userId }, select: { filmId: true } }),
     db.watchlistItem.findMany({ where: { userId }, select: { filmId: true } }),
   ]);
 
-  // Anything they have rated, watched or saved is not a recommendation: the
-  // first two they have already judged, and the third they have already
-  // decided about.
   const seen = new Set<string>([
     ...ratings.map((r) => r.film.id),
     ...logs.map((l) => l.filmId),
     ...watchlist.map((w) => w.filmId),
   ]);
 
+  // Dislikes are not filtered out here — they pull the taste vector negative
+  // in the loop below, which is what stops "more of the same, but worse".
   const loved = ratings.filter((r) => r.overall >= LOVED);
-  const disliked = ratings.filter((r) => r.overall <= DISLIKED);
-
-  // Cold start. Under three ratings there is no taste to read, and guessing
-  // from one is worse than admitting it — the caller shows editorial picks.
   if (loved.length === 0) return [];
 
-  const scores = new Map<string, number>();
-  const reasons = new Map<string, string>();
-  /** Which list argued for each film, for the diversity pass below. */
-  const viaList = new Map<string, string>();
+  // ---- The taste vector ---------------------------------------------------
+  // Weighted by how much they liked the film it came from, so a 9.4 pulls
+  // harder than a 7.6, and negative from what they disliked.
+  const affinity = {
+    genre: new Map<string, number>(),
+    country: new Map<string, number>(),
+    decade: new Map<number, number>(),
+    director: new Map<string, number>(),
+    cinematographer: new Map<string, number>(),
+    composer: new Map<string, number>(),
+  };
+  /** Which loved film each attribute came from, for the explanation. */
+  const source = new Map<string, string>();
 
-  const add = (
-    filmId: string,
-    weight: number,
-    reason: string,
-    listId?: string,
-  ) => {
-    const next = (scores.get(filmId) ?? 0) + weight;
-    scores.set(filmId, next);
-    // The reason kept is the one from the strongest single contribution, so
-    // a film recommended for three reasons still says the best of them.
-    if (!reasons.has(filmId) || weight > (scores.get(`${filmId}:best`) ?? 0)) {
-      reasons.set(filmId, reason);
-      scores.set(`${filmId}:best`, weight);
-      if (listId) viaList.set(filmId, listId);
-    }
+  const note = (key: string, title: string) => {
+    if (!source.has(key)) source.set(key, title);
   };
 
-  // ---- 1. The editorial graph -------------------------------------------
-  // Films that share a list with something they loved, weighted by how much
-  // they loved it and damped by how many lists the candidate appears in.
-  const lovedIds = loved.map((r) => r.film.id);
-  const byId = new Map(loved.map((r) => [r.film.id, r]));
+  for (const { overall, film } of ratings) {
+    const pull = overall >= LOVED ? overall / 10 : overall <= DISLIKED ? -0.6 : 0;
+    if (pull === 0) continue;
 
-  if (lovedIds.length > 0) {
-    const entries = await db.listEntry.findMany({
-      where: { film: { id: { in: lovedIds } } },
-      select: { filmId: true, list: { select: { id: true, title: true } } },
-    });
-
-    const listIds = [...new Set(entries.map((e) => e.list.id))];
-    const neighbours = await db.listEntry.findMany({
-      where: { listId: { in: listIds } },
-      select: { filmId: true, listId: true },
-    });
-
-    // How many editorial lists each candidate belongs to overall.
-    const membership = new Map<string, number>();
-    for (const row of await db.listEntry.groupBy({
-      by: ["filmId"],
-      where: { filmId: { in: neighbours.map((n) => n.filmId) } },
-      _count: { _all: true },
-    })) {
-      membership.set(row.filmId, row._count._all);
+    for (const genre of fromCsv(film.genres)) {
+      affinity.genre.set(genre, (affinity.genre.get(genre) ?? 0) + pull);
+      if (pull > 0) note(`genre:${genre}`, film.title);
     }
 
-    const listTitle = new Map(entries.map((e) => [e.list.id, e.list.title]));
-    const sourceOf = new Map<string, string[]>();
-    for (const entry of entries) {
-      sourceOf.set(entry.list.id, [
-        ...(sourceOf.get(entry.list.id) ?? []),
-        entry.filmId,
-      ]);
+    const country = film.originCountry?.split(",")[0]?.trim();
+    if (country) {
+      affinity.country.set(country, (affinity.country.get(country) ?? 0) + pull);
+      if (pull > 0) note(`country:${country}`, film.title);
     }
+    const decade = Math.floor(film.year / 10) * 10;
+    affinity.decade.set(decade, (affinity.decade.get(decade) ?? 0) + pull);
 
-    for (const neighbour of neighbours) {
-      if (seen.has(neighbour.filmId)) continue;
-
-      const sources = sourceOf.get(neighbour.listId) ?? [];
-      for (const sourceId of sources) {
-        const source = byId.get(sourceId);
-        if (!source) continue;
-
-        const weight =
-          (source.overall / 10) * damp(membership.get(neighbour.filmId) ?? 1) * 3;
-
-        add(
-          neighbour.filmId,
-          weight,
-          `With ${source.film.title} in “${listTitle.get(neighbour.listId)}”`,
-          neighbour.listId,
-        );
+    if (pull > 0) {
+      for (const [key, value] of [
+        ["director", film.director],
+        ["cinematographer", film.cinematographer],
+        ["composer", film.composer],
+      ] as const) {
+        if (!value || value === "Unknown") continue;
+        const map = affinity[key];
+        map.set(value, (map.get(value) ?? 0) + pull);
+        note(`${key}:${value}`, film.title);
       }
     }
   }
 
-  // ---- 2. Directors they reward ------------------------------------------
-  const lovedDirectors = [
-    ...new Set(loved.map((r) => r.film.director).filter((d) => d !== "Unknown")),
-  ];
+  // Normalised per dimension. Without this an affinity grows with the number
+  // of films rated — after a dozen ratings "English" carries a weight of
+  // eight simply for being the commonest thing in cinema — and the common
+  // attributes drown the rare ones no matter how they are weighted after.
+  for (const map of Object.values(affinity)) normalise(map);
 
-  if (lovedDirectors.length > 0) {
-    const byDirector = await db.film.findMany({
-      where: { director: { in: lovedDirectors }, id: { notIn: [...seen] } },
-      select: { id: true, director: true },
-      take: 120,
-    });
+  // ---- The people they keep watching -------------------------------------
+  // Billed cast of loved films, then everything else those people are in.
+  // This is the credits table earning its keep: 14,498 rows over 1,260
+  // titles, which reaches films no list or genre filter would surface.
+  const lovedIds = loved.map((r) => r.film.id);
+  const lovedTitle = new Map(loved.map((r) => [r.film.id, r.film.title]));
 
-    for (const film of byDirector) {
-      add(film.id, 1.2, `Also directed by ${film.director}`);
-    }
-  }
-
-  // ---- 3. Genres they return to ------------------------------------------
-  const genreWeight = new Map<string, number>();
-  for (const rating of loved) {
-    for (const genre of fromCsv(rating.film.genres)) {
-      genreWeight.set(genre, (genreWeight.get(genre) ?? 0) + rating.overall / 10);
-    }
-  }
-  for (const rating of disliked) {
-    for (const genre of fromCsv(rating.film.genres)) {
-      genreWeight.set(genre, (genreWeight.get(genre) ?? 0) - 0.5);
-    }
-  }
-
-  const topGenres = [...genreWeight.entries()]
-    .filter(([, weight]) => weight > 0)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 3)
-    .map(([genre]) => genre);
-
-  // ---- Assemble ----------------------------------------------------------
-  const candidateIds = [...scores.keys()].filter((key) => !key.includes(":"));
-  if (candidateIds.length === 0) return [];
-
-  const films = await db.film.findMany({
-    where: { id: { in: candidateIds } },
+  const lovedCredits = await db.credit.findMany({
+    where: { filmId: { in: lovedIds }, order: { lt: 6 } },
     select: {
-      id: true,
-      slug: true,
-      title: true,
-      year: true,
-      director: true,
-      posterUrl: true,
-      genres: true,
-      criticScore: true,
-      tmdbScore: true,
-      reviewed: true,
+      personId: true,
+      filmId: true,
+      order: true,
+      person: { select: { name: true } },
     },
   });
 
-  const ranked = films
+  const tally = new Map<
+    string,
+    { weight: number; name: string; from: string; films: number; lead: boolean }
+  >();
+  for (const credit of lovedCredits) {
+    const rating = loved.find((r) => r.film.id === credit.filmId);
+    if (!rating) continue;
+    const existing = tally.get(credit.personId);
+    tally.set(credit.personId, {
+      weight: (existing?.weight ?? 0) + rating.overall / 10,
+      name: credit.person.name,
+      from: existing?.from ?? lovedTitle.get(credit.filmId) ?? rating.film.title,
+      films: (existing?.films ?? 0) + 1,
+      lead: (existing?.lead ?? false) || credit.order <= 1,
+    });
+  }
+
+  /**
+   * One shared actor is a coincidence; two is a pattern.
+   *
+   * Without this the page recommended Guardians of the Galaxy to a reader
+   * whose favourite film is In the Mood for Love, because Dave Bautista is
+   * fourth-billed in Dune. A performer only counts if they carried a film
+   * this reader loved — top billing — or turned up in two of them.
+   */
+  const personPull = new Map(
+    [...tally.entries()].filter(([, person]) => person.lead || person.films >= 2),
+  );
+
+  const castCredits =
+    personPull.size > 0
+      ? await db.credit.findMany({
+          where: {
+            personId: { in: [...personPull.keys()] },
+            filmId: { notIn: [...seen] },
+            // Only where they are billed near the front — a lead carries a
+            // film, a tenth-billed appearance says nothing about it.
+            order: { lt: 4 },
+          },
+          select: { filmId: true, personId: true },
+          take: 1500,
+        })
+      : [];
+
+  // ---- Candidates ---------------------------------------------------------
+  // Anything sharing a genre, a country or a person with something they
+  // love. That is the whole catalogue in principle; the take keeps one
+  // request honest.
+  const topGenres = [...affinity.genre.entries()]
+    .filter(([, w]) => w > 0)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([g]) => g);
+  const topCountries = [...affinity.country.entries()]
+    .filter(([, w]) => w > 0)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([c]) => c);
+
+  const [candidates, totals, listEntries] = await Promise.all([
+    db.film.findMany({
+      where: {
+        id: { notIn: [...seen] },
+        OR: [
+          ...topGenres.map((genre) => ({ genres: { contains: genre } })),
+          ...topCountries.map((country) => ({
+            originCountry: { contains: country },
+          })),
+          { director: { in: [...affinity.director.keys()] } },
+          { cinematographer: { in: [...affinity.cinematographer.keys()] } },
+          { composer: { in: [...affinity.composer.keys()] } },
+          { id: { in: castCredits.map((c) => c.filmId) } },
+        ],
+      },
+      orderBy: { tmdbVotes: "desc" },
+      take: SCAN,
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+        year: true,
+        director: true,
+        cinematographer: true,
+        composer: true,
+        genres: true,
+        originCountry: true,
+        language: true,
+        posterUrl: true,
+        criticScore: true,
+        tmdbScore: true,
+        reviewed: true,
+      },
+    }),
+    catalogueTotals(),
+    lovedListNeighbours(lovedIds, seen),
+  ]);
+
+  // ---- Score --------------------------------------------------------------
+  const contributions = new Map<string, Contribution[]>();
+  const push = (filmId: string, contribution: Contribution) => {
+    if (contribution.weight < FLOOR) return;
+    contributions.set(filmId, [
+      ...(contributions.get(filmId) ?? []),
+      contribution,
+    ]);
+  };
+
+  for (const [filmId, entry] of listEntries) {
+    push(filmId, {
+      weight: entry.weight * WEIGHT.list,
+      reason: entry.reason,
+      listId: entry.listId,
+    });
+  }
+
+  const castByFilm = new Map<string, string[]>();
+  for (const credit of castCredits) {
+    castByFilm.set(credit.filmId, [
+      ...(castByFilm.get(credit.filmId) ?? []),
+      credit.personId,
+    ]);
+  }
+
+  for (const film of candidates) {
+    const genres = fromCsv(film.genres);
+
+    for (const genre of genres) {
+      const pull = affinity.genre.get(genre);
+      if (!pull) continue;
+      push(film.id, {
+        weight:
+          pull * idf(totals.films, totals.genre.get(genre) ?? 1) * WEIGHT.genre,
+        reason: `${genre}, like ${source.get(`genre:${genre}`)}`,
+      });
+    }
+
+    const country = film.originCountry?.split(",")[0]?.trim();
+    if (country) {
+      const pull = affinity.country.get(country);
+      if (pull) {
+        push(film.id, {
+          weight:
+            pull *
+            idf(totals.films, totals.country.get(country) ?? 1) *
+            WEIGHT.country,
+          reason: `From the same cinema as ${source.get(`country:${country}`)}`,
+        });
+      }
+    }
+
+    const decade = Math.floor(film.year / 10) * 10;
+    const decadePull = affinity.decade.get(decade);
+    if (decadePull && decadePull > 0) {
+      push(film.id, {
+        weight: decadePull * WEIGHT.decade,
+        reason: `${decade}s, a decade you rate highly`,
+      });
+    }
+
+    for (const [key, value] of [
+      ["director", film.director],
+      ["cinematographer", film.cinematographer],
+      ["composer", film.composer],
+    ] as const) {
+      if (!value) continue;
+      const pull = affinity[key].get(value);
+      if (!pull) continue;
+
+      const verb =
+        key === "director"
+          ? `Also directed by ${value}`
+          : key === "cinematographer"
+            ? `Shot by ${value}, like ${source.get(`${key}:${value}`)}`
+            : `Scored by ${value}, like ${source.get(`${key}:${value}`)}`;
+
+      push(film.id, {
+        weight: pull * WEIGHT[key],
+        reason: verb,
+        personKey: `${key}:${value}`,
+      });
+    }
+
+    for (const personId of castByFilm.get(film.id) ?? []) {
+      const person = personPull.get(personId);
+      if (!person) continue;
+      push(film.id, {
+        weight: person.weight * WEIGHT.cast,
+        reason: `With ${person.name}, from ${person.from}`,
+        personKey: `cast:${personId}`,
+      });
+    }
+  }
+
+  // Films the editorial graph found that the content scan did not return.
+  const missing = [...listEntries.keys()].filter(
+    (id) => !candidates.some((film) => film.id === id),
+  );
+  const extra =
+    missing.length > 0
+      ? await db.film.findMany({
+          where: { id: { in: missing } },
+          select: {
+            id: true,
+            slug: true,
+            title: true,
+            year: true,
+            director: true,
+            cinematographer: true,
+            composer: true,
+            genres: true,
+            originCountry: true,
+            posterUrl: true,
+            criticScore: true,
+            tmdbScore: true,
+            reviewed: true,
+          },
+        })
+      : [];
+
+  const ranked = [...candidates, ...extra]
     .map((film) => {
-      const genres = fromCsv(film.genres);
-      const genreBonus = genres.filter((g) => topGenres.includes(g)).length * 0.4;
-      // A quality prior for the tail only — enough to break ties, never
-      // enough to put a film here that nothing else argued for.
-      const quality = ((film.criticScore ?? film.tmdbScore ?? 5) / 10) * 0.8;
+      const parts = contributions.get(film.id) ?? [];
+      if (parts.length === 0) return null;
+
+      // No recommendation without a specific reason — see MIN_TOP.
+      const best = Math.max(...parts.map((part) => part.weight));
+      if (best < MIN_TOP) return null;
+
+      // Diminishing returns: five weak reasons should not outrank one strong
+      // one, or every film that is merely "a drama from the 2010s" wins.
+      const sorted = [...parts].sort((a, b) => b.weight - a.weight);
+      const total = sorted.reduce(
+        (sum, part, index) => sum + part.weight / (index + 1),
+        0,
+      );
+      const quality = ((film.criticScore ?? film.tmdbScore ?? 5) / 10) * WEIGHT.quality;
 
       return {
         ...film,
-        genres,
-        score: round1((scores.get(film.id) ?? 0) + genreBonus + quality),
-        reason: reasons.get(film.id) ?? "Close to what you rate highly",
+        genres: fromCsv(film.genres),
+        score: round1(total + quality),
+        reason: sorted[0].reason,
+        listId: sorted[0].listId,
+        personKey: sorted[0].personKey,
       };
     })
+    .filter((film): film is NonNullable<typeof film> => film !== null)
     .sort((a, b) => b.score - a.score);
 
-  // Diversity pass: a page of one director is a worse answer than a slightly
-  // lower-scoring one that shows somebody something new.
   const perDirector = new Map<string, number>();
   const perList = new Map<string, number>();
+  const perPerson = new Map<string, number>();
+  const listBudget = Math.ceil(take * LIST_SHARE);
+  let fromLists = 0;
   const out: Recommendation[] = [];
+  const passed = new Set<string>();
 
-  for (const film of ranked) {
+  const consider = (film: (typeof ranked)[number], allowList: boolean) => {
+    if (passed.has(film.id)) return;
+
     const directorCount = perDirector.get(film.director) ?? 0;
-    if (directorCount >= MAX_PER_DIRECTOR) continue;
+    if (directorCount >= MAX_PER_DIRECTOR) return;
 
-    // Capping the source list matters as much as capping the director: the
-    // first cut of this page opened with three films from "Architecture as
-    // Character", which reads as one shelf rather than a reading of taste.
-    const list = viaList.get(film.id);
-    const listCount = list ? (perList.get(list) ?? 0) : 0;
-    if (list && listCount >= MAX_PER_LIST) continue;
+    const personCount = film.personKey ? (perPerson.get(film.personKey) ?? 0) : 0;
+    if (film.personKey && personCount >= MAX_PER_PERSON) return;
+
+    if (film.listId) {
+      if (!allowList || fromLists >= listBudget) return;
+      const listCount = perList.get(film.listId) ?? 0;
+      if (listCount >= MAX_PER_LIST) return;
+      perList.set(film.listId, listCount + 1);
+      fromLists++;
+    }
 
     perDirector.set(film.director, directorCount + 1);
-    if (list) perList.set(list, listCount + 1);
+    if (film.personKey) perPerson.set(film.personKey, personCount + 1);
+    passed.add(film.id);
+    out.push(strip(film));
+  };
 
-    out.push(film);
+  // Two passes over the same ranking: the first spends the list budget and
+  // fills everything else in order, the second tops up from whatever is left
+  // if the wider catalogue could not supply enough.
+  for (const film of ranked) {
     if (out.length >= take) break;
+    consider(film, true);
+  }
+  for (const film of ranked) {
+    if (out.length >= take) break;
+    consider(film, false);
+  }
+
+  return out.slice(0, take);
+}
+
+/** How common each attribute is, which is what makes rarity meaningful. */
+async function catalogueTotals() {
+  const rows = await db.film.findMany({
+    select: { genres: true, originCountry: true },
+  });
+
+  const genre = new Map<string, number>();
+  const country = new Map<string, number>();
+
+  for (const row of rows) {
+    for (const value of fromCsv(row.genres)) {
+      genre.set(value, (genre.get(value) ?? 0) + 1);
+    }
+    const home = row.originCountry?.split(",")[0]?.trim();
+    if (home) country.set(home, (country.get(home) ?? 0) + 1);
+  }
+
+  return { films: rows.length, genre, country };
+}
+
+/** The editorial graph: films sharing a list with something they love. */
+async function lovedListNeighbours(lovedIds: string[], seen: Set<string>) {
+  const out = new Map<
+    string,
+    { weight: number; reason: string; listId: string }
+  >();
+  if (lovedIds.length === 0) return out;
+
+  const entries = await db.listEntry.findMany({
+    where: { filmId: { in: lovedIds } },
+    select: {
+      filmId: true,
+      list: {
+        select: {
+          id: true,
+          title: true,
+          entries: { select: { filmId: true } },
+        },
+      },
+    },
+  });
+  if (entries.length === 0) return out;
+
+  const candidateIds = entries.flatMap((entry) =>
+    entry.list.entries.map((row) => row.filmId),
+  );
+  const membership = new Map<string, number>();
+  for (const row of await db.listEntry.groupBy({
+    by: ["filmId"],
+    where: { filmId: { in: candidateIds } },
+    _count: { _all: true },
+  })) {
+    membership.set(row.filmId, row._count._all);
+  }
+
+  const sourceTitles = new Map(
+    (
+      await db.film.findMany({
+        where: { id: { in: lovedIds } },
+        select: { id: true, title: true },
+      })
+    ).map((film) => [film.id, film.title]),
+  );
+
+  for (const entry of entries) {
+    for (const neighbour of entry.list.entries) {
+      if (seen.has(neighbour.filmId)) continue;
+
+      const weight = damp(membership.get(neighbour.filmId) ?? 1);
+      const existing = out.get(neighbour.filmId);
+      if (existing && existing.weight >= weight) continue;
+
+      out.set(neighbour.filmId, {
+        weight,
+        reason: `With ${sourceTitles.get(entry.filmId)} in “${entry.list.title}”`,
+        listId: entry.list.id,
+      });
+    }
   }
 
   return out;

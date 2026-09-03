@@ -188,18 +188,37 @@ outward from it. Nothing is trained: forty-one ratings across four accounts
 is not a matrix anybody can factorise, and a model fitted to it would produce
 noise with a confident face.
 
-The lists are the signal instead — seventy-two arguments in which a person
+Two layers. The lists come first — seventy-two arguments in which a person
 placed eight films next to each other and said why, which is a similarity
-graph with its edges labelled. A recommendation therefore explains itself
-with a fact rather than generated prose: *With In the Mood for Love in
-"Almost Lovers"*. Directors and genres fill in behind it, and a quality prior
-breaks ties.
+graph with its edges labelled. But only 351 of 1,797 titles are in a list, so
+the rest of the catalogue is reached by what every row carries: genre,
+country, decade, and the people — director, cinematographer, composer, and
+billed cast through the credits table. Shared attributes are weighted by how
+rare they are, which is the whole trick: two films sharing "Drama" (1,145 of
+them) means nothing, two sharing a cinematographer means a great deal. It is
+what produces *Shot by John Alcott, like The Shining* → A Clockwork Orange.
 
-Two caps keep it honest. A film in many lists is a hub rather than a match,
-so its weight is damped — gently, at `listCount ^ 0.35`, because a square
-root rewarded obscurity so hard that Playtime outranked Her. And no more than
-two films per director or per source list reach the page, or it reads as one
-shelf recited rather than a reading of taste.
+Every recommendation explains itself with a fact rather than generated
+prose, and a quality prior only breaks ties.
+
+Several rules keep it honest, and all of them came from reading bad output
+rather than from theory:
+
+- Hub films are damped at `listCount ^ 0.35` — a square root rewarded
+  obscurity so hard that Playtime outranked Her.
+- Affinities are normalised per dimension, or they grow with the number of
+  ratings until "English" outweighs everything specific.
+- Language was removed entirely: 1,120 of 1,797 titles are English, and it
+  is collinear with country, which says more.
+- Nothing is recommended without one reason clearing `MIN_TOP` on its own.
+  "A drama, in English, from the 2010s" is three true statements that
+  together say nothing, and it put The Godfather in front of a reader whose
+  favourite film is In the Mood for Love.
+- A performer counts only as a lead or across two loved films — one shared
+  fourth-billed actor recommended Guardians of the Galaxy.
+- At most two films per director, per source list, and per crew member; and
+  the lists may take only 55% of the page, or they take all of it and the
+  other 1,446 titles stay invisible.
 
 Members with nothing rated get the films xine has written about, and a line
 saying the page rebuilds itself once they rate. `/films/find` remains the
