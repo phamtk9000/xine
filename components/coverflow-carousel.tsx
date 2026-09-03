@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import * as React from "react";
 
 /**
@@ -321,29 +322,28 @@ export function CoverflowCarousel({
                   draggable={false}
                   className="h-full w-full select-none object-cover"
                 />
-                {/* Every card responds to a click, but not with the same
-                    thing. The centred one opens the film; a raked one is
-                    turned too far to be a reliable navigation target, so it
-                    brings itself to the centre instead — one click to look,
-                    a second to go. A drag that ends on a card does neither. */}
-                {index === selected ? (
-                  slide.href && (
-                    <a
-                      href={slide.href}
-                      className="absolute inset-0"
-                      aria-label={slide.title ?? slide.alt}
-                      onClick={(event) => {
-                        if (dragRef.current?.moved) event.preventDefault();
-                      }}
-                    />
-                  )
-                ) : (
-                  <button
-                    type="button"
-                    className="absolute inset-0 cursor-pointer"
-                    aria-label={`Show ${slide.title ?? slide.alt}`}
-                    onClick={() => {
-                      if (dragRef.current?.moved) return;
+                {/* Every card is the film it shows. The first version made
+                    a raked card centre itself instead — one click to look, a
+                    second to go — on the theory that a card turned forty
+                    degrees is a poor target. In use that reads as a broken
+                    link: you click a poster, the poster moves, and nothing
+                    you asked for happens. So the click goes where the
+                    picture says it goes, and the rake centres it on the way
+                    out. A drag that happens to end on a card is not a
+                    click, and does neither. */}
+                {slide.href && (
+                  <Link
+                    href={slide.href}
+                    className="absolute inset-0"
+                    aria-label={slide.title ?? slide.alt}
+                    onClick={(event) => {
+                      if (dragRef.current?.moved) {
+                        event.preventDefault();
+                        return;
+                      }
+                      // Centre it as it leaves, so a browser-back lands on
+                      // the rake where the reader left it rather than at
+                      // whatever was centred before.
                       goTo(index);
                     }}
                   />
@@ -378,12 +378,12 @@ export function CoverflowCarousel({
       {showCaption && active?.title && (
         <div key={selected} className="cf-caption mt-2 px-6 text-center">
           {active.href ? (
-            <a
+            <Link
               href={active.href}
               className="font-display text-3xl leading-tight tracking-tight transition-colors hover:text-gold"
             >
               {active.title}
-            </a>
+            </Link>
           ) : (
             <p className="font-display text-3xl leading-tight tracking-tight">
               {active.title}
