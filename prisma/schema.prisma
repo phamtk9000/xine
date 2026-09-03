@@ -664,3 +664,40 @@ model FilmNeighbour {
   @@unique([filmId, neighbourId])
   @@index([filmId, score])
 }
+
+/// One row of "this was shown, and here is what happened".
+///
+/// Built from the event log rather than written live, because a training set
+/// is a view of history and should be rebuildable from the history. Every row
+/// carries the features as they were at the moment of the impression — the
+/// contributions the ranker actually used — so a model trained on this
+/// learns from the decisions readers reacted to rather than from a
+/// re-ranking under whatever weights are current when the training runs.
+///
+/// Nothing reads these yet. That is deliberate: the ranker stays
+/// deterministic until there is enough clean data to justify anything else,
+/// and the way to find out whether there is enough is to have been collecting
+/// it properly from the start.
+model RecTrainingExample {
+  id        String   @id @default(cuid())
+  sessionId String
+  filmId    String
+  createdAt DateTime @default(now())
+
+  /// The score's components at impression time, as JSON.
+  features String
+  /// Where it appeared in the deck.
+  rank     Int
+  /// What it scored.
+  score    Float
+
+  /// -1 refused, 0 ignored, 1 kept, 2 chosen.
+  label   Float
+  /// Which event produced the label — "interested", "pick_for_me", …
+  outcome String
+
+  modelVersion String
+
+  @@unique([sessionId, filmId])
+  @@index([label])
+}

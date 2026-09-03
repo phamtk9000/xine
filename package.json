@@ -32,7 +32,10 @@
     "films:cluster": "tsx scripts/build-clusters.ts",
     "films:neighbours": "tsx scripts/build-neighbours.ts",
     "films:tag": "tsx scripts/tag-films.ts",
-    "films:push:derived": "tsx scripts/sync-derived.ts"
+    "films:push:derived": "tsx scripts/sync-derived.ts",
+    "rec:evaluate": "tsx scripts/evaluate-recommender.ts",
+    "rec:training": "tsx scripts/build-training-set.ts",
+    "rec:critique": "tsx scripts/critique-recommender.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.117.1",

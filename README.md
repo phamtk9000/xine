@@ -407,6 +407,44 @@ swap the adapter in `lib/db.ts` for `@prisma/adapter-pg`, and point
 comma-packed columns are read through `lib/serialize.ts` and can stay as they
 are or become real arrays.
 
+## The recommender
+
+Everything speaks one vocabulary: fourteen dimensions (`lib/rec/dimensions`)
+describe a film, a reader's long-term taste, and tonight's request, which is
+the only reason those three can be compared at all.
+
+    a sentence or some chips
+      → lib/rec/intent          a validated intent, shown back as chips
+      → lib/rec/rank            deterministic weighted scoring
+      → lib/rec/deck            the deck, its explanations, three finalists
+      → lib/rec/session         events, drift, and the next ranking
+
+**Ranking is arithmetic and stays that way.** No model runs inside it: it
+happens on every press, has to answer in milliseconds, has to give the same
+answer twice, and has to be explainable afterwards from stored numbers. The
+weights live in `lib/rec/weights` with their reasons, and can ship as A/B
+variants bucketed by a hash of the session id.
+
+**AI is upstream and downstream, never in the loop.** Upstream it turns a
+sentence into an intent that must survive a Zod parse (`lib/rec/interpret`,
+falling back to `lib/rec/keywords` when there is no key — which is the
+current state, and the page works fully without one). Offline it improves
+semantic profiles (`npm run films:tag`) and critiques finished sessions
+(`npm run rec:critique`). It never chooses a film: every id comes from the
+database.
+
+**Tonight and taste are separate rows.** `RecSession.drift` holds an
+evening's adjustments and never touches `TasteVector`. Somebody who wants
+something funny on a Friday has not stopped liking Tarkovsky.
+
+**Similarity is precomputed and blended.** Text vectors alone put Blade
+Runner 2049 next to a film called Angels Fallen; editorial clusters alone are
+coarse; shared crew is precise but narrow. Together they put The Grand
+Budapest Hotel beside Moonrise Kingdom and Heat beside Collateral. See
+`npm run films:neighbours`.
+
+`/watch/why` shows any session's ranking with every factor's contribution.
+
 ## Schema changes in production
 
 `prisma db push` cannot reach Turso. The Prisma CLI's schema engine speaks
@@ -453,4 +491,12 @@ a migration history Prisma knows about; nothing reads them back.
 | `npm run media:sync` | Copy artwork into `public/media` |
 | `npm run films:all` | Sweep TMDB by year down to a vote floor (`-- --min-votes 10`) |
 | `npm run films:push` | Copy imported films from the local catalogue to Turso |
+| `npm run films:embed` | Build a text vector for every film |
+| `npm run films:cluster` | Recompute editorial cluster membership |
+| `npm run films:neighbours` | Precompute "films like this one" |
+| `npm run films:tag` | Improve semantic profiles with a model (needs a key) |
+| `npm run films:push:derived` | Copy profiles, vectors, clusters and neighbours to Turso |
+| `npm run rec:evaluate` | Measure the recommender against the event log |
+| `npm run rec:training` | Rebuild the labelled training set from events |
+| `npm run rec:critique` | Offline second opinion on real sessions (needs a key) |
 | `npm run accounts:grandfather` | Mark existing members as email-confirmed |

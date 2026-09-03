@@ -359,6 +359,17 @@ export async function pickForMe(): Promise<PublicCard | null> {
   const chosen = three?.xine ?? deck.cards[0];
   if (!chosen) return null;
 
+  // Impressed before it is picked, so the training set can pair the two.
+  // A film chosen from the finalists may never have reached the top three of
+  // the deck, and a label with no features attached to it teaches nothing.
+  await logEvent(session.id, "impression", {
+    filmId: chosen.id,
+    userId: session.userId,
+    rank: 0,
+    score: chosen.score,
+    payload: { contributions: chosen.contributions, via: "finalists" },
+  });
+
   await logEvent(session.id, "pick_for_me", {
     filmId: chosen.id,
     userId: session.userId,
@@ -371,6 +382,21 @@ export async function pickForMe(): Promise<PublicCard | null> {
 export async function chooseFinalist(filmId: string) {
   const session = await currentSession();
   if (!session) return;
+
+  // Same reasoning as pickForMe: the chosen film needs an impression to be
+  // paired with, and a finalist may never have been at the top of the deck.
+  const deck = await dealDeck(session, { take: 12 });
+  const card = deck.cards.find((row) => row.id === filmId);
+  if (card) {
+    await logEvent(session.id, "impression", {
+      filmId,
+      userId: session.userId,
+      rank: 0,
+      score: card.score,
+      payload: { contributions: card.contributions, via: "finalists" },
+    });
+  }
+
   await logEvent(session.id, "finalist_selected", {
     filmId,
     userId: session.userId,
@@ -399,6 +425,12 @@ async function impressions(session: Session, cards: DeckCard[]) {
         userId: session.userId,
         rank: index,
         score: card.score,
+        // The score's breakdown, stored with the impression rather than
+        // recomputed later. A training set built by re-ranking months
+        // afterwards learns from today's weights, not from the ones the
+        // reader actually reacted to — which is how a model ends up
+        // explaining decisions that were never made.
+        payload: { contributions: card.contributions },
       }),
     ),
   );
