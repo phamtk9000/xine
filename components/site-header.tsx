@@ -7,6 +7,7 @@ import { useState } from "react";
 import type { SessionUser } from "@/lib/session";
 
 const NAV = [
+  { href: "/watch", label: "What to watch" },
   { href: "/films", label: "Films" },
   { href: "/calendar", label: "Calendar" },
   { href: "/journal", label: "Journal" },
