@@ -47,6 +47,34 @@ async function uniqueSlug(desired: string, tmdbId: number) {
   }
 }
 
+/**
+ * One write, retried through a busy database.
+ *
+ * A run of three thousand imports is minutes of continuous writing, and it
+ * shares dev.db with a dev server that is also reading it. SQLite serialises
+ * writers, so sooner or later one write waits long enough for the driver to
+ * give up with a socket timeout — and losing an hour of importing to a lock
+ * that would have cleared in fifty milliseconds is an absurd way to fail.
+ *
+ * The same applies to the run that matters more: against Turso this is a
+ * network call, and networks drop one occasionally.
+ *
+ * Retrying is safe because every write here is addressed by id or by the
+ * kind/tmdbId pair — the same call made twice makes the same row.
+ */
+async function write<T>(operation: () => Promise<T>, attempts = 4): Promise<T> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (attempt >= attempts) throw error;
+      const wait = 200 * 2 ** (attempt - 1);
+      process.stdout.write(`  … database busy, retrying in ${wait}ms\n`);
+      await new Promise((resolve) => setTimeout(resolve, wait));
+    }
+  }
+}
+
 async function main() {
   if (!tmdbConfigured()) {
     console.error("TMDB_API_KEY is not set in .env — nothing to import.");
@@ -165,10 +193,12 @@ async function main() {
       };
 
       if (existing) {
-        await db.film.update({ where: { id: existing.id }, data });
+        await write(() =>
+          db.film.update({ where: { id: existing.id }, data }),
+        );
         updated++;
       } else {
-        await db.film.create({ data });
+        await write(() => db.film.create({ data }));
         created++;
       }
 

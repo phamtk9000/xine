@@ -554,6 +554,8 @@ export async function discoverPage(options: {
   minVotes: number;
   yearFrom: number;
   page: number;
+  /** Rating-ranked by default; the importer's reach pass counts votes. */
+  sort?: "vote_average.desc" | "vote_count.desc";
 }) {
   const data = await request<{ results: DiscoverRow[]; total_pages: number }>(
     "/discover/movie",
@@ -573,7 +575,7 @@ export async function discoverPage(options: {
       // catalogue with franchise blockbusters; sorting by average against a
       // vote floor surfaces what people actually rate highly, which is the
       // only ordering an editorial catalogue can defend.
-      sort_by: "vote_average.desc",
+      sort_by: options.sort ?? "vote_average.desc",
       page: String(options.page),
     }),
   );
@@ -607,6 +609,8 @@ export async function discoverTvPage(options: {
   minVotes: number;
   yearFrom: number;
   page: number;
+  /** Rating-ranked by default; the importer's reach pass counts votes. */
+  sort?: "vote_average.desc" | "vote_count.desc";
 }) {
   const data = await request<{
     results: (DiscoverRow & { name?: string; first_air_date?: string })[];
@@ -619,7 +623,7 @@ export async function discoverTvPage(options: {
       "vote_average.gte": String(options.minScore),
       "vote_count.gte": String(options.minVotes),
       "first_air_date.gte": `${options.yearFrom}-01-01`,
-      sort_by: "vote_average.desc",
+      sort_by: options.sort ?? "vote_average.desc",
       // Talk shows and news drown out drama otherwise.
       without_genres: "10763,10767,10764", // News, Talk, Reality
       page: String(options.page),

@@ -160,6 +160,26 @@ npm run films:sync
 
 Editorial fields — our synopses and critic scores — are never overwritten.
 
+### How a film gets here
+
+Three ways, in ascending order of how much anybody had to want it.
+
+**Editorially** — seeded, written about, given a critic score. 34 titles.
+Nothing else ever overwrites one.
+
+**By the region importer** — `npm run films:import` walks TMDB by origin
+country, with a vote floor set per region in `lib/import-regions.ts` rather
+than globally, because a bar that filters out an unpopular American film
+filters out a canonical Senegalese one. Imported titles are marked
+`reviewed: false`: findable, rateable and listable, but not editorial.
+
+**On demand** — a search that runs thin continues into TMDB
+(`lib/catalogue-pick.ts`), and opening one of those results imports it
+through `/films/import/[kind]/[tmdbId]` before forwarding to the film. The
+list builder does the same on the pick. This is what makes the catalogue
+effectively unbounded without carrying a million rows: a title becomes real
+here the moment somebody asks for it by name.
+
 `npm run films:trending` pulls the week's trending titles from TMDB so the
 homepage row has catalogue pages to link to. The row itself reads TMDB live
 (`lib/trending.ts`) and falls back to the catalogue's own rating-volume sort
