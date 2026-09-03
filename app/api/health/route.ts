@@ -33,6 +33,12 @@ const EXPECTED = [
   "TMDB_API_KEY",
   "TMDB_WATCH_REGION",
   "ANTHROPIC_API_KEY",
+  // Whether this deployment can send a confirmation email — which is also
+  // what decides whether sign-in insists on one. Worth being able to read
+  // from outside, since the symptom of getting it wrong is an account that
+  // cannot be created and no error anybody can see.
+  "RESEND_API_KEY",
+  "NEXT_PUBLIC_SITE_URL",
 ] as const;
 
 /** Errors can carry a connection string; a token must never leave here. */
