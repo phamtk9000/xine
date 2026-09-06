@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist_Mono, Instrument_Serif, Source_Serif_4 } from "next/font/google";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { PopcornCursor } from "@/components/popcorn-cursor";
 import { getCurrentUser } from "@/lib/session";
 import "./globals.css";
 
@@ -51,6 +52,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       className={`${sourceSerif.variable} ${geistMono.variable} ${instrumentSerif.variable} h-full antialiased`}
     >
       <body className="grain flex min-h-full flex-col bg-ink text-paper">
+        <PopcornCursor />
         <SiteHeader user={user} />
         <main className="flex-1">{children}</main>
         <SiteFooter />
