@@ -106,13 +106,18 @@ async function discover(
  * fatal — one `ENOTFOUND` killed the whole sweep with no output pointing at
  * where to resume, even though resuming was already free by construction.
  */
-async function fetchRetrying(url: string, attempts = 5): Promise<Response> {
+async function fetchRetrying(url: string, attempts = 9): Promise<Response> {
   for (let attempt = 1; ; attempt++) {
     try {
       return await fetch(url);
     } catch (error) {
       if (attempt >= attempts) throw error;
-      const wait = 500 * 2 ** (attempt - 1);
+      // Capped at 30s. Nine attempts against that cap is a couple of minutes
+      // of patience — enough to outlast a laptop's wifi reconnecting after
+      // sleep, which is the actual shape of failure this run has hit twice
+      // now, and which the previous five-attempt, 7.5-second budget did not
+      // survive.
+      const wait = Math.min(30000, 500 * 2 ** (attempt - 1));
       process.stdout.write(
         `  … network error (${(error as Error).message}), retrying in ${wait}ms\n`,
       );
@@ -173,13 +178,30 @@ async function main() {
   let failed = 0;
 
   for (let year = to; year >= from; year--) {
-    const first = await discover(kind, year, minVotes, 1);
+    // A whole year is skippable if the network is genuinely down past the
+    // retry budget above: the run itself is resumable, and losing one year's
+    // reach candidates against a sweep already past forty thousand titles is
+    // a rounding error next to losing every remaining year to an uncaught
+    // exception.
+    let first;
+    try {
+      first = await discover(kind, year, minVotes, 1);
+    } catch (error) {
+      console.warn(`  ${year}: skipped after exhausting retries — ${(error as Error).message}`);
+      continue;
+    }
     if (first.total === 0) continue;
 
     console.log(`${year}: ${first.total} on TMDB`);
 
     for (let page = 1; page <= first.pages; page++) {
-      const { rows } = page === 1 ? first : await discover(kind, year, minVotes, page);
+      let rows;
+      try {
+        ({ rows } = page === 1 ? first : await discover(kind, year, minVotes, page));
+      } catch (error) {
+        console.warn(`  ${year} page ${page}: skipped — ${(error as Error).message}`);
+        break;
+      }
       if (rows.length === 0) break;
 
       // One query per page rather than one per title: which of these sixty
