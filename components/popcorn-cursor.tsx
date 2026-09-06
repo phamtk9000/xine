@@ -24,18 +24,58 @@ import * as React from "react";
  * burst would fire on every scroll tap.
  */
 
-/** The kernel itself, small enough to sit in a data URI. */
-const KERNEL = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
-  <g transform="translate(2 2)">
-    <circle cx="9" cy="9" r="6.5" fill="%23fdf6e3"/>
-    <circle cx="14" cy="7" r="5" fill="%23fffdf5"/>
-    <circle cx="7" cy="14" r="5" fill="%23f7ecd0"/>
-    <circle cx="14" cy="14" r="4.5" fill="%23fdf6e3"/>
-    <circle cx="10" cy="10" r="3" fill="%23fffef9"/>
+/**
+ * A carton of popcorn, drawn to survive being 32 pixels wide.
+ *
+ * The first version was a cluster of pale blobs, which is what popcorn looks
+ * like in close-up and not what it looks like as an icon — at cursor size it
+ * read as an anonymous smudge. What makes popcorn legible that small is the
+ * carton: red and white vertical stripes are recognisable as cinema at a
+ * glance and at any size, and the kernels only have to spill over the top to
+ * complete the idea.
+ *
+ * The kernels are deliberately not one smooth arc. Five overlapping circles
+ * in a neat dome reads as scoops of ice cream; three smaller ones breaking
+ * the outline at the edges is what makes it read as popcorn.
+ *
+ * The stripes are hand-computed trapezoids rather than a clipped pattern.
+ * The carton tapers, so a stripe has to taper with it, and four literal
+ * polygons are more reliable inside a data URI than a clipPath that every
+ * browser has to agree about.
+ *
+ * A dark outline throughout, because a cursor crosses everything: near-black
+ * page, white lightbox, and every colour a film poster can be. Bright fills
+ * alone would vanish somewhere.
+ *
+ * `%23` rather than `#` — this string goes into a URL, where a hash starts
+ * the fragment and would truncate every colour in the drawing.
+ */
+const POPCORN = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+  <g stroke="%23241a12" stroke-width="1.3" stroke-linejoin="round">
+    <circle cx="7.6" cy="10.2" r="2.7" fill="%23ffd977"/>
+    <circle cx="24.6" cy="10.4" r="2.6" fill="%23ffd977"/>
+    <circle cx="19.4" cy="4.6" r="2.8" fill="%23ffe9a8"/>
+    <circle cx="11" cy="11.5" r="4.4" fill="%23ffd977"/>
+    <circle cx="21.2" cy="11.5" r="4.4" fill="%23ffd977"/>
+    <circle cx="16" cy="8.2" r="5" fill="%23ffe9a8"/>
+    <circle cx="13.6" cy="14.4" r="3.9" fill="%23ffe9a8"/>
+    <circle cx="19" cy="14.4" r="3.9" fill="%23ffd977"/>
+    <path d="M6 15 H26 L22 29 H10 Z" fill="%23fff6ec"/>
+    <path d="M6 15 H10 L12.4 29 H10 Z" fill="%23d92b2b" stroke="none"/>
+    <path d="M14 15 H18 L17.2 29 H14.8 Z" fill="%23d92b2b" stroke="none"/>
+    <path d="M22 15 H26 L22 29 H19.6 Z" fill="%23d92b2b" stroke="none"/>
+    <path d="M6 15 H26 L22 29 H10 Z" fill="none"/>
   </g>
 </svg>`;
 
-const CURSOR = `url('data:image/svg+xml;utf8,${KERNEL.replace(/\n\s*/g, "")}') 12 12, auto`;
+/**
+ * Hotspot at the top-left of the carton rather than its centre.
+ *
+ * A blob-shaped cursor with a centred hotspot feels like it clicks slightly
+ * after where you aimed. Up and to the left is where every pointer people
+ * have ever used puts its point, so that is where this one claims to be.
+ */
+const CURSOR = `url('data:image/svg+xml;utf8,${POPCORN.replace(/\n\s*/g, "")}') 6 5, auto`;
 
 /** How many kernels fly out of a click, and how far. */
 const PIECES = 7;
