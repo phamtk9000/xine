@@ -3,6 +3,7 @@ import {
   discoverUpcoming,
   fetchFilmDetail,
   fetchSeriesDetail,
+  fetchTrailerKey,
   fetchTrending,
 } from "@/lib/tmdb";
 import { countryName } from "@/lib/atlas";
@@ -215,6 +216,29 @@ export async function syncTrending(
     else if (outcome.status === "unchanged") report.skipped++;
     else if (outcome.status === "stub") report.skipped++;
     else report.failed++;
+
+    // Trending is the one row on the site that offers to play something, and
+    // it is also the row whose films are always new — a bulk backfill ordered
+    // by vote count reaches the canon and never reaches this week's releases.
+    // Twenty extra requests a week is the right price for the trailer button
+    // actually being there when somebody looks.
+    if ("filmId" in outcome) {
+      const film = await db.film.findUnique({
+        where: { id: outcome.filmId },
+        select: { trailerKey: true },
+      });
+      if (film && film.trailerKey === null) {
+        const key = await fetchTrailerKey(title.tmdbId, title.kind).catch(
+          () => null,
+        );
+        await db.film.update({
+          where: { id: outcome.filmId },
+          // "" records that TMDB was asked and had none, so the next sync
+          // does not ask again about a film that will never have one.
+          data: { trailerKey: key ?? "" },
+        });
+      }
+    }
 
     options.onProgress?.(title.title, outcome.status);
   }

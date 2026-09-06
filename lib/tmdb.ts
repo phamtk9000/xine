@@ -759,6 +759,59 @@ export async function movieWithProviders(id: number, region: string) {
 }
 
 /** Everything the Film model wants, pulled in one go. */
+/**
+ * The trailer, if there is one worth showing.
+ *
+ * TMDB returns every video a title has — teasers, clips, featurettes,
+ * behind-the-scenes, and often a dozen of them in three languages. Almost all
+ * of it is noise for our purpose, which is one video that makes somebody want
+ * to watch the film. So: official English YouTube trailers first, then any
+ * trailer, then a teaser, and nothing at all rather than a featurette.
+ *
+ * Only the key is returned. Embedding a YouTube URL built here would put the
+ * player's parameters — autoplay, controls, branding — in the data layer,
+ * where the component that actually renders it cannot argue with them.
+ */
+export async function fetchTrailerKey(
+  id: number,
+  kind: "film" | "series" = "film",
+): Promise<string | null> {
+  type Video = {
+    key: string;
+    site: string;
+    type: string;
+    official?: boolean;
+    iso_639_1?: string;
+    size?: number;
+  };
+
+  const data = await request<{ results?: Video[] }>(
+    `/${kind === "series" ? "tv" : "movie"}/${id}/videos`,
+    withV3Key({}),
+  ).catch(() => ({ results: [] as Video[] }));
+
+  const youtube = (data.results ?? []).filter((v) => v.site === "YouTube");
+  if (youtube.length === 0) return null;
+
+  const rank = (video: Video) => {
+    let score = 0;
+    if (video.type === "Trailer") score += 100;
+    else if (video.type === "Teaser") score += 60;
+    else return -1; // Clips and featurettes are not what was asked for.
+    if (video.official) score += 30;
+    if (video.iso_639_1 === "en") score += 10;
+    score += Math.min(10, (video.size ?? 0) / 216); // Prefer the larger cut.
+    return score;
+  };
+
+  const best = youtube
+    .map((video) => ({ video, score: rank(video) }))
+    .filter((row) => row.score >= 0)
+    .sort((a, b) => b.score - a.score)[0];
+
+  return best?.video.key ?? null;
+}
+
 export async function fetchFilmDetail(id: number) {
   const [movie, credits] = await Promise.all([getMovie(id), getCredits(id)]);
   const crewJob = (job: string) =>

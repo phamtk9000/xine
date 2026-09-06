@@ -35,7 +35,8 @@
     "films:push:derived": "tsx scripts/sync-derived.ts",
     "rec:evaluate": "tsx scripts/evaluate-recommender.ts",
     "rec:training": "tsx scripts/build-training-set.ts",
-    "rec:critique": "tsx scripts/critique-recommender.ts"
+    "rec:critique": "tsx scripts/critique-recommender.ts",
+    "films:trailers": "tsx scripts/sync-trailers.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.117.1",

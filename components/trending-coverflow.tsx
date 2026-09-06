@@ -4,6 +4,7 @@ import {
 } from "@/components/coverflow-carousel";
 import { SealMark } from "@/components/seal";
 import { Poster } from "@/components/poster";
+import { TrailerButton } from "@/components/trailer-player";
 import type { FilmSummary } from "@/lib/films";
 
 /**
@@ -17,6 +18,12 @@ import type { FilmSummary } from "@/lib/films";
  * Films without poster art fall back to the generated type plate the grid
  * already uses — a coverflow of grey rectangles would be worse than the grid
  * it replaced, and the plate at least reads as a designed object.
+ *
+ * The trailer sits in the badge slot under the centred card rather than on the
+ * poster itself. A play button laid over the artwork would compete with the
+ * card's own click — which goes to the film page, deliberately — and the one
+ * thing worse than no trailer button is two overlapping targets where the
+ * reader has to aim.
  */
 export function TrendingCoverflow({ films }: { films: FilmSummary[] }) {
   const withArt = films.filter((film) => film.posterUrl);
@@ -44,10 +51,20 @@ export function TrendingCoverflow({ films }: { films: FilmSummary[] }) {
     title: film.title,
     subtitle: [film.director, film.year].filter(Boolean).join(" · "),
     href: `/films/${film.slug}`,
-    badge:
-      film.reviewed && film.criticScore !== null ? (
-        <SealMark score={film.criticScore} reviewCount={film.reviewCount} />
-      ) : null,
+    badge: (
+      <span className="flex flex-col items-center gap-3">
+        {film.reviewed && film.criticScore !== null && (
+          <SealMark score={film.criticScore} reviewCount={film.reviewCount} />
+        )}
+        <TrailerButton
+          trailerKey={film.trailerKey}
+          title={film.title}
+          className="label rounded-full border border-gold bg-gold/10 px-4 py-2 !text-gold transition-colors hover:bg-gold/20"
+        >
+          ▶ Trailer
+        </TrailerButton>
+      </span>
+    ),
   }));
 
   return <CoverflowCarousel slides={slides} label="Trending this week" />;

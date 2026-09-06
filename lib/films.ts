@@ -18,6 +18,15 @@ export type FilmSummary = {
   country: string | null;
   genres: string[];
   posterUrl: string | null;
+  /**
+   * Optional because most of what renders a FilmSummary is a poster grid that
+   * has no use for either — a shelf of thirty films should not be selecting
+   * backdrops and trailer keys it will never draw. The trending rake asks for
+   * them explicitly; everything else can leave them out.
+   */
+  backdropUrl?: string | null;
+  /** YouTube key, "" when TMDB was asked and had none, null when never asked. */
+  trailerKey?: string | null;
   criticScore: number | null;
   communityScore: number | null;
   ratingCount: number;
@@ -171,6 +180,8 @@ export async function summariseFilms(
       country: film.country,
       genres: fromCsv(film.genres),
       posterUrl: film.posterUrl,
+      backdropUrl: film.backdropUrl,
+      trailerKey: film.trailerKey,
       criticScore: film.criticScore,
       communityScore: agg?.score ?? null,
       ratingCount: agg?.count ?? 0,

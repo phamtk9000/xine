@@ -115,6 +115,13 @@ model Film {
   criticScore         Float? // 0–10, editorial/aggregated
   posterUrl           String? // null renders the generated type plate
   backdropUrl         String?
+  /// YouTube key for the trailer, or null if TMDB has none worth showing.
+  ///
+  /// The key rather than a URL: a player's parameters — autoplay, controls,
+  /// branding — belong to the component that renders it, not to the row.
+  /// Null is a real answer and a common one, since plenty of the catalogue's
+  /// older and smaller titles have no trailer on TMDB at all.
+  trailerKey          String?
   releasedAt          DateTime?
   createdAt           DateTime  @default(now())
 
