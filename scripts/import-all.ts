@@ -126,14 +126,25 @@ async function fetchRetrying(url: string, attempts = 9): Promise<Response> {
   }
 }
 
-/** One write, retried through a busy database or a dropped connection. */
-async function write<T>(operation: () => Promise<T>, attempts = 4): Promise<T> {
+/**
+ * One write, retried through a busy database or a dropped connection.
+ *
+ * Eight attempts capped at eight seconds, because "another script is also
+ * writing" is a normal operating condition rather than an error: backfills
+ * for trailers, embeddings and clusters all want to run against the same
+ * SQLite file while a multi-hour sweep is in progress, and SQLite serialises
+ * writers. The original four-attempt, 1.5-second budget lost an entire sweep
+ * to a concurrent trailer backfill doing one update every 120ms.
+ */
+async function write<T>(operation: () => Promise<T>, attempts = 8): Promise<T> {
   for (let attempt = 1; ; attempt++) {
     try {
       return await operation();
     } catch (error) {
       if (attempt >= attempts) throw error;
-      await new Promise((r) => setTimeout(r, 200 * 2 ** (attempt - 1)));
+      await new Promise((r) =>
+        setTimeout(r, Math.min(8000, 200 * 2 ** (attempt - 1))),
+      );
     }
   }
 }
