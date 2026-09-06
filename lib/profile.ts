@@ -170,3 +170,40 @@ export async function listMembers() {
     lists: user._count.lists,
   }));
 }
+
+/**
+ * What the community has actually been doing this week.
+ *
+ * The activity feed answers "what happened last" and answers it one row at a
+ * time; this answers "is anything going on here", which is the question
+ * somebody arriving at a community page is really asking. Four numbers, and
+ * the point of them is the shape rather than the magnitude: a week with
+ * forty ratings and no reviews is a different room from one with four of each.
+ */
+export async function weekPulse() {
+  const since = new Date(Date.now() - 7 * 86400000);
+
+  const [byType, people] = await Promise.all([
+    db.activity.groupBy({
+      by: ["type"],
+      where: { createdAt: { gte: since } },
+      _count: { _all: true },
+    }),
+    db.activity.findMany({
+      where: { createdAt: { gte: since } },
+      select: { userId: true },
+      distinct: ["userId"],
+    }),
+  ]);
+
+  const count = (type: string) =>
+    byType.find((row) => row.type === type)?._count._all ?? 0;
+
+  return {
+    rated: count("rated"),
+    reviewed: count("reviewed"),
+    listed: count("listed"),
+    watched: count("watched") + count("liked") + count("watchlisted"),
+    people: people.length,
+  };
+}
