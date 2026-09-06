@@ -58,6 +58,13 @@ export async function rateFilm(formData: FormData): Promise<ActionResult> {
   revalidatePath(`/films/${slug}`);
   revalidatePath(`/community/${user.username}`);
   revalidatePath("/community");
+  // A rating is the main thing the monthly read is built from, and it was
+  // the one signal that never invalidated it: marking a film watched or
+  // liked refreshed /taste, rating it did not. So somebody would rate three
+  // films, open their month, and find it describing the month before they
+  // started — which reads as the page being broken rather than cached.
+  revalidatePath("/taste");
+  revalidatePath("/for-you");
   return { ok: true };
 }
 
