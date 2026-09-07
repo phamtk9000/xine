@@ -163,6 +163,17 @@ model Film {
   @@unique([kind, tmdbId])
   @@index([year])
   @@index([kind])
+  // Reach ordering, which is what almost everything sorts by: the deck's
+  // candidate scan, the trending proxy, the catalogue's default sort, the
+  // list-builder search and every backfill script. Without it a "top 500 by
+  // votes" sorts seventy thousand rows on every request.
+  @@index([tmdbVotes])
+  // The same sort inside a kind filter — the deck asks for films only.
+  @@index([kind, tmdbVotes])
+  // The quality pool, and the catalogue's "highest rated" ordering.
+  @@index([criticScore])
+  // The release calendar's window queries.
+  @@index([releasedAt])
 }
 
 /// A performer. The `cast` string on Film stays as the cheap denormalised
