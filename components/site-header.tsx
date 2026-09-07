@@ -6,15 +6,35 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import type { SessionUser } from "@/lib/session";
 
-const NAV = [
-  { href: "/watch", label: "What to watch" },
-  { href: "/films", label: "Films" },
-  { href: "/calendar", label: "Calendar" },
-  { href: "/journal", label: "Journal" },
-  { href: "/lists", label: "Lists" },
-  { href: "/community", label: "Community" },
-  { href: "/create", label: "Create" },
+/**
+ * Seven destinations that were never equals, arranged as what they are.
+ *
+ * As a flat row they read as seven peers, and a reader arriving with "I want
+ * something to watch" had to weigh Calendar and Create at the same moment as
+ * What to Watch. Four of them are discovery — different doors into the same
+ * catalogue — and the other three are separate rooms.
+ *
+ * The desktop bar still reads as one line, because a navigation that
+ * announces its own taxonomy is a site talking about itself. What the
+ * grouping buys there is order and spacing; where it becomes explicit is the
+ * mobile menu, which has the room to say it.
+ */
+const NAV_GROUPS = [
+  {
+    label: "Discover",
+    items: [
+      { href: "/watch", label: "What to watch" },
+      { href: "/films", label: "Films" },
+      { href: "/lists", label: "Lists" },
+      { href: "/calendar", label: "Calendar" },
+    ],
+  },
+  { label: "Read", items: [{ href: "/journal", label: "Journal" }] },
+  { label: "People", items: [{ href: "/community", label: "Community" }] },
+  { label: "Make", items: [{ href: "/create", label: "Create" }] },
 ];
+
+const NAV = NAV_GROUPS.flatMap((group) => group.items);
 
 export function SiteHeader({ user }: { user: SessionUser | null }) {
   const pathname = usePathname();
@@ -36,16 +56,22 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
           xine
         </Link>
 
-        <nav className="hidden items-center gap-7 lg:flex" aria-label="Main">
-          {NAV.map((item) => {
+        <nav className="hidden items-center lg:flex" aria-label="Main">
+          {NAV.map((item, index) => {
+            // A wider gap where one group ends and the next begins. It reads
+            // as rhythm rather than as a rule, which is the most a navigation
+            // should say about its own structure.
+            const startsGroup =
+              index > 0 &&
+              NAV_GROUPS.some((group) => group.items[0]?.href === item.href);
             const active = pathname.startsWith(item.href);
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 className={`label transition-colors hover:text-paper ${
-                  active ? "!text-paper" : ""
-                }`}
+                  startsGroup ? "ml-9" : "ml-7"
+                } ${active ? "!text-paper" : ""}`}
                 aria-current={active ? "page" : undefined}
               >
                 {item.label}
@@ -108,15 +134,20 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
       {open && (
         <div id="mobile-nav" className="border-t border-line bg-ink lg:hidden">
           <nav className="mx-auto max-w-[1400px] px-5 py-4 sm:px-8" aria-label="Mobile">
-            {NAV.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={close}
-                className="block border-b border-line py-3 font-display text-3xl last:border-0"
-              >
-                {item.label}
-              </Link>
+            {NAV_GROUPS.map((group) => (
+              <div key={group.label} className="border-b border-line py-4 last:border-0">
+                <p className="label !text-[0.5625rem] text-faint">{group.label}</p>
+                {group.items.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={close}
+                    className="mt-2 block font-display text-3xl leading-tight"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
             ))}
             <div className="flex flex-wrap items-center gap-3 pt-5">
               <Link
