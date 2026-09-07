@@ -23,8 +23,12 @@ import { fromCsv } from "../lib/serialize";
  *             about the same thing when they share no genre and no crew.
  *   clusters  overlap of editorial cluster membership: what it is like to
  *             sit through, rather than what happens.
+ *   genre     the plainest signal, and the one a reader checks first. Jaccard
+ *             overlap, so a three-genre film is not a perfect match for a
+ *             one-genre film that happens to share one.
  *   people    shared director, cinematographer or composer. Narrow, precise,
- *             and the reason "more like this" ever surprises anybody.
+ *             and the reason "more like this" ever surprises anybody — but
+ *             damped, because one shared name is a hint and not a verdict.
  *   shape     same country and adjacent decade, lightly. Two Hong Kong films
  *             from the nineties have something in common that no synopsis
  *             mentions.
@@ -36,7 +40,53 @@ import { fromCsv } from "../lib/serialize";
 const NEIGHBOURS = 12;
 const DEFAULT_TAKE = 8000;
 
-const WEIGHTS = { text: 0.34, clusters: 0.3, people: 0.26, shape: 0.1 };
+/**
+ * What each signal is worth, after watching the first set fail.
+ *
+ * Genre used to be forty percent of a ten percent term — four percent of the
+ * score — which is how Deadwood and Butch Cassidy came back as neighbours of
+ * The Wolf of Wall Street. Two westerns and a Wall Street black comedy share
+ * a cluster and a decade, and with genre that quiet, nothing outvoted them.
+ * It is the most legible signal there is to a reader; it gets its own term.
+ *
+ * People used to be worth a full point for one shared name, which made every
+ * neighbour list a filmography: Wolf of Wall Street returned Killers of the
+ * Flower Moon, The Irishman and Silence, all true and all Scorsese, none of
+ * them an answer to "what else is like this". A shared director should tilt a
+ * ranking, not decide it — see `crewOverlap`.
+ */
+const WEIGHTS = {
+  text: 0.18,
+  clusters: 0.2,
+  people: 0.16,
+  genre: 0.28,
+  shape: 0.08,
+  /**
+   * A tiebreak, not a ranking.
+   *
+   * With genre weighted properly, Get Out's neighbours became genre-perfect
+   * and largely worthless — One Missed Call, Monstrous, The Requin, all
+   * Horror/Mystery/Thriller and none of them anything anybody wants next.
+   * Similarity says which shelf; this decides which end of it. Deliberately
+   * small: a great film that is nothing like the one in hand is still not a
+   * neighbour, and the ranker applies quality properly further downstream.
+   */
+  quality: 0.1,
+};
+
+/**
+ * A shared name is a hint, not a verdict.
+ *
+ * One name in common — almost always the director — earns half, and it takes
+ * the whole crew agreeing to earn full marks. The old linear count let a
+ * single shared director outweigh everything the films were actually about.
+ */
+function crewOverlap(shared: number) {
+  if (shared <= 0) return 0;
+  if (shared === 1) return 0.5;
+  if (shared === 2) return 0.8;
+  return 1;
+}
 
 async function write<T>(operation: () => Promise<T>, attempts = 5): Promise<T> {
   for (let attempt = 1; ; attempt++) {
@@ -74,6 +124,9 @@ async function main() {
       country: true,
       year: true,
       genres: true,
+      criticScore: true,
+      tmdbScore: true,
+      tmdbVotes: true,
     },
   });
   console.log(`Comparing ${films.length} films…`);
@@ -108,6 +161,15 @@ async function main() {
   );
   const genres = films.map((film) => new Set(fromCsv(film.genres)));
 
+  // Pulled toward the middle when few people have voted, so a 9.0 from two
+  // hundred voters does not outrank an 8.2 from fifty thousand.
+  const quality = films.map((film) => {
+    const score = film.criticScore ?? film.tmdbScore ?? 6.2;
+    const votes = film.criticScore !== null ? 5000 : film.tmdbVotes;
+    const bayesian = (score * votes + 6.2 * 400) / (votes + 400);
+    return Math.min(1, Math.max(0, (bayesian - 4) / 5));
+  });
+
   await write(() => db.filmNeighbour.deleteMany({}));
 
   let written = 0;
@@ -130,25 +192,35 @@ async function main() {
 
       let shared = 0;
       for (const name of people[i]) if (people[j].has(name)) shared++;
-      const person = Math.min(1, shared / 2);
+      const person = crewOverlap(shared);
+
+      // Jaccard rather than "how much of mine is in yours": a three-genre
+      // film should not count as a perfect match for a one-genre film that
+      // happens to share it. Crime/Drama/Comedy against Crime/Western is a
+      // partial overlap in both directions, and the score should say so.
+      let sharedGenres = 0;
+      for (const g of genres[i]) if (genres[j].has(g)) sharedGenres++;
+      const union = new Set([...genres[i], ...genres[j]]).size;
+      const genre = union === 0 ? 0 : sharedGenres / union;
 
       const sameCountry = film.country && film.country === other.country ? 1 : 0;
       const nearDecade = Math.abs(film.year - other.year) <= 12 ? 1 : 0;
-      let sharedGenres = 0;
-      for (const genre of genres[i]) if (genres[j].has(genre)) sharedGenres++;
-      const shape =
-        (sameCountry * 0.4 +
-          nearDecade * 0.2 +
-          Math.min(1, sharedGenres / Math.max(1, genres[i].size)) * 0.4);
+      const shape = sameCountry * 0.6 + nearDecade * 0.4;
 
       const score =
         text * WEIGHTS.text +
         cluster * WEIGHTS.clusters +
         person * WEIGHTS.people +
-        shape * WEIGHTS.shape;
+        genre * WEIGHTS.genre +
+        shape * WEIGHTS.shape +
+        quality[j] * WEIGHTS.quality;
 
       if (score <= 0.12) continue;
-      scored.push({ id: other.id, score, parts: { text, cluster, person, shape } });
+      scored.push({
+        id: other.id,
+        score,
+        parts: { text, cluster, person, genre, shape },
+      });
     }
 
     scored.sort((a, b) => b.score - a.score);
@@ -161,6 +233,7 @@ async function main() {
           text: Math.round(row.parts.text * 100) / 100,
           cluster: Math.round(row.parts.cluster * 100) / 100,
           person: Math.round(row.parts.person * 100) / 100,
+          genre: Math.round(row.parts.genre * 100) / 100,
           shape: Math.round(row.parts.shape * 100) / 100,
         }),
       });
