@@ -6,7 +6,7 @@ import { TrendingCoverflow } from "@/components/trending-coverflow";
 import { RatingSplit } from "@/components/rating-split";
 import { MastheadBackdrop } from "@/components/masthead-backdrop";
 import { TastePrimer } from "@/components/taste-primer";
-import { primerShelf } from "@/app/actions/primer";
+import { openingTurn } from "@/app/actions/primer";
 import { getCurrentUser } from "@/lib/session";
 import { ImageShade } from "@/components/image-shade";
 import { RevealGroup } from "@/components/reveal-group";
@@ -60,7 +60,7 @@ export default async function HomePage() {
       }),
       catalogueStats(),
       recentActivity(8),
-      primerShelf(24),
+      openingTurn(),
       getCurrentUser(),
     ]);
 
@@ -185,7 +185,7 @@ export default async function HomePage() {
       <section className="shaded border-b border-line bg-ink-sunk">
         <Container className="py-14">
           <SectionHeading label="Start here" title="Build your taste" />
-          <TastePrimer shelf={primerFilms} signedIn={!!viewer} />
+          <TastePrimer opening={primerFilms} signedIn={!!viewer} />
         </Container>
       </section>
 

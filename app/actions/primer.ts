@@ -1,149 +1,140 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { deriveProfile, PROFILE_SELECT } from "@/lib/rec/derive";
-import { DIMENSIONS, NEUTRAL, clamp01, type Vector } from "@/lib/rec/dimensions";
 import { getCurrentUser } from "@/lib/session";
+import { agentTurn, type AgentTurn } from "@/lib/rec/agent";
+import { interpret } from "@/lib/rec/interpret";
+import { chipsFor } from "@/lib/rec/intent";
+import { rebuildTaste } from "@/lib/rec/taste";
+import type { Vector } from "@/lib/rec/dimensions";
+
+/** How many picks the reading is worth waiting for. Mirrored by the client,
+ * which cannot import it from here: a "use server" module may export nothing
+ * but async functions. */
+const NEEDED = 5;
 
 /**
  * The homepage's twenty-second version of what xine is for.
  *
  * Everything else on the front page explains the site — it is a magazine, a
- * catalogue, a rating system, a recommender, a workshop. All true, and none
- * of it answers the only question a first-time visitor actually has, which is
- * why they should hand over an email address. This answers it by doing the
- * thing rather than describing it: name five films, get a reading.
+ * catalogue, a rating system, a recommender. All true, and none of it answers
+ * the only question a first-time visitor actually has, which is why they
+ * should hand over an email address. This answers it by doing the thing
+ * rather than describing it: name five films, and be read.
  *
- * It works signed out on purpose. Asking somebody to make an account to find
- * out whether the account is worth making is the exact inversion of a good
- * argument.
+ * The state of the conversation lives in the browser, not in a session row.
+ * Two reasons, and the second is the important one. There is nothing here
+ * worth a database write, and a first-time visitor who has not agreed to
+ * anything should not be issued an identity in order to look at posters.
  */
 
-export type PrimerFilm = {
-  id: string;
-  slug: string;
-  title: string;
-  year: number;
-  posterUrl: string | null;
-};
-
-export type PrimerReading = {
-  /** The strongest few dimensions, as sentences. */
-  traits: { label: string; strength: number }[];
-  /** Two films that follow from the picks, as evidence the reading works. */
-  suggestions: { slug: string; title: string; year: number; posterUrl: string | null }[];
-  saved: boolean;
-};
-
-/**
- * The shelf people choose from.
- *
- * Well-known films with art, because a primer that opens with titles nobody
- * recognises is a quiz rather than an invitation. Widened well past the five
- * being asked for so the grid does not feel like a fixed set.
- */
-export async function primerShelf(take = 24): Promise<PrimerFilm[]> {
-  const films = await db.film.findMany({
-    where: { kind: "film", posterUrl: { not: null }, tmdbVotes: { gte: 4000 } },
-    orderBy: { tmdbVotes: "desc" },
-    take: take * 3,
-    select: { id: true, slug: true, title: true, year: true, posterUrl: true, director: true },
-  });
-
-  // One per director, so the shelf is not four Nolans and three Tarantinos.
-  const seen = new Set<string>();
-  const out: PrimerFilm[] = [];
-  for (const film of films) {
-    if (seen.has(film.director)) continue;
-    seen.add(film.director);
-    out.push(film);
-    if (out.length >= take) break;
-  }
-  return out;
+/** The opening hand, rendered on the server so the section is not empty. */
+export async function openingTurn(): Promise<AgentTurn> {
+  return agentTurn({ picked: [], shown: [], needed: NEEDED });
 }
 
 /**
- * Read five picks as a taste.
- *
- * The average of what those films *are*, on the dimensions the recommender
- * already reasons in — not an invented score on axes nobody filled in. That
- * distinction matters: a reading assembled from numbers the reader never gave
- * is the kind of thing somebody catches once and then disbelieves everywhere
- * else on the site.
- *
- * When somebody is signed in, the picks are written as real ratings, because
- * a profile that evaporates on refresh is a demo rather than a feature.
+ * One move. Everything the agent knows arrives as arguments and leaves as a
+ * result, so the same call serves the first pick and the fifth.
  */
-export async function readPrimer(filmIds: string[]): Promise<PrimerReading | null> {
-  const ids = [...new Set(filmIds)].slice(0, 8);
-  if (ids.length < 3) return null;
-
-  const films = await db.film.findMany({
-    where: { id: { in: ids } },
-    select: { id: true, ...PROFILE_SELECT },
+export async function nextTurn(state: {
+  picked: string[];
+  shown: string[];
+  stated?: Vector;
+}): Promise<AgentTurn> {
+  return agentTurn({
+    picked: state.picked.slice(0, 8),
+    shown: state.shown.slice(-200),
+    stated: state.stated ?? {},
+    needed: NEEDED,
   });
-  if (films.length === 0) return null;
+}
 
-  const totals: Record<string, { sum: number; n: number }> = {};
-  for (const film of films) {
-    for (const [key, value] of Object.entries(deriveProfile(film))) {
-      if (value === undefined) continue;
-      const entry = (totals[key] ??= { sum: 0, n: 0 });
-      entry.sum += value;
-      entry.n += 1;
-    }
-  }
+export type Correction = {
+  turn: AgentTurn;
+  stated: Vector;
+  /** What it understood, shown so it can be argued with rather than trusted. */
+  chips: { key: string; label: string }[];
+  source: "ai" | "keywords";
+};
 
-  const vector: Vector = {};
-  for (const [key, entry] of Object.entries(totals)) {
-    vector[key as keyof Vector] = clamp01(entry.sum / entry.n);
-  }
+/**
+ * "That's not quite right — I like…"
+ *
+ * The one place a reader can overrule the arithmetic, and it wins outright:
+ * four words typed on purpose are better evidence than five posters clicked
+ * in twenty seconds, and `believe` weights them accordingly.
+ *
+ * What it understood comes back as chips rather than being applied silently.
+ * A correction that vanishes into a black box and changes the answer for
+ * reasons nobody can see is worse than no correction at all — the reader
+ * cannot tell a good system from a broken one, so they assume the latter.
+ */
+export async function correctTaste(
+  state: { picked: string[]; shown: string[] },
+  text: string,
+): Promise<Correction | null> {
+  const said = text.trim().slice(0, 400);
+  if (said.length < 3) return null;
 
-  // Only the dimensions these films actually agree about. A trait list that
-  // includes everything says nothing, and the middle of a scale is not a
-  // preference.
-  const traits = DIMENSIONS.map((dimension) => {
-    const value = vector[dimension.key];
-    if (value === undefined) return null;
-    const distance = Math.abs(value - NEUTRAL);
-    return {
-      label: value >= NEUTRAL ? dimension.high : dimension.low,
-      strength: distance * 2,
-    };
-  })
-    .filter((row): row is NonNullable<typeof row> => row !== null && row.strength >= 0.2)
-    .sort((a, b) => b.strength - a.strength)
-    .slice(0, 4);
+  const { intent, source } = await interpret(said);
+  const stated = intent.soft;
 
-  // Evidence: two films the picks point at. Neighbours of the picks rather
-  // than a fresh recommendation, so the connection is visible.
-  const neighbours = await db.filmNeighbour.findMany({
-    where: { filmId: { in: ids }, neighbourId: { notIn: ids } },
-    orderBy: { score: "desc" },
-    take: 12,
-    select: { neighbour: { select: { slug: true, title: true, year: true, posterUrl: true } } },
+  const turn = await agentTurn({
+    picked: state.picked.slice(0, 8),
+    shown: state.shown.slice(-200),
+    stated,
+    needed: NEEDED,
   });
 
-  const suggestions = neighbours
-    .map((row) => row.neighbour)
-    .filter((film) => film.posterUrl)
-    .slice(0, 2);
+  return {
+    turn,
+    stated,
+    // Reference chips are dropped. In this context the five picks *are* the
+    // references, and the keyword reader's habit of finding a film title in
+    // "I like these but nothing bleak" produced a chip reading "like these".
+    chips: chipsFor(intent)
+      .filter((chip) => chip.kind !== "reference")
+      .map((chip) => ({ key: chip.key, label: chip.label })),
+    source,
+  };
+}
 
-  // Signed in: keep it. The picks become ordinary ratings, exactly as the
-  // onboarding flow writes them, so nothing downstream has to know they came
-  // from the homepage.
+/**
+ * Keep it — the only thing here that writes anything.
+ *
+ * Explicit on purpose. The earlier version wrote five ratings into a
+ * signed-in reader's account the moment the fifth poster was clicked, which
+ * meant a page they were playing with silently edited the record the rest of
+ * the site reasons from. Nobody asked for that, and the first symptom is a
+ * taste page full of films you do not remember rating.
+ */
+export async function keepTaste(picked: string[]): Promise<{ saved: number } | null> {
   const user = await getCurrentUser();
-  if (user) {
-    await db.$transaction(
-      ids.map((filmId) =>
-        db.rating.upsert({
-          where: { userId_filmId: { userId: user.id, filmId } },
-          create: { userId: user.id, filmId, overall: 8.7 },
-          update: {},
-        }),
-      ),
-    );
-  }
+  if (!user) return null;
 
-  return { traits, suggestions, saved: !!user };
+  const ids = [...new Set(picked)].slice(0, 8);
+  if (ids.length === 0) return { saved: 0 };
+
+  const films = await db.film.findMany({ where: { id: { in: ids } }, select: { id: true } });
+
+  await db.$transaction(
+    films.map((film) =>
+      db.rating.upsert({
+        where: { userId_filmId: { userId: user.id, filmId: film.id } },
+        // 8.7, not 10: "one of five I love" is a strong signal and not a
+        // perfect score, and an account seeded with five tens distorts every
+        // average this reader ever contributes to.
+        create: { userId: user.id, filmId: film.id, overall: 8.7 },
+        update: {},
+      }),
+    ),
+  );
+
+  await rebuildTaste(user.id);
+  revalidatePath("/watch/taste");
+  revalidatePath("/for-you");
+
+  return { saved: films.length };
 }
