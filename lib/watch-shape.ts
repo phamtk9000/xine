@@ -17,42 +17,57 @@ export type Question = {
   prompt: string;
   /** Moods combine; the rest are one answer each. */
   multiple?: boolean;
+  /**
+   * Whether this question is asked before anything has been shown.
+   *
+   * Only three are. The page's whole argument is that describing an evening
+   * beats filtering on metadata, and that argument is lost if describing the
+   * evening takes longer than scrolling a grid would have — five questions
+   * and nine sliders is a form, and nobody fills in a form to find out what
+   * to watch. Era and region are real preferences and they are not what
+   * anybody leads with, so they wait behind Fine tune with the sliders.
+   */
+  upfront?: boolean;
   options: { value: string; label: string; note?: string }[];
 };
+
+/** The three asked on arrival. Everything else is progressive disclosure. */
+export const UPFRONT_KEYS = ["mood", "party", "length"] as const;
 
 export const QUESTIONS: Question[] = [
   {
     key: "mood",
-    prompt: "How should it feel?",
+    prompt: "Tonight feels like…",
     multiple: true,
+    upfront: true,
     options: [
-      { value: "dark", label: "Dark", note: "Crime, thriller, horror" },
-      { value: "tender", label: "Tender", note: "Romance and drama" },
-      { value: "thrilling", label: "Thrilling", note: "Action and adventure" },
-      { value: "beautiful", label: "Beautiful", note: "Made to be looked at" },
-      { value: "funny", label: "Funny", note: "Comedy" },
-      { value: "strange", label: "Strange", note: "Science fiction, fantasy" },
+      { value: "dark", label: "Dark" },
+      { value: "tender", label: "Emotional" },
+      { value: "thrilling", label: "Thrilling" },
+      { value: "beautiful", label: "Beautiful" },
+      { value: "funny", label: "Funny" },
+      { value: "strange", label: "Strange" },
     ],
   },
   {
     key: "party",
-    prompt: "What kind of night?",
+    prompt: "I'm watching…",
+    upfront: true,
     options: [
-      { value: "alone", label: "Just me" },
-      { value: "date", label: "Date night" },
-      { value: "friends", label: "With friends" },
+      { value: "alone", label: "Alone" },
+      { value: "date", label: "Date" },
+      { value: "friends", label: "Friends" },
       { value: "family", label: "Family" },
-      { value: "background", label: "Background watch" },
-      { value: "focused", label: "I want to concentrate" },
     ],
   },
   {
     key: "length",
-    prompt: "How long have you got?",
+    prompt: "I have…",
+    upfront: true,
     options: [
-      { value: "short", label: "Quick watch", note: "Under 100 minutes" },
-      { value: "normal", label: "Normal evening", note: "100–140" },
-      { value: "long", label: "All night", note: "140+" },
+      { value: "short", label: "Under 100m" },
+      { value: "normal", label: "100–140m" },
+      { value: "long", label: "140m+" },
     ],
   },
   {

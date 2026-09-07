@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { DIMENSIONS, NEUTRAL, type DimensionKey, type Vector } from "@/lib/rec/dimensions";
+import { WatchQuestions, type Answers } from "@/components/watch-questions";
 
 /**
  * The sliders, for when a chip is not precise enough.
@@ -57,15 +58,24 @@ export function endingSoft(value: string | undefined): Vector {
 export function FineTune({
   fine,
   ending,
+  answers,
   onChange,
+  onAnswers,
   disabled = false,
 }: {
   fine: Vector;
   ending?: string;
+  /** The full answer set, so the deferred questions can live in here too. */
+  answers: Answers;
   onChange: (next: { fine: Vector; ending?: string }) => void;
+  onAnswers: (next: Answers) => void;
   disabled?: boolean;
 }) {
-  const touched = Object.keys(fine).length + (ending && ending !== "any" ? 1 : 0);
+  const touched =
+    Object.keys(fine).length +
+    (ending && ending !== "any" ? 1 : 0) +
+    (answers.era ? 1 : 0) +
+    (answers.place && answers.place !== "anywhere" ? 1 : 0);
 
   return (
     <details className="group mt-8 border-t border-line pt-6">
@@ -77,6 +87,18 @@ export function FineTune({
       </summary>
 
       <div className="mt-5 space-y-5">
+        {/* Era and region first: they are ordinary questions that simply are
+            not what anybody leads with, and burying real preferences below
+            nine sliders would be hiding them rather than deferring them. */}
+        <WatchQuestions
+          answers={answers}
+          onChange={onAnswers}
+          disabled={disabled}
+          only="deferred"
+        />
+
+        <div className="border-t border-line pt-5" />
+
         {SHOWN.map((key) => {
           const dimension = DIMENSIONS.find((d) => d.key === key)!;
           const value = fine[key];

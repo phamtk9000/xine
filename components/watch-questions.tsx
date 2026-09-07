@@ -32,11 +32,21 @@ export function WatchQuestions({
   answers,
   onChange,
   disabled = false,
+  only = "upfront",
 }: {
   answers: Answers;
   onChange: (next: Answers) => void;
   disabled?: boolean;
+  /**
+   * Which half to draw. The three upfront questions sit above the fold; era
+   * and region are drawn by the same component inside Fine tune, so the two
+   * halves cannot drift into looking like different controls.
+   */
+  only?: "upfront" | "deferred";
 }) {
+  const shown = QUESTIONS.filter((question) =>
+    only === "upfront" ? question.upfront : !question.upfront,
+  );
   function toggle(key: keyof Answers, value: string, multiple?: boolean) {
     if (multiple) {
       const current = (answers.mood ?? []) as string[];
@@ -54,7 +64,7 @@ export function WatchQuestions({
 
   return (
     <div className="space-y-8">
-      {QUESTIONS.map((question) => (
+      {shown.map((question) => (
         <fieldset key={question.key} disabled={disabled}>
           <legend className="label">{question.prompt}</legend>
           <div className="mt-3 flex flex-wrap gap-2">

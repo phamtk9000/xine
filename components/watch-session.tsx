@@ -64,6 +64,8 @@ export function WatchSession({
    * the page refusing to take no for an answer.
    */
   const [dismissedAt, setDismissedAt] = React.useState<number | null>(null);
+  /** Where the deck starts, so the button can take a phone to its answer. */
+  const deckRef = React.useRef<HTMLDivElement>(null);
 
   async function changeAnswers(next: Answers) {
     setAnswers(next);
@@ -77,10 +79,17 @@ export function WatchSession({
 
   async function submitQuery(event: React.FormEvent) {
     event.preventDefault();
-    if (!query.trim()) return;
     setThinking(true);
     try {
-      setDeck(await describeEvening(query, answers));
+      // Empty box is not an error. The button says "find me something", and
+      // the chips alone are a complete answer to that — refusing to act
+      // because nobody typed a sentence would punish the faster path.
+      setDeck(
+        query.trim()
+          ? await describeEvening(query, answers)
+          : await refine(answers),
+      );
+      deckRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     } finally {
       setThinking(false);
     }
@@ -151,9 +160,15 @@ export function WatchSession({
   return (
     <div className="grid gap-14 lg:grid-cols-[22rem_1fr] lg:gap-20">
       <div className="lg:sticky lg:top-24 lg:self-start">
-        <form onSubmit={submitQuery}>
+        {/* Three questions, then your own words, then the button. The order
+            is the argument: somebody who knows roughly what they want is done
+            in three taps, and the sentence is there for the evening that is
+            more specific than six chips can be — not as the price of entry. */}
+        <WatchQuestions answers={answers} onChange={changeAnswers} disabled={busy} />
+
+        <form onSubmit={submitQuery} className="mt-8 border-t border-line pt-6">
           <label className="label" htmlFor="watch-query">
-            Tell xine what you want
+            Or describe it yourself
           </label>
           <textarea
             id="watch-query"
@@ -165,16 +180,17 @@ export function WatchSession({
                 void submitQuery(event);
               }
             }}
-            rows={3}
-            placeholder="Something beautiful and sad, but not slow. Maybe Korean. Under two hours."
+            rows={2}
+            placeholder="Something like Gone Girl but less depressing"
             className="mt-3 w-full resize-none rounded-[3px] border border-line bg-ink-raised px-4 py-3 text-sm leading-relaxed placeholder:text-faint focus:border-line-bright focus:outline-none"
           />
+
           <button
             type="submit"
-            disabled={thinking || !query.trim()}
-            className="label mt-2 rounded-full border border-line px-4 py-2 transition-colors hover:border-line-bright hover:text-paper disabled:opacity-40"
+            disabled={thinking}
+            className="label mt-3 w-full rounded-full border border-gold bg-gold/10 px-5 py-3 !text-gold transition-colors hover:bg-gold/20 disabled:opacity-40"
           >
-            {thinking ? "Reading…" : "Read that"}
+            {thinking ? "Reading…" : "Find me something →"}
           </button>
         </form>
 
@@ -197,18 +213,16 @@ export function WatchSession({
           </div>
         )}
 
-        <div className="mt-10 border-t border-line pt-8">
-          <WatchQuestions answers={answers} onChange={changeAnswers} disabled={busy} />
-
-          <FineTune
-            fine={answers.fine ?? {}}
-            ending={answers.ending}
-            disabled={busy}
-            onChange={(next) =>
-              changeAnswers({ ...answers, fine: next.fine, ending: next.ending })
-            }
-          />
-        </div>
+        <FineTune
+          fine={answers.fine ?? {}}
+          ending={answers.ending}
+          answers={answers}
+          disabled={busy}
+          onChange={(next) =>
+            changeAnswers({ ...answers, fine: next.fine, ending: next.ending })
+          }
+          onAnswers={changeAnswers}
+        />
 
         <p className="mt-10 border-t border-line pt-5 text-xs leading-relaxed text-faint">
           Every answer is optional, and leaving one out is not the same as
@@ -217,7 +231,7 @@ export function WatchSession({
         </p>
       </div>
 
-      <div>
+      <div ref={deckRef}>
         {chosen ? (
           <Chosen card={chosen} onBack={() => setChosen(null)} />
         ) : deck?.finalists &&
