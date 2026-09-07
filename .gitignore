@@ -39,6 +39,11 @@ yarn-error.log*
 # local database
 *.db
 *.db-journal
+# WAL mode's sidecar files. The local database runs in WAL so that the
+# catalogue sweep and the derived-data builders can work at the same time
+# without blocking each other; these two are its runtime state.
+*.db-wal
+*.db-shm
 
 # generated prisma client
 /lib/generated
