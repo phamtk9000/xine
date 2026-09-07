@@ -5,6 +5,9 @@ import { FilmMarquee } from "@/components/film-marquee";
 import { TrendingCoverflow } from "@/components/trending-coverflow";
 import { RatingSplit } from "@/components/rating-split";
 import { MastheadBackdrop } from "@/components/masthead-backdrop";
+import { TastePrimer } from "@/components/taste-primer";
+import { primerShelf } from "@/app/actions/primer";
+import { getCurrentUser } from "@/lib/session";
 import { ImageShade } from "@/components/image-shade";
 import { RevealGroup } from "@/components/reveal-group";
 import { Mosaic } from "@/components/list-mosaic";
@@ -30,7 +33,7 @@ import { parseJson } from "@/lib/serialize";
 import { SHELVES } from "@/lib/collections";
 
 export default async function HomePage() {
-  const [articles, trending, newest, shelfLists, stats, activity] =
+  const [articles, trending, newest, shelfLists, stats, activity, primerFilms, viewer] =
     await Promise.all([
       listArticles(),
       // What the world is watching this week, per TMDB, resolved against the
@@ -57,6 +60,8 @@ export default async function HomePage() {
       }),
       catalogueStats(),
       recentActivity(8),
+      primerShelf(24),
+      getCurrentUser(),
     ]);
 
   // The ten shelves with their weight, in house order.
@@ -168,6 +173,19 @@ export default async function HomePage() {
               Browse the catalogue
             </ButtonLink>
           </div>
+        </Container>
+      </section>
+
+      {/* The site, performed rather than described.
+          Everything below this explains what xine is — a magazine, a
+          catalogue, a rating system, a recommender. All true, and none of it
+          answers the only question a first-time visitor has, which is why
+          they should hand over an email address. Five posters and a reading
+          answers it in twenty seconds, and asks for the account afterwards. */}
+      <section className="shaded border-b border-line bg-ink-sunk">
+        <Container className="py-14">
+          <SectionHeading label="Start here" title="Build your taste" />
+          <TastePrimer shelf={primerFilms} signedIn={!!viewer} />
         </Container>
       </section>
 
