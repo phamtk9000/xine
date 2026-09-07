@@ -172,7 +172,16 @@ function normalise(map: Map<string, number> | Map<number, number>) {
 
 export async function recommendFor(
   userId: string,
-  options: { take?: number } = {},
+  options: {
+    take?: number;
+    /**
+     * Films to keep out of the answer beyond the ones already judged —
+     * whatever is on screen, and anything the caller has its own reason to
+     * avoid. Refilling one slot in a grid means excluding the other
+     * seventeen, or the replacement is a film three rows up.
+     */
+    exclude?: string[];
+  } = {},
 ): Promise<Recommendation[]> {
   const take = options.take ?? 12;
 
@@ -227,6 +236,7 @@ export async function recommendFor(
     ...logs.map((l) => l.filmId),
     ...watchlist.map((w) => w.filmId),
     ...feedback.map((f) => f.film.id),
+    ...(options.exclude ?? []),
   ]);
 
   /**
@@ -634,29 +644,40 @@ export async function recommendFor(
  * genre strings that appear in them.
  */
 async function catalogueTotals() {
-  return memo("catalogue-totals", CATALOGUE_TTL, async () => {
+  // Cached as plain objects and rebuilt into Maps on the way out. The cache
+  // this sits behind is Next's, which serialises through JSON — a Map goes in
+  // and an empty object comes back, and the first thing to touch it dies on
+  // `totals.genre.get is not a function`. The in-process Map cache this
+  // replaced preserved object identity and hid the requirement entirely.
+  const cached = await memo("catalogue-totals", CATALOGUE_TTL, async () => {
     const [films, genreGroups, countryGroups] = await Promise.all([
       db.film.count(),
       db.film.groupBy({ by: ["genres"], _count: { _all: true } }),
       db.film.groupBy({ by: ["originCountry"], _count: { _all: true } }),
     ]);
 
-    const genre = new Map<string, number>();
-    const country = new Map<string, number>();
+    const genre: Record<string, number> = {};
+    const country: Record<string, number> = {};
 
     for (const row of genreGroups) {
       for (const value of fromCsv(row.genres)) {
-        genre.set(value, (genre.get(value) ?? 0) + row._count._all);
+        genre[value] = (genre[value] ?? 0) + row._count._all;
       }
     }
 
     for (const row of countryGroups) {
       const home = row.originCountry?.split(",")[0]?.trim();
-      if (home) country.set(home, (country.get(home) ?? 0) + row._count._all);
+      if (home) country[home] = (country[home] ?? 0) + row._count._all;
     }
 
     return { films, genre, country };
   });
+
+  return {
+    films: cached.films,
+    genre: new Map(Object.entries(cached.genre)),
+    country: new Map(Object.entries(cached.country)),
+  };
 }
 
 /** The editorial graph: films sharing a list with something they love. */

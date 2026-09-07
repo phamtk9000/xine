@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { ButtonLink, Container, EmptyState, PageHeader } from "@/components/ui";
-import { InterestButtons } from "@/components/interest-buttons";
+import { KeptActions } from "@/components/kept-actions";
 import { RecommendationGrid } from "@/components/recommendation-grid";
 import { Poster as PosterArt } from "@/components/poster";
 import { editorialPicks, keptFilms, recommendFor, tuningCount } from "@/lib/recommend";
@@ -113,7 +113,8 @@ export default async function ForYouPage() {
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
               Suggestions you said yes to. They are out of the rotation below,
               and everything they have in common is pulling on what appears
-              there.
+              there. Mark one watched when you have seen it, or remove it if
+              you have changed your mind.
             </p>
             <ul className="mt-6 flex gap-4 overflow-x-auto pb-2">
               {kept.map((film) => (
@@ -124,7 +125,7 @@ export default async function ForYouPage() {
                       {film.title}
                     </p>
                   </Link>
-                  <InterestButtons filmId={film.id} mine="yes" className="mt-2" />
+                  <KeptActions filmId={film.id} className="mt-2" />
                 </li>
               ))}
             </ul>

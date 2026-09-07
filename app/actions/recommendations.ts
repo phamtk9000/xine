@@ -3,16 +3,22 @@
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
 import { similarTo } from "@/lib/similar";
-import type { Recommendation } from "@/lib/recommend";
+import { recommendFor, type Recommendation } from "@/lib/recommend";
 
 export type InterestResult = {
   ok: boolean;
   verdict?: "yes" | "no" | null;
   message?: string;
-  /** Films to deal in behind a yes. */
-  more?: Recommendation[];
-  /** Ids on screen that a no should take with it. */
-  drop?: string[];
+  /**
+   * What takes the answered film's place in the grid.
+   *
+   * The same field for both verdicts, because the reader's mental model is
+   * the same either way: the card they answered goes, and something else
+   * arrives in its slot. Only where it is drawn from differs — a yes refills
+   * from that film's nearest neighbours, a no refills from anything the
+   * recommender likes that is *not* one of them.
+   */
+  replacement?: Recommendation | null;
 };
 
 /**
@@ -47,11 +53,8 @@ export async function setInterest(
   /**
    * What is currently on screen, so an answer can act on it.
    *
-   * A yes brings back the film's nearest neighbours to deal in beneath it,
-   * minus anything already visible; a no reports which of the visible films
-   * were suggested for the same reason, so they can go with it. Both are
-   * optional — the page works without either, they just make the press
-   * legible rather than silent.
+   * Whatever comes back has to avoid everything already on screen, or the
+   * slot refills with a film three rows up.
    */
   visible?: string[],
 ): Promise<InterestResult> {
@@ -76,22 +79,28 @@ export async function setInterest(
     update: { verdict },
   });
 
+  const onScreen = visible ?? [];
+
   if (verdict === "yes") {
-    // The neighbours, minus the film itself and anything already on screen.
-    const more = await similarTo(filmId, {
+    // Refill from the film's nearest neighbours: the reader liked this one,
+    // so the slot should argue that they will like something next to it.
+    const [replacement] = await similarTo(filmId, {
       userId: user.id,
-      exclude: visible ?? [],
-      take: 2,
+      exclude: onScreen,
+      take: 1,
     });
-    return { ok: true, verdict, more };
+    return { ok: true, verdict, replacement: replacement ?? null };
   }
 
-  // A no is worth more than one film's absence. Whatever else on screen was
-  // suggested for the same reason goes with it — that is what "fewer like
-  // this" has to mean to be worth pressing.
+  // Refill from anywhere except this film's neighbours. A no that produces
+  // something visibly similar reads as the page not listening, which is worse
+  // than not refilling at all — so the neighbours are excluded by name rather
+  // than hoped against.
   const neighbours = await similarTo(filmId, { take: 40 });
-  const near = new Set(neighbours.map((film) => film.id));
-  const drop = (visible ?? []).filter((id) => near.has(id));
+  const [replacement] = await recommendFor(user.id, {
+    take: 1,
+    exclude: [...onScreen, ...neighbours.map((film) => film.id)],
+  });
 
-  return { ok: true, verdict, drop };
+  return { ok: true, verdict, replacement: replacement ?? null };
 }

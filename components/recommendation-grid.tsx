@@ -16,15 +16,20 @@ import type { Recommendation } from "@/lib/recommend";
  * is a promise with no evidence behind it, and a reader has no reason to
  * keep pressing.
  *
- * So a yes deals in the film's nearest neighbours underneath it, marked as
- * having arrived because of it, and a no takes with it whatever else on
- * screen was suggested for the same reason. Both are the site showing its
- * working: the reason each film is there was always printed under its title,
- * and now pressing the button visibly acts on that reason.
+ * So an answer exchanges one card for another in the same slot. A yes refills
+ * from that film's nearest neighbours — the reader liked this, so here is
+ * what sits next to it — and a no refills from anything the recommender
+ * likes that is explicitly *not* one of them. Same slot either way, because
+ * the reader's mental model is the same either way: this one, not that one.
  *
- * Nothing is removed permanently on the client. A card a no took away is
- * held, not dropped, because Undo has to be able to put it back — the write
- * is one row and the gesture is fast enough to misfire.
+ * Replacing rather than appending keeps the grid's shape and the reader's
+ * place in it. A list that grows under every press moves everything below the
+ * card they just answered, which is the one thing they were looking at.
+ *
+ * Nothing is lost on the client. The film that was answered is remembered
+ * against the slot its replacement now occupies, so Undo puts it back exactly
+ * where it was rather than appending it to the end — the write is one row and
+ * the gesture is fast enough to misfire.
  */
 
 type Card = Recommendation & {
@@ -46,8 +51,11 @@ export function RecommendationGrid({
   const [verdicts, setVerdicts] = React.useState<
     Record<string, "yes" | "no" | undefined>
   >({});
-  /** Cards a no removed, kept so Undo can put them back where they were. */
-  const [removed, setRemoved] = React.useState<Record<string, Card[]>>({});
+  /**
+   * Which film took each answered film's slot, so Undo can put the original
+   * back exactly where it was rather than appending it to the end.
+   */
+  const [replaced, setReplaced] = React.useState<Record<string, string>>({});
   const [busy, setBusy] = React.useState<string | null>(null);
 
   const visible = cards.map((card) => card.id);
@@ -55,19 +63,22 @@ export function RecommendationGrid({
   async function press(card: Card, verdict: "yes" | "no") {
     const current = verdicts[card.id];
 
-    // Pressing the same answer again takes it back, and puts back anything
-    // that answer removed.
+    // Pressing the same answer again takes it back, and puts the film back in
+    // the slot whatever replaced it is sitting in.
     if (current === verdict) {
       setVerdicts((prev) => ({ ...prev, [card.id]: undefined }));
-      const restored = removed[card.id];
-      if (restored?.length) {
-        setCards((prev) => [...prev, ...restored]);
-        setRemoved((prev) => {
-          const next = { ...prev };
-          delete next[card.id];
-          return next;
-        });
-      }
+      setCards((prev) => {
+        const replacementId = replaced[card.id];
+        if (!replacementId) return prev;
+        return prev.map((row) =>
+          row.id === replacementId ? { ...card, because: undefined } : row,
+        );
+      });
+      setReplaced((prev) => {
+        const next = { ...prev };
+        delete next[card.id];
+        return next;
+      });
       if (signedIn) void setInterest(card.id, verdict);
       return;
     }
@@ -78,39 +89,26 @@ export function RecommendationGrid({
     setBusy(card.id);
     try {
       const result = await setInterest(card.id, verdict, visible);
+      const incoming = result.replacement;
+      if (!incoming) return;
 
-      if (verdict === "yes" && result.more?.length) {
-        // Dealt in directly under the card that earned them.
-        setCards((prev) => {
-          const at = prev.findIndex((row) => row.id === card.id);
-          if (at === -1) return prev;
-          const dealt: Card[] = result.more!.map((film) => ({
-            ...film,
-            mine: null,
-            watchlisted: false,
-            because: card.title,
-          }));
-          return [...prev.slice(0, at + 1), ...dealt, ...prev.slice(at + 1)];
-        });
-      }
-
-      if (verdict === "no" && result.drop?.length) {
-        // Never take away a card the reader has already answered. "Fewer
-        // like this" is about suggestions they have not looked at yet;
-        // removing something they just kept would be the site overruling
-        // them with their own press.
-        const going = new Set(
-          result.drop.filter((id) => !verdicts[id] && id !== card.id),
-        );
-        if (going.size === 0) return;
-        setCards((prev) => {
-          const taken = prev.filter((row) => going.has(row.id));
-          if (taken.length > 0) {
-            setRemoved((was) => ({ ...was, [card.id]: taken }));
-          }
-          return prev.filter((row) => !going.has(row.id));
-        });
-      }
+      // Straight into the slot the answered film was in, rather than appended
+      // or dealt in below. The grid keeps its shape, the reader's eye keeps
+      // its place, and the answer is legible as an exchange: this one, not
+      // that one.
+      setCards((prev) => {
+        const at = prev.findIndex((row) => row.id === card.id);
+        if (at === -1) return prev;
+        const next = [...prev];
+        next[at] = {
+          ...incoming,
+          mine: null,
+          watchlisted: false,
+          because: verdict === "yes" ? card.title : undefined,
+        };
+        return next;
+      });
+      setReplaced((prev) => ({ ...prev, [card.id]: incoming.id }));
     } finally {
       setBusy(null);
     }
@@ -132,7 +130,6 @@ export function RecommendationGrid({
     <ul className="grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
       {cards.map((card) => {
         const verdict = verdicts[card.id];
-        const took = removed[card.id]?.length ?? 0;
 
         return (
           <li key={card.id} className="flex gap-5">
@@ -194,13 +191,11 @@ export function RecommendationGrid({
 
               {verdict && (
                 <p className="mt-2 text-[0.6875rem] leading-relaxed text-faint">
-                  {verdict === "yes"
-                    ? busy === card.id
-                      ? "Finding more like it…"
-                      : "Kept, and pulling on what gets suggested next."
-                    : took > 0
-                      ? `Hidden, along with ${took} similar suggestion${took === 1 ? "" : "s"}.`
-                      : "Hidden from future suggestions."}{" "}
+                  {busy === card.id
+                    ? "Finding another…"
+                    : verdict === "yes"
+                      ? "Kept. Its neighbour took the slot."
+                      : "Hidden. Something unlike it took the slot."}{" "}
                   <button
                     type="button"
                     onClick={() => press(card, verdict)}

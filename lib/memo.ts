@@ -18,7 +18,14 @@ import { unstable_cache } from "next/cache";
  * whole property that was missing.
  *
  * The call signature is unchanged, so callers did not have to learn anything
- * about why it got faster.
+ * about why it got faster — with one exception they do have to know about.
+ *
+ * WHAT YOU CACHE MUST SURVIVE JSON. The data cache serialises, so a Map or a
+ * Set goes in and an empty object comes back, and the first line to call
+ * `.get` on it throws. The in-process Map this replaced preserved object
+ * identity and hid that requirement completely; swapping the mechanism turned
+ * a working recommender into `totals.genre.get is not a function`. Cache
+ * plain objects and arrays, and rebuild the richer types after the call.
  */
 
 /**
