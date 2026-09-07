@@ -207,12 +207,38 @@ export default async function FilmPage({ params }: PageProps<"/films/[slug]">) {
         </Container>
       </div>
 
+      {/* Why it matters, and only where somebody has actually said why.
+          A film xine has not written about gets nothing here rather than a
+          restated synopsis dressed as a judgement — the whole value of the
+          line is that it is an opinion, and an automatic one is not. */}
+      {sealQuote && (
+        <section className="border-b border-line bg-ink-sunk">
+          <Container className="py-12">
+            <p className="label !text-gold">Why it matters</p>
+            <p className="mt-4 max-w-3xl font-display text-2xl leading-snug sm:text-3xl">
+              {sealQuote}
+            </p>
+            {articles[0] && (
+              <Link
+                href={`/journal/${articles[0].slug}`}
+                className="label mt-5 inline-block transition-colors hover:text-paper"
+              >
+                Read the piece →
+              </Link>
+            )}
+          </Container>
+        </section>
+      )}
+
       <Container className="py-14">
         <div className="grid gap-12 lg:grid-cols-[1fr_22rem]">
           <div className="order-2 lg:order-1">
+            {/* The shape of the film comes before the credits and the lists.
+                What a film is like is the thing somebody is deciding on; who
+                shot it is the thing they look up afterwards. */}
             <section>
               <h2 className="label border-b border-line pb-3">
-                Community breakdown
+                The shape of the film
               </h2>
               {aggregate.count === 0 ? (
                 <p className="mt-5 text-sm text-muted">
@@ -222,9 +248,10 @@ export default async function FilmPage({ params }: PageProps<"/films/[slug]">) {
                 <div className="mt-6 max-w-xl">
                   <AxisBreakdown scores={aggregate.axes} />
                   <p className="mt-5 text-xs text-faint">
-                    Averaged across {aggregate.count} rating
-                    {aggregate.count === 1 ? "" : "s"}. Axes only count the
-                    people who filled them in.
+                    Five axes, averaged across {aggregate.count} rating
+                    {aggregate.count === 1 ? "" : "s"}. Each axis only counts
+                    the people who filled it in, so a film can be strongly
+                    rated on look and silent on sound.
                   </p>
                 </div>
               )}

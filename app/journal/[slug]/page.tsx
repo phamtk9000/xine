@@ -9,6 +9,9 @@ import { ReadingMarker } from "@/components/reading-marker";
 import { HeroCarousel, type Slide } from "@/components/hero-carousel";
 import { getArticle, listArticles } from "@/lib/journal";
 import { listFilms } from "@/lib/films";
+import { QuickRate } from "@/components/quick-rate";
+import { getCurrentUser } from "@/lib/session";
+import { db } from "@/lib/db";
 import { imageSize } from "@/lib/image-size";
 
 export async function generateStaticParams() {
@@ -40,12 +43,13 @@ export default async function ArticlePage({
   const article = await getArticle(slug);
   if (!article) notFound();
 
-  const [related, all, sizes] = await Promise.all([
+  const [related, all, sizes, viewer] = await Promise.all([
     article.films.length ? listFilms({ take: 200 }) : Promise.resolve([]),
     listArticles(),
     // Real dimensions per plate, so the carousel reserves the right box and
     // never letterboxes a portrait into a banner.
     Promise.all(article.images.map((image) => imageSize(image.src))),
+    getCurrentUser(),
   ]);
 
   const slides: Slide[] = article.images.map((image, i) => ({
@@ -56,6 +60,29 @@ export default async function ArticlePage({
 
   const linkedFilms = related.filter((f) => article.films.includes(f.slug));
   const more = all.filter((a) => a.slug !== article.slug).slice(0, 3);
+
+  // The reader's own scores for the films the piece is about, and the lists
+  // those films sit in. Both are edges that already exist in the data and
+  // were simply never drawn: an essay about a film is a natural place to
+  // rate it, and the lists are the argument the essay is joining.
+  const [mine, inLists] = await Promise.all([
+    viewer && linkedFilms.length
+      ? db.rating.findMany({
+          where: { userId: viewer.id, filmId: { in: linkedFilms.map((f) => f.id) } },
+          select: { filmId: true, overall: true },
+        })
+      : Promise.resolve([]),
+    linkedFilms.length
+      ? db.filmList.findMany({
+          where: { entries: { some: { filmId: { in: linkedFilms.map((f) => f.id) } } } },
+          orderBy: { position: "asc" },
+          take: 6,
+          select: { slug: true, title: true, _count: { select: { entries: true } } },
+        })
+      : Promise.resolve([]),
+  ]);
+
+  const myScore = new Map(mine.map((row) => [row.filmId, row.overall]));
 
   return (
     <article
@@ -146,11 +173,45 @@ export default async function ArticlePage({
         {linkedFilms.length > 0 && (
           <section className="mt-16 max-w-5xl">
             <p className="label">Films in this piece</p>
-            <div className="mt-5 grid grid-cols-2 gap-5 sm:grid-cols-3">
+            <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted">
+              Rate one here and it goes straight into your taste — the reading
+              on your profile, and what turns up on What to Watch.
+            </p>
+            <div className="mt-6 grid grid-cols-2 gap-5 sm:grid-cols-3">
               {linkedFilms.map((film) => (
-                <FilmCard key={film.id} film={film} />
+                <div key={film.id}>
+                  <FilmCard film={film} />
+                  <div className="mt-2">
+                    <QuickRate
+                      filmId={film.id}
+                      slug={film.slug}
+                      mine={myScore.get(film.id) ?? null}
+                      signedIn={!!viewer}
+                    />
+                  </div>
+                </div>
               ))}
             </div>
+
+            {inLists.length > 0 && (
+              <div className="mt-10 border-t border-line pt-6">
+                <p className="label">Arguments these films are already in</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {inLists.map((list) => (
+                    <Link
+                      key={list.slug}
+                      href={`/lists/${list.slug}`}
+                      className="label rounded-full border border-line px-3 py-1.5 !text-[0.5625rem] transition-colors hover:border-line-bright hover:!text-paper"
+                    >
+                      {list.title}
+                      <span className="readout ml-2 text-faint">
+                        {list._count.entries}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
           </section>
         )}
       </Container>
