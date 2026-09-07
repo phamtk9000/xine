@@ -149,26 +149,60 @@ export function PosterThumb({
   );
 }
 
-/** Wide variant for film pages and features. */
+/**
+ * The ambient wash behind a film page — its own artwork, out of focus.
+ *
+ * Blurred rather than sharp, and that is the whole point: a hero that prints
+ * the banner cleanly behind the title is competing with the poster three
+ * inches to its left, and the two of them fight. Thrown far out of focus the
+ * still stops being a picture and becomes light — the page for There Will Be
+ * Blood glows oil-fire orange, the one for Burning glows dusk blue, and
+ * neither one asks to be looked at.
+ *
+ * Falls back to the poster, because roughly five thousand films in the
+ * catalogue have poster art and no banner, and a film page with no light at
+ * all reads as a page that failed to load. At this blur radius the 2:3 crop
+ * is unrecognisable anyway; it is being used as a colour source, not as an
+ * image.
+ *
+ * The image is deliberately requested small. It is destined for a 64px blur,
+ * so a 1280-wide fetch buys nothing but bytes — and `ImageShade` samples this
+ * same element down to 24×24 to colour the rest of the page.
+ */
 export function Backdrop({
   film,
   className = "",
 }: {
-  film: { slug: string; title: string; backdropUrl?: string | null };
+  film: {
+    slug: string;
+    title: string;
+    backdropUrl?: string | null;
+    posterUrl?: string | null;
+  };
   className?: string;
 }) {
-  if (film.backdropUrl) {
+  const source = film.backdropUrl ?? film.posterUrl ?? null;
+
+  if (source) {
     return (
-      <div className={`relative overflow-hidden ${className}`}>
+      <div className={`overflow-hidden ${className}`} aria-hidden>
         <Image
-          src={film.backdropUrl}
+          src={source}
           alt=""
           fill
-          sizes="100vw"
-          className="object-cover"
+          sizes="640px"
           priority
+          // Scaled past the edges: a blur samples beyond its own bounds, so an
+          // unscaled image feathers to transparent at all four sides and the
+          // wash ends in a visible grey frame.
+          className="scale-125 object-cover opacity-80 blur-[64px]"
         />
-        <div className="absolute inset-0 bg-linear-to-t from-ink via-ink/40 to-transparent" />
+        {/* Two veils. The vertical one lands the wash on the page background
+            so the hero has no seam; the horizontal one darkens the side the
+            text sits on, which is what keeps 12px labels legible over a
+            bright frame. */}
+        <div className="absolute inset-0 bg-linear-to-t from-ink via-ink/40 to-ink/10" />
+        <div className="absolute inset-0 bg-linear-to-r from-ink/75 via-ink/15 to-transparent" />
       </div>
     );
   }
@@ -176,7 +210,7 @@ export function Backdrop({
   const { from, to } = plateColors(film.slug);
   return (
     <div
-      className={`relative overflow-hidden ${className}`}
+      className={`overflow-hidden ${className}`}
       style={{ background: `linear-gradient(120deg, ${from}, ${to})` }}
       aria-hidden
     >
