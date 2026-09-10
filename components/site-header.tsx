@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { Avatar } from "@/components/avatar";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
+import { useDismiss } from "@/lib/use-dismiss";
 import type { SessionUser } from "@/lib/session";
 
 /**
@@ -39,14 +40,20 @@ const NAV = NAV_GROUPS.flatMap((group) => group.items);
 export function SiteHeader({ user }: { user: SessionUser | null }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const shell = useRef<HTMLElement>(null);
 
   // The sheet closes on tap rather than in an effect keyed to the pathname —
   // same result, no cascading render, and it also closes when you tap the
   // route you are already on.
-  const close = () => setOpen(false);
+  const close = useCallback(() => setOpen(false), []);
+
+  // …and on Escape, and on a press anywhere off the header. The sheet is the
+  // full width of the page, so "outside" means outside the header entirely
+  // rather than outside the panel.
+  useDismiss(shell, open, close);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-line bg-ink/85 backdrop-blur-md">
+    <header ref={shell} className="sticky top-0 z-50 border-b border-line bg-ink/85 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-[1400px] items-center gap-8 px-5 sm:px-8">
         <Link
           href="/"

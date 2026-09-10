@@ -107,6 +107,8 @@ export function RatingForm({
           }}
           className="mt-4 w-full accent-[var(--color-gold)]"
           aria-label="Overall rating"
+          // Hands the pointer back — see the note in popcorn-cursor.tsx.
+          data-precise
         />
 
         <button

@@ -94,9 +94,18 @@ export function PopcornCursor() {
     style.textContent = `
       body, body * { cursor: ${CURSOR}; }
       input, textarea, select, [contenteditable="true"] { cursor: text; }
-      button, a, summary, label, [role="button"], input[type="range"],
-      input[type="checkbox"], input[type="radio"] { cursor: ${CURSOR}; }
+      button, a, summary, label, [role="button"], input[type="checkbox"],
+      input[type="radio"] { cursor: ${CURSOR}; }
       :disabled { cursor: not-allowed; }
+
+      /* Precision work: the carton stands down. Anywhere a reader is aiming
+         at something a few pixels wide — the ten-step rating scale, a
+         slider — a 32px graphic sitting under the pointer hides the target,
+         and the hotspot being at its top-left corner stops being a help and
+         starts being a thing to compensate for. Rating is the single most
+         valuable action on this site; it does not get to be the fiddliest. */
+      [data-precise], [data-precise] * { cursor: pointer; }
+      input[type="range"], [data-precise] input[type="range"] { cursor: ew-resize; }
     `;
     document.head.append(style);
 
@@ -104,6 +113,12 @@ export function PopcornCursor() {
       // Left button only: a right-click opens a menu, and confetti under a
       // context menu is somebody else's idea of a good time.
       if (event.button !== 0) return;
+
+      // And not over a precision control. Seven kernels flying out of the
+      // tick you just pressed cover the answer at the exact moment you are
+      // checking it landed.
+      const target = event.target;
+      if (target instanceof Element && target.closest("[data-precise]")) return;
 
       const burst = document.createElement("div");
       burst.className = "popcorn-burst";

@@ -159,11 +159,11 @@ export function PosterThumb({
  * Blood glows oil-fire orange, the one for Burning glows dusk blue, and
  * neither one asks to be looked at.
  *
- * The blur is soft focus, not obliteration. Sixty-four pixels of it turned
- * every backdrop into an abstract wash with no image left in it; eighteen
- * keeps the frame readable as a place — you can see it is a derrick, a lawn,
- * a corridor — while still sitting behind the type rather than competing
- * with it.
+ * The blur is depth of field, not obliteration. Sixty-four pixels of it
+ * turned every backdrop into an abstract wash with no image left in it, and
+ * eighteen was still reading as fog. Nine is a frame shot at a wide aperture:
+ * the still is plainly there — a derrick, a lawn, a corridor — and stays out
+ * of the way because it is out of focus, not because it has been erased.
  *
  * Falls back to the poster, because roughly five thousand films in the
  * catalogue have poster art and no banner, and a film page with no light at
@@ -202,7 +202,7 @@ export function Backdrop({
           // unscaled image feathers to transparent at all four sides and the
           // wash ends in a visible grey frame.
           className={`object-cover ${
-            wide ? "scale-110 opacity-85 blur-[18px]" : "scale-125 opacity-70 blur-[40px]"
+            wide ? "scale-105 opacity-90 blur-[9px]" : "scale-125 opacity-70 blur-[36px]"
           }`}
         />
         {/* Two veils. The vertical one lands the wash on the page background
