@@ -159,15 +159,20 @@ export function PosterThumb({
  * Blood glows oil-fire orange, the one for Burning glows dusk blue, and
  * neither one asks to be looked at.
  *
+ * The blur is soft focus, not obliteration. Sixty-four pixels of it turned
+ * every backdrop into an abstract wash with no image left in it; eighteen
+ * keeps the frame readable as a place — you can see it is a derrick, a lawn,
+ * a corridor — while still sitting behind the type rather than competing
+ * with it.
+ *
  * Falls back to the poster, because roughly five thousand films in the
  * catalogue have poster art and no banner, and a film page with no light at
- * all reads as a page that failed to load. At this blur radius the 2:3 crop
- * is unrecognisable anyway; it is being used as a colour source, not as an
- * image.
- *
- * The image is deliberately requested small. It is destined for a 64px blur,
- * so a 1280-wide fetch buys nothing but bytes — and `ImageShade` samples this
- * same element down to 24×24 to colour the rest of the page.
+ * all reads as a page that failed to load. That fallback keeps the heavy
+ * blur, and the difference is not fussiness: a banner is a frame from the
+ * film and survives being looked at, whereas a poster is a designed object
+ * with type and billing on it. Stretch one across a wide hero at soft focus
+ * and what shows through is smeared lettering — obviously a poster, obviously
+ * in the wrong place. At forty pixels it goes back to being colour.
  */
 export function Backdrop({
   film,
@@ -182,6 +187,7 @@ export function Backdrop({
   className?: string;
 }) {
   const source = film.backdropUrl ?? film.posterUrl ?? null;
+  const wide = Boolean(film.backdropUrl);
 
   if (source) {
     return (
@@ -190,19 +196,21 @@ export function Backdrop({
           src={source}
           alt=""
           fill
-          sizes="640px"
+          sizes="100vw"
           priority
           // Scaled past the edges: a blur samples beyond its own bounds, so an
           // unscaled image feathers to transparent at all four sides and the
           // wash ends in a visible grey frame.
-          className="scale-125 object-cover opacity-80 blur-[64px]"
+          className={`object-cover ${
+            wide ? "scale-110 opacity-85 blur-[18px]" : "scale-125 opacity-70 blur-[40px]"
+          }`}
         />
         {/* Two veils. The vertical one lands the wash on the page background
             so the hero has no seam; the horizontal one darkens the side the
             text sits on, which is what keeps 12px labels legible over a
             bright frame. */}
         <div className="absolute inset-0 bg-linear-to-t from-ink via-ink/40 to-ink/10" />
-        <div className="absolute inset-0 bg-linear-to-r from-ink/75 via-ink/15 to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-r from-ink/75 via-ink/20 to-ink/10" />
       </div>
     );
   }
