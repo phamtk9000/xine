@@ -27,6 +27,7 @@
     "genres:normalise": "tsx scripts/normalise-genres.ts",
     "accounts:grandfather": "tsx scripts/grandfather-verified.ts",
     "accounts:check": "tsx scripts/check-account.ts",
+    "accounts:reset-password": "tsx scripts/reset-password.ts",
     "films:all": "tsx scripts/import-all.ts",
     "films:push": "tsx scripts/sync-films.ts",
     "films:embed": "tsx scripts/build-embeddings.ts",
