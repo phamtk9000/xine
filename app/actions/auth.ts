@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import {
   createSession,
   destroySession,
+  getCurrentUser,
   hashPassword,
   verifyPassword,
 } from "@/lib/session";
@@ -171,6 +172,64 @@ export async function resendVerification(
   }
 
   return { resent: true, sent: { delivered: true, devUrl } };
+}
+
+export type PasswordState = { error?: string; ok?: boolean } | null;
+
+const passwordSchema = z
+  .object({
+    current: z.string().min(1, "Enter your current password"),
+    next: z.string().min(8, "Use at least 8 characters").max(200),
+    confirm: z.string(),
+  })
+  .refine((value) => value.next === value.confirm, {
+    message: "The two new passwords don't match",
+  })
+  .refine((value) => value.next !== value.current, {
+    message: "That's the password you already have",
+  });
+
+/**
+ * Change your password while signed in.
+ *
+ * The current password is required even though there is already a session.
+ * A session is a cookie, and a cookie is exactly what is left behind on a
+ * shared laptop; without this check, anybody who sat down at one could lock
+ * the owner out of their own account in ten seconds.
+ *
+ * Every other session ends here — see `stamp` in lib/session.ts — and this
+ * one is re-issued under the new password so the person who just changed it
+ * is not thrown out along with everybody else.
+ */
+export async function changePassword(
+  _prev: PasswordState,
+  formData: FormData,
+): Promise<PasswordState> {
+  const session = await getCurrentUser();
+  if (!session) return { error: "Sign in first" };
+
+  const parsed = passwordSchema.safeParse({
+    current: formData.get("current"),
+    next: formData.get("next"),
+    confirm: formData.get("confirm"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const user = await db.user.findUnique({
+    where: { id: session.id },
+    select: { passwordHash: true },
+  });
+  if (!user || !(await verifyPassword(parsed.data.current, user.passwordHash))) {
+    return { error: "Your current password isn't right" };
+  }
+
+  await db.user.update({
+    where: { id: session.id },
+    data: { passwordHash: await hashPassword(parsed.data.next) },
+  });
+  await createSession(session.id);
+
+  return { ok: true };
 }
 
 export async function signOut() {

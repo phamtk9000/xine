@@ -1,4 +1,5 @@
 import "server-only";
+import { createHash } from "node:crypto";
 import { cookies } from "next/headers";
 import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
@@ -29,8 +30,33 @@ export async function verifyPassword(password: string, hash: string) {
   return bcrypt.compare(password, hash);
 }
 
+/**
+ * A short fingerprint of the password hash, carried in every session token.
+ *
+ * Sessions are signed tokens with no table behind them, which is cheap and
+ * has one serious gap: nothing can revoke one. Change your password because
+ * it leaked, and whoever signed in with the old one stays signed in for up to
+ * thirty days. So each token records which password it was issued under, and
+ * `getCurrentUser` refuses any token whose fingerprint no longer matches.
+ * Changing the password changes the hash — bcrypt salts every hash, so even
+ * re-using the same password produces a new one — and every other session
+ * dies at once.
+ *
+ * A digest of the hash rather than the hash itself: a cookie is not the place
+ * for anything an attacker could run a dictionary against.
+ */
+function stamp(passwordHash: string) {
+  return createHash("sha256").update(passwordHash).digest("hex").slice(0, 16);
+}
+
 export async function createSession(userId: string) {
-  const token = await new SignJWT({ sub: userId })
+  const owner = await db.user.findUnique({
+    where: { id: userId },
+    select: { passwordHash: true },
+  });
+  if (!owner) throw new Error("No such user");
+
+  const token = await new SignJWT({ sub: userId, pw: stamp(owner.passwordHash) })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(`${MAX_AGE}s`)
@@ -70,9 +96,20 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
         displayName: true,
         email: true,
         avatar: true,
+        passwordHash: true,
       },
     });
-    return user;
+    if (!user) return null;
+
+    // Issued under a password that has since changed — or before tokens
+    // carried a fingerprint at all, which signs everybody out once when this
+    // ships. That is deliberate: the reason to add revocation was a password
+    // that had leaked, and a grace period for old tokens is exactly the gap
+    // an attacker holding one would use.
+    if (payload.pw !== stamp(user.passwordHash)) return null;
+
+    const { passwordHash: _, ...session } = user;
+    return session;
   } catch {
     // Expired or tampered-with token. Treat as signed out rather than throwing;
     // the cookie gets replaced on the next sign-in.
