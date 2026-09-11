@@ -8,6 +8,7 @@ import { db } from "@/lib/db";
  * Set a member's password from the terminal, for when they cannot sign in.
  *
  *   npm run accounts:reset-password -- someone@example.com
+ *   npm run accounts:reset-password -- @username
  *   TURSO_DATABASE_URL=libsql://… TURSO_AUTH_TOKEN=… npm run accounts:reset-password -- …
  *
  * The site has no "forgot password" link, and could not honour one if it
@@ -44,11 +45,13 @@ function ask(question: string, hidden: boolean): Promise<string> {
 }
 
 async function main() {
-  const email = (process.argv[2] ?? "").trim().toLowerCase();
-  if (!email) {
-    console.error("Usage: npm run accounts:reset-password -- someone@example.com");
+  const arg = (process.argv[2] ?? "").trim().toLowerCase();
+  if (!arg) {
+    console.error("Usage: npm run accounts:reset-password -- someone@example.com | @username");
     process.exit(1);
   }
+  const byUsername = arg.startsWith("@") || !arg.includes("@");
+  const lookup = byUsername ? { username: arg.replace(/^@/, "") } : { email: arg };
   if (!process.stdin.isTTY) {
     console.error("Run this in a terminal. The password is typed at a hidden prompt, never piped or passed in.");
     process.exit(1);
@@ -56,15 +59,15 @@ async function main() {
 
   const where = process.env.TURSO_DATABASE_URL ? "production" : "local dev.db";
   const user = await db.user.findUnique({
-    where: { email },
-    select: { id: true, username: true },
+    where: lookup,
+    select: { id: true, username: true, email: true },
   });
   if (!user) {
-    console.error(`No account for ${email} in ${where}.`);
+    console.error(`No account for ${arg} in ${where}.`);
     process.exit(1);
   }
 
-  console.log(`Setting a new password for @${user.username} in ${where}.`);
+  console.log(`Setting a new password for @${user.username} (${user.email}) in ${where}.`);
   const first = await ask("New password (hidden): ", true);
   if (first.length < 8) {
     console.error("Use at least 8 characters. Nothing was changed.");
@@ -81,7 +84,7 @@ async function main() {
     data: { passwordHash: await bcrypt.hash(first, COST) },
   });
 
-  console.log(`Done. @${user.username} can sign in with the new password; every other session has ended.`);
+  console.log(`Done. Sign in as ${user.email} with the new password; every other session has ended.`);
 }
 
 main();

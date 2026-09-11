@@ -9,7 +9,12 @@ const mailConfigured = () => Boolean(process.env.RESEND_API_KEY);
  * Why can this person not sign in?
  *
  *   npm run accounts:check -- someone@example.com
+ *   npm run accounts:check -- @username
  *   TURSO_DATABASE_URL=libsql://… TURSO_AUTH_TOKEN=… npm run accounts:check -- …
+ *
+ * By username as well as email, because the commonest reason somebody cannot
+ * sign in is that they are typing a different address from the one on the
+ * account — and then looking it up by that address finds nothing.
  *
  * Sign-in fails for four reasons and the page deliberately cannot tell you
  * which: saying "no account with that email" to a stranger turns the form
@@ -23,11 +28,13 @@ const mailConfigured = () => Boolean(process.env.RESEND_API_KEY);
  */
 
 async function main() {
-  const email = (process.argv[2] ?? "").trim().toLowerCase();
-  if (!email) {
-    console.error("Usage: npm run accounts:check -- someone@example.com");
+  const arg = (process.argv[2] ?? "").trim().toLowerCase();
+  if (!arg) {
+    console.error("Usage: npm run accounts:check -- someone@example.com | @username");
     process.exit(1);
   }
+  const byUsername = arg.startsWith("@") || !arg.includes("@");
+  const lookup = byUsername ? { username: arg.replace(/^@/, "") } : { email: arg };
 
   const where = process.env.TURSO_DATABASE_URL ? "production" : "local dev.db";
   console.log(`Looking in ${where}.`);
@@ -38,7 +45,7 @@ async function main() {
   );
 
   const user = await db.user.findUnique({
-    where: { email },
+    where: lookup,
     select: {
       id: true,
       email: true,
@@ -50,13 +57,14 @@ async function main() {
   });
 
   if (!user) {
-    console.log(`\nNo account for ${email} in ${where}.`);
+    console.log(`\nNo account for ${arg} in ${where}.`);
     const total = await db.user.count();
     console.log(`This database holds ${total} account${total === 1 ? "" : "s"}.`);
     return;
   }
 
   console.log(`\nAccount found: @${user.username}, created ${user.createdAt.toISOString()}`);
+  console.log(`  email on file: ${user.email}  ← sign in with exactly this`);
   console.log(`  password on file: ${user.passwordHash ? "yes" : "NO — cannot sign in"}`);
   console.log(
     user.emailVerified
